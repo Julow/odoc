@@ -202,11 +202,13 @@ let section_heading
   let content = non_link_inline_elements status ~surrounding:heading content in
 
   let label =
+    let label_of_string s =
+      `Label (status.parent_of_sections, Odoc_model.Names.LabelName.of_string s)
+    in
     match label with
-    | Some label -> label
-    | None -> generate_heading_label content
+    | Some label -> `Present, label_of_string label
+    | None -> `Default, label_of_string (generate_heading_label content)
   in
-  let label = `Label (status.parent_of_sections, Odoc_model.Names.LabelName.of_string label) in
 
   match status.sections_allowed, level with
   | `None, _any_level ->

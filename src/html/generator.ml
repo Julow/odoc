@@ -978,7 +978,7 @@ struct
              table of contents. *)
           let html = Html.section nested_section_state.acc_html in
 
-          let `Label (_, label) = label in
+          let _, `Label (_, label) = label in
           let toc_entry =
             {
               anchor = Odoc_model.Names.LabelName.to_string label;

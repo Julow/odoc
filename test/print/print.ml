@@ -332,8 +332,10 @@ struct
 
   let block_element : Comment.block_element -> sexp = function
     | #Comment.nestable_block_element as e -> nestable_block_element e
-    | `Heading (level, label, es) ->
-      let label = List [Atom "label"; Identifier_to_sexp.identifier (label :> Odoc_model.Paths.Identifier.t)] in
+    | `Heading (level, (label_present, label_id), es) ->
+      let label_id = Identifier_to_sexp.identifier (label_id :> Odoc_model.Paths.Identifier.t) in
+      let label_present = match label_present with `Present -> "present" | `Default -> "default" in
+      let label = List [Atom "label"; Atom label_present; label_id] in
       let level =
         match level with
         | `Title -> "0"

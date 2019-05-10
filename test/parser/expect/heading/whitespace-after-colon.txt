@@ -1,7 +1,7 @@
 ((output
   (((f.ml (1 0) (1 12))
     (2
-     (label
+     (label default
       ((root (f.ml (page f.ml) 00000000000000000000000000000000) f.ml)
        (label foo-bar)))
      (((f.ml (1 4) (1 7)) (word foo)) ((f.ml (1 7) (1 8)) space)

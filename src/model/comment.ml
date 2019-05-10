@@ -5,7 +5,6 @@ module Identifier = Paths.Identifier
 type 'a with_location = 'a Location_.with_location
 
 
-
 type style = [
   | `Bold
   | `Italic
@@ -80,9 +79,11 @@ type heading_level = [
   | `Subparagraph
 ]
 
+type heading_label = [ `Present | `Default ] * Identifier.Label.t
+
 type block_element = [
   | nestable_block_element
-  | `Heading of heading_level * Identifier.Label.t * link_content
+  | `Heading of heading_level * heading_label * link_content
   | `Tag of tag
 ]
 

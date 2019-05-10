@@ -371,7 +371,7 @@ let block_element
   | `Heading (level, label, content) ->
     (* TODO Simplify the id/label formatting. *)
     let attributes =
-      let `Label (_, label) = label in
+      let _, `Label (_, label) = label in
       [Html.a_id (Odoc_model.Names.LabelName.to_string label)]
     in
     let a = attributes in
@@ -379,7 +379,7 @@ let block_element
     let content =
       (non_link_inline_element_list content :> (phrasing Html.elt) list) in
     let content =
-      let `Label (_, label) = label in
+      let _, `Label (_, label) = label in
       let anchor =
         Html.a ~a:[Html.a_href ("#" ^ (Odoc_model.Names.LabelName.to_string label)); Html.a_class ["anchor"]] [] in
       anchor::content

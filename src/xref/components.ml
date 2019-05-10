@@ -144,7 +144,7 @@ let make_tbl (type a) (equal : (a -> a -> bool) option)
 let documentation_labels acc doc =
   List.fold_left (fun acc element ->
     match element.Odoc_model.Location_.value with
-    | `Heading (_, label, nested_text) ->
+    | `Heading (_, (_, label), nested_text) ->
       let name = Identifier.name label in
       (name, nested_text)::acc
     | _ -> acc)
