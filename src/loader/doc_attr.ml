@@ -1,5 +1,3 @@
-open Result
-
 (*
  * Copyright (c) 2014 Leo White <lpw25@cl.cam.ac.uk>
  *
@@ -42,9 +40,8 @@ let load_payload : Parsetree.payload -> (string * Location.t) option = function
     None
 
 let attached parent attrs =
-  let ocaml_deprecated = ref None in
-  let rec loop first nb_deprecated acc
-      : _ -> (Odoc_model.Comment.docs, Odoc_model.Error.t) result =
+  let rec loop first acc
+      : _ -> Odoc_model.Comment.docs =
     function
 #if OCAML_MAJOR = 4 && OCAML_MINOR >= 08
     | {Parsetree.attr_name = { Location.txt =
@@ -66,19 +63,14 @@ let attached parent attrs =
                 ~text:str
               |> Odoc_model.Error.shed_warnings
             in
-            loop false 0 (acc @ parsed) rest
+            loop false (acc @ parsed) rest
           end
         | None -> (* TODO *) assert false
       end
-    | _ :: rest -> loop first nb_deprecated acc rest
-    | [] -> begin
-        match nb_deprecated, !ocaml_deprecated with
-        | 0, Some _tag -> Ok acc
-        | _, _ -> Ok acc
-      end
+    | _ :: rest -> loop first acc rest
+    | [] -> acc
   in
-    loop true 0 empty_body attrs
-  |> Odoc_model.Error.to_exception
+  loop true empty_body attrs
 
 let read_string parent loc str : Odoc_model.Comment.docs_or_stop =
   let start_pos = loc.Location.loc_start in
