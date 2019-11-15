@@ -82,6 +82,10 @@ let accumulate_warnings f =
 let warning accumulator error =
   accumulator := error::!accumulator
 
+let warnings accumulator {value; warnings} =
+  accumulator := List.rev_append warnings !accumulator;
+  value
+
 (* TODO This is a temporary measure until odoc is ported to handle warnings
    throughout. *)
 let shed_warnings with_warnings =

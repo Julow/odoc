@@ -19,4 +19,5 @@ type warning_accumulator
 
 val accumulate_warnings : (warning_accumulator -> 'a) -> 'a with_warnings
 val warning : warning_accumulator -> t -> unit
+val warnings : warning_accumulator -> 'a with_warnings -> 'a
 val shed_warnings : 'a with_warnings -> 'a
