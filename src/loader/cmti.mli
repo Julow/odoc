@@ -22,11 +22,12 @@ module Ident_env = Odoc_model.Ident_env
 
 
 val read_interface: Odoc_model.Root.t -> string -> Typedtree.signature ->
-  Paths.Identifier.Module.t *
-  Odoc_model.Comment.docs *
-  Odoc_model.Lang.Signature.t
+  (Paths.Identifier.Module.t *
+   Odoc_model.Comment.docs *
+   Odoc_model.Lang.Signature.t) Odoc_model.Error.with_warnings
 
 val read_module_type :
+  warnings:Odoc_model.Error.warning_accumulator ->
   Ident_env.t ->
   Paths.Identifier.Signature.t ->
   Paths.Identifier.LabelParent.t ->
@@ -34,21 +35,29 @@ val read_module_type :
   Typedtree.module_type ->
     Odoc_model.Lang.ModuleType.expr
 
-val read_value_description : Ident_env.t ->
+val read_value_description :
+  warnings:Odoc_model.Error.warning_accumulator ->
+  Ident_env.t ->
   Paths.Identifier.Signature.t ->
   Typedtree.value_description -> Odoc_model.Lang.Signature.item
 
-val read_type_declarations : Ident_env.t ->
+val read_type_declarations :
+  warnings:Odoc_model.Error.warning_accumulator ->
+  Ident_env.t ->
   Paths.Identifier.Signature.t ->
   Odoc_model.Lang.Signature.recursive ->
   Typedtree.type_declaration list ->
   Odoc_model.Lang.Signature.item list
 
-val read_module_type_declaration : Ident_env.t ->
+val read_module_type_declaration :
+  warnings:Odoc_model.Error.warning_accumulator ->
+  Ident_env.t ->
   Paths.Identifier.Signature.t ->
   Typedtree.module_type_declaration -> Odoc_model.Lang.ModuleType.t
 
-val read_class_type_declarations : Ident_env.t ->
+val read_class_type_declarations :
+  warnings:Odoc_model.Error.warning_accumulator ->
+  Ident_env.t ->
   Paths.Identifier.Signature.t ->
   Typedtree.class_type Typedtree.class_infos list ->
   Odoc_model.Lang.Signature.item list

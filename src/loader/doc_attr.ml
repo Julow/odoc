@@ -39,9 +39,8 @@ let load_payload : Parsetree.payload -> (string * Location.t) option = function
   | _ ->
     None
 
-let attached parent attrs =
-  let rec loop first acc
-      : _ -> Odoc_model.Comment.docs =
+let attached ~warnings parent attrs =
+  let rec loop first acc =
     function
 #if OCAML_MAJOR = 4 && OCAML_MINOR >= 08
     | {Parsetree.attr_name = { Location.txt =
@@ -61,7 +60,7 @@ let attached parent attrs =
                 ~containing_definition:parent
                 ~location:start_pos
                 ~text:str
-              |> Odoc_model.Error.shed_warnings
+              |> Odoc_model.Error.warnings warnings
             in
             loop false (acc @ parsed) rest
           end
@@ -72,7 +71,7 @@ let attached parent attrs =
   in
   loop true empty_body attrs
 
-let read_string parent loc str : Odoc_model.Comment.docs_or_stop =
+let read_string ~warnings parent loc str : Odoc_model.Comment.docs_or_stop =
   let start_pos = loc.Location.loc_start in
   let doc : Odoc_model.Comment.docs =
     Odoc_parser.parse_comment
@@ -80,13 +79,13 @@ let read_string parent loc str : Odoc_model.Comment.docs_or_stop =
       ~containing_definition:parent
       ~location:start_pos
       ~text:str
-    |> Odoc_model.Error.shed_warnings
+    |> Odoc_model.Error.warnings warnings
   in
   `Docs doc
 
 let page = read_string
 
-let standalone parent
+let standalone ~warnings parent
     : Parsetree.attribute -> Odoc_model.Comment.docs_or_stop option =
 
   function
@@ -104,7 +103,7 @@ let standalone parent
           { loc with
             loc_start = { loc.loc_start with pos_cnum = loc.loc_start.pos_cnum + 3 } }
         in
-        Some (read_string parent loc' str)
+        Some (read_string ~warnings parent loc' str)
       | None ->
         (* TODO *)
         assert false
@@ -114,11 +113,11 @@ let standalone parent
     end
   | _ -> None
 
-let standalone_multiple parent attrs =
+let standalone_multiple ~warnings parent attrs =
   let coms =
     List.fold_left
       (fun acc attr ->
-        match standalone parent attr  with
+        match standalone ~warnings parent attr  with
          | None -> acc
          | Some com -> com :: acc)
       [] attrs

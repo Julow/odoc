@@ -22,9 +22,9 @@ module Ident_env = Odoc_model.Ident_env
 
 
 val read_interface: Odoc_model.Root.t -> string -> Odoc_model.Compat.signature ->
-  Paths.Identifier.Module.t *
-  Odoc_model.Comment.docs *
-  Odoc_model.Lang.Signature.t
+  (Paths.Identifier.Module.t *
+   Odoc_model.Comment.docs *
+   Odoc_model.Lang.Signature.t) Odoc_model.Error.with_warnings
 
 #if OCAML_MAJOR = 4 && OCAML_MINOR = 02
 val read_label : Asttypes.label -> Odoc_model.Lang.TypeExpr.label option
@@ -62,19 +62,23 @@ val read_class_type : Ident_env.t ->
                       Types.type_expr list -> Types.class_type ->
                       Odoc_model.Lang.Class.decl
 
-val read_module_type : Ident_env.t ->
+val read_module_type : warnings:Odoc_model.Error.warning_accumulator ->
+                       Ident_env.t ->
                        Paths.Identifier.Signature.t -> int ->
                        Odoc_model.Compat.module_type -> Odoc_model.Lang.ModuleType.expr
 
-val read_signature : Ident_env.t ->
+val read_signature : warnings:Odoc_model.Error.warning_accumulator ->
+                     Ident_env.t ->
                      Paths.Identifier.Signature.t ->
                      Odoc_model.Compat.signature -> Odoc_model.Lang.Signature.t
 
-val read_extension_constructor : Ident_env.t ->
+val read_extension_constructor : warnings:Odoc_model.Error.warning_accumulator ->
+                       Ident_env.t ->
                        Paths.Identifier.Signature.t ->
                        Ident.t -> Types.extension_constructor ->
                        Odoc_model.Lang.Extension.Constructor.t
 
-val read_exception : Ident_env.t ->
+val read_exception : warnings:Odoc_model.Error.warning_accumulator ->
+  Ident_env.t ->
   Paths.Identifier.Signature.t -> Ident.t ->
   Types.extension_constructor -> Odoc_model.Lang.Exception.t

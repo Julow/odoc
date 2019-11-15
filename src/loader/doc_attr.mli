@@ -23,11 +23,13 @@ module Paths = Odoc_model.Paths
 val empty : Odoc_model.Comment.docs
 
 val attached :
+  warnings:Odoc_model.Error.warning_accumulator ->
   Paths.Identifier.LabelParent.t ->
   Parsetree.attributes ->
     Odoc_model.Comment.docs
 
 val page :
+  warnings:Odoc_model.Error.warning_accumulator ->
   Paths.Identifier.LabelParent.t ->
   Location.t ->
   string ->
@@ -40,11 +42,13 @@ val page :
     the ocamldoc syntax. *)
 
 val standalone :
+  warnings:Odoc_model.Error.warning_accumulator ->
   Paths.Identifier.LabelParent.t ->
   Parsetree.attribute ->
     Odoc_model.Comment.docs_or_stop option
 
 val standalone_multiple :
+  warnings:Odoc_model.Error.warning_accumulator ->
   Paths.Identifier.LabelParent.t ->
   Parsetree.attributes ->
     Odoc_model.Comment.docs_or_stop list

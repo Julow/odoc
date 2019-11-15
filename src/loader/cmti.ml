@@ -45,7 +45,7 @@ let parenthesise name =
 
 let read_label = Cmi.read_label
 
-let rec read_core_type env container ctyp =
+let rec read_core_type ~warnings env container ctyp =
   let open TypeExpr in
     match ctyp.ctyp_desc with
     | Ttyp_any -> Any
@@ -56,25 +56,25 @@ let rec read_core_type env container ctyp =
         (* NOTE(@ostera): Unbox the optional value for this optional labelled
            argument since the 4.02.x representation includes it explicitly. *)
         let arg = match lbl with
-          | None | Some(Label(_)) -> read_core_type env container arg
+          | None | Some(Label(_)) -> read_core_type ~warnings env container arg
           | Some(Optional(_)) ->
               let arg' = match arg.ctyp_desc with
                 | Ttyp_constr(_, _, param :: _) -> param
                 | _ -> arg
               in
-              read_core_type env container arg'
+              read_core_type ~warnings env container arg'
 #else
-        let arg = read_core_type env container arg
+        let arg = read_core_type ~warnings env container arg
 #endif
         in
-        let res = read_core_type env container res in
+        let res = read_core_type ~warnings env container res in
           Arrow(lbl, arg, res)
     | Ttyp_tuple typs ->
-        let typs = List.map (read_core_type env container) typs in
+        let typs = List.map (read_core_type ~warnings env container) typs in
           Tuple typs
     | Ttyp_constr(p, _, params) ->
         let p = Env.Path.read_type env p in
-        let params = List.map (read_core_type env container) params in
+        let params = List.map (read_core_type ~warnings env container) params in
           Constr(p, params)
     | Ttyp_object(methods, closed) ->
         let open TypeExpr.Object in
@@ -82,33 +82,33 @@ let rec read_core_type env container ctyp =
           List.map
 #if OCAML_MAJOR = 4 && OCAML_MINOR < 06
             (fun (name, _, typ) ->
-              Method {name; type_ = read_core_type env container typ})
+              Method {name; type_ = read_core_type ~warnings env container typ})
 #elif OCAML_MAJOR = 4 && OCAML_MINOR < 08
             (function
               | OTtag (name, _, typ) ->
                 Method {
                   name = name.txt;
-                  type_ = read_core_type env container typ;
+                  type_ = read_core_type ~warnings env container typ;
                 }
-              | OTinherit typ -> Inherit (read_core_type env container typ))
+              | OTinherit typ -> Inherit (read_core_type ~warnings env container typ))
 #else
             (function
               | {of_desc=OTtag (name, typ); _} ->
                 Method {
                   name = name.txt;
-                  type_ = read_core_type env container typ;
+                  type_ = read_core_type ~warnings env container typ;
                 }
-              | {of_desc=OTinherit typ; _} -> Inherit (read_core_type env container typ))
+              | {of_desc=OTinherit typ; _} -> Inherit (read_core_type ~warnings env container typ))
 #endif
             methods
         in
           Object {fields; open_ = (closed = Asttypes.Open)}
     | Ttyp_class(p, _, params) ->
         let p = Env.Path.read_class_type env p in
-        let params = List.map (read_core_type env container) params in
+        let params = List.map (read_core_type ~warnings env container) params in
           Class(p, params)
     | Ttyp_alias(typ, var) ->
-        let typ = read_core_type env container typ in
+        let typ = read_core_type ~warnings env container typ in
           Alias(typ, var)
     | Ttyp_variant(fields, closed, present) ->
         let open TypeExpr.Polymorphic_variant in
@@ -123,13 +123,13 @@ let rec read_core_type env container ctyp =
               | Ttag(name, attributes, constant, arguments) ->
 #endif
                 let arguments =
-                  List.map (read_core_type env container) arguments in
+                  List.map (read_core_type ~warnings env container) arguments in
 #if OCAML_MAJOR = 4 && OCAML_MINOR >= 06
                   let name = name.txt in
 #endif
-                let doc = Doc_attr.attached container attributes in
+                let doc = Doc_attr.attached ~warnings container attributes in
                 Constructor {name; constant; arguments; doc}
-              | Tinherit typ -> Type (read_core_type env container typ)
+              | Tinherit typ -> Type (read_core_type ~warnings env container typ)
           end
         in
         let kind =
@@ -139,8 +139,8 @@ let rec read_core_type env container ctyp =
             | Some names -> Closed names
         in
           Polymorphic_variant {kind; elements}
-    | Ttyp_poly([], typ) -> read_core_type env container typ
-    | Ttyp_poly(vars, typ) -> Poly(vars, read_core_type env container typ)
+    | Ttyp_poly([], typ) -> read_core_type ~warnings env container typ
+    | Ttyp_poly(vars, typ) -> Poly(vars, read_core_type ~warnings env container typ)
     | Ttyp_package {pack_path; pack_fields; _} ->
         let open TypeExpr.Package in
         let path = Env.Path.read_module_type env pack_path in
@@ -148,20 +148,20 @@ let rec read_core_type env container ctyp =
           List.map
             (fun (frag, typ) ->
                let frag = Env.Fragment.read_type frag.Location.txt in
-               let typ = read_core_type env container typ in
+               let typ = read_core_type ~warnings env container typ in
                (frag, typ))
             pack_fields
         in
           Package {path; substitutions}
 
-let read_value_description env parent vd =
+let read_value_description ~warnings env parent vd =
   let open Signature in
   let open Odoc_model.Names in
   let name = parenthesise (Ident.name vd.val_id) in
   let id = `Value(parent, ValueName.of_string name) in
   let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
-  let doc = Doc_attr.attached container vd.val_attributes in
-  let type_ = read_core_type env container vd.val_desc in
+  let doc = Doc_attr.attached ~warnings container vd.val_attributes in
+  let type_ = read_core_type ~warnings env container vd.val_desc in
   match vd.val_prim with
   | [] -> Value {Value.id; doc; type_}
   | primitives -> External {External.id; doc; type_; primitives}
@@ -182,92 +182,92 @@ let read_type_parameter (ctyp, var) =
   in
     (desc, var)
 
-let read_label_declaration env parent label_parent ld =
+let read_label_declaration ~warnings env parent label_parent ld =
   let open TypeDecl.Field in
   let open Odoc_model.Names in
   let name = parenthesise (Ident.name ld.ld_id) in
   let id = `Field(parent, FieldName.of_string name) in
-  let doc = Doc_attr.attached label_parent ld.ld_attributes in
+  let doc = Doc_attr.attached ~warnings label_parent ld.ld_attributes in
   let mutable_ = (ld.ld_mutable = Mutable) in
-  let type_ = read_core_type env label_parent ld.ld_type in
+  let type_ = read_core_type ~warnings env label_parent ld.ld_type in
     {id; doc; mutable_; type_}
 
-let read_constructor_declaration_arguments env parent label_parent arg =
+let read_constructor_declaration_arguments ~warnings env parent label_parent arg =
   let open TypeDecl.Constructor in
 #if OCAML_MAJOR = 4 && OCAML_MINOR = 02
   ignore parent;
-  Tuple (List.map (read_core_type env label_parent) arg)
+  Tuple (List.map (read_core_type ~warnings env label_parent) arg)
 #else
   match arg with
-  | Cstr_tuple args -> Tuple (List.map (read_core_type env label_parent) args)
+  | Cstr_tuple args -> Tuple (List.map (read_core_type ~warnings env label_parent) args)
   | Cstr_record lds ->
-      Record (List.map (read_label_declaration env parent label_parent) lds)
+      Record (List.map (read_label_declaration ~warnings env parent label_parent) lds)
 #endif
 
-let read_constructor_declaration env parent cd =
+let read_constructor_declaration ~warnings env parent cd =
   let open TypeDecl.Constructor in
   let open Odoc_model.Names in
   let name = parenthesise (Ident.name cd.cd_id) in
   let id = `Constructor(parent, ConstructorName.of_string name) in
   let container = (parent : Identifier.DataType.t :> Identifier.Parent.t) in
   let label_container = (container :> Identifier.LabelParent.t) in
-  let doc = Doc_attr.attached label_container cd.cd_attributes in
+  let doc = Doc_attr.attached ~warnings label_container cd.cd_attributes in
   let args =
     read_constructor_declaration_arguments
-      env container label_container cd.cd_args
+      ~warnings env container label_container cd.cd_args
   in
-  let res = opt_map (read_core_type env label_container) cd.cd_res in
+  let res = opt_map (read_core_type ~warnings env label_container) cd.cd_res in
     {id; doc; args; res}
 
-let read_type_kind env parent =
+let read_type_kind ~warnings env parent =
   let open TypeDecl.Representation in function
     | Ttype_abstract -> None
     | Ttype_variant cstrs ->
-        let cstrs = List.map (read_constructor_declaration env parent) cstrs in
+        let cstrs = List.map (read_constructor_declaration ~warnings env parent) cstrs in
           Some (Variant cstrs)
     | Ttype_record lbls ->
         let parent = (parent : Identifier.DataType.t :> Identifier.Parent.t) in
       let label_parent = (parent :> Identifier.LabelParent.t) in
       let lbls =
-        List.map (read_label_declaration env parent label_parent) lbls in
+        List.map (read_label_declaration ~warnings env parent label_parent) lbls in
           Some (Record lbls)
     | Ttype_open -> Some Extensible
 
-let read_type_equation env container decl =
+let read_type_equation ~warnings env container decl =
   let open TypeDecl.Equation in
   let params = List.map read_type_parameter decl.typ_params in
   let private_ = (decl.typ_private = Private) in
-  let manifest = opt_map (read_core_type env container) decl.typ_manifest in
+  let manifest = opt_map (read_core_type ~warnings env container) decl.typ_manifest in
   let constraints =
     List.map
       (fun (typ1, typ2, _) ->
-         (read_core_type env container typ1,
-          read_core_type env container typ2))
+         (read_core_type ~warnings env container typ1,
+          read_core_type ~warnings env container typ2))
       decl.typ_cstrs
   in
     {params; private_; manifest; constraints}
 
-let read_type_declaration env parent decl =
+let read_type_declaration ~warnings env parent decl =
   let open TypeDecl in
   let open Odoc_model.Names in
   let name = parenthesise (Ident.name decl.typ_id) in
   let id = `Type(parent, TypeName.of_string name) in
   let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
-  let doc = Doc_attr.attached container decl.typ_attributes in
-  let equation = read_type_equation env container decl in
-  let representation = read_type_kind env id decl.typ_kind in
+  let doc = Doc_attr.attached ~warnings container decl.typ_attributes in
+  let equation = read_type_equation ~warnings env container decl in
+  let representation = read_type_kind ~warnings env id decl.typ_kind in
     {id; doc; equation; representation}
 
-let read_type_declarations env parent rec_flag decls =
+let read_type_declarations ~warnings env parent rec_flag decls =
   let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
   let items =
     let open Signature in
     List.fold_left
       (fun (acc, recursive) decl ->
         let comments =
-          Doc_attr.standalone_multiple container decl.typ_attributes in
+          Doc_attr.standalone_multiple ~warnings container decl.typ_attributes in
          let comments = List.map (fun com -> Comment com) comments in
-         let decl = read_type_declaration env parent decl in
+         let decl = read_type_declaration ~warnings env parent decl in
          ((Type (recursive, decl)) :: (List.rev_append comments acc), And))
       ([], rec_flag) decls
     |> fst
@@ -275,64 +275,64 @@ let read_type_declarations env parent rec_flag decls =
     List.rev items
 
 #if OCAML_MAJOR = 4 && OCAML_MINOR >= 08
-let read_type_substitutions env parent decls =
-  List.map (fun decl -> Odoc_model.Lang.Signature.TypeSubstitution (read_type_declaration env parent decl)) decls
+let read_type_substitutions ~warnings env parent decls =
+  List.map (fun decl -> Odoc_model.Lang.Signature.TypeSubstitution (read_type_declaration ~warnings env parent decl)) decls
 #endif
 
-let read_extension_constructor env parent ext =
+let read_extension_constructor ~warnings env parent ext =
   let open Extension.Constructor in
   let open Odoc_model.Names in
   let name = parenthesise (Ident.name ext.ext_id) in
   let id = `Extension(parent, ExtensionName.of_string name) in
   let container = (parent : Identifier.Signature.t :> Identifier.Parent.t) in
   let label_container = (container :> Identifier.LabelParent.t) in
-  let doc = Doc_attr.attached label_container ext.ext_attributes in
+  let doc = Doc_attr.attached ~warnings label_container ext.ext_attributes in
   match ext.ext_kind with
   | Text_rebind _ -> assert false
   | Text_decl(args, res) ->
     let args =
       read_constructor_declaration_arguments
-        env container label_container args
+        ~warnings env container label_container args
     in
-    let res = opt_map (read_core_type env label_container) res in
+    let res = opt_map (read_core_type ~warnings env label_container) res in
         {id; doc; args; res}
 
-let read_type_extension env parent tyext =
+let read_type_extension ~warnings env parent tyext =
   let open Extension in
   let type_path = Env.Path.read_type env tyext.tyext_path in
   let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
-  let doc = Doc_attr.attached container tyext.tyext_attributes in
+  let doc = Doc_attr.attached ~warnings container tyext.tyext_attributes in
   let type_params = List.map read_type_parameter tyext.tyext_params in
   let private_ = (tyext.tyext_private = Private) in
   let constructors =
-    List.map (read_extension_constructor env parent) tyext.tyext_constructors
+    List.map (read_extension_constructor ~warnings env parent) tyext.tyext_constructors
   in
     { type_path; doc; type_params; private_; constructors; }
 
-let read_exception env parent (ext : extension_constructor) =
+let read_exception ~warnings env parent (ext : extension_constructor) =
   let open Exception in
   let open Odoc_model.Names in
   let name = parenthesise (Ident.name ext.ext_id) in
   let id = `Exception(parent, ExceptionName.of_string name) in
   let container = (parent : Identifier.Signature.t :> Identifier.Parent.t) in
   let label_container = (container :> Identifier.LabelParent.t) in
-  let doc = Doc_attr.attached label_container ext.ext_attributes in
+  let doc = Doc_attr.attached ~warnings label_container ext.ext_attributes in
   match ext.ext_kind with
   | Text_rebind _ -> assert false
   | Text_decl(args, res) ->
     let args =
       read_constructor_declaration_arguments
-        env container label_container args
+        ~warnings env container label_container args
     in
-    let res = opt_map (read_core_type env label_container) res in
+    let res = opt_map (read_core_type ~warnings env label_container) res in
         {id; doc; args; res}
 
-let rec read_class_type_field env parent ctf =
+let rec read_class_type_field ~warnings env parent ctf =
   let open ClassSignature in
   let open Odoc_model.Names in
 
   let container = (parent : Identifier.ClassSignature.t :> Identifier.LabelParent.t) in
-  let doc = Doc_attr.attached container ctf.ctf_attributes in
+  let doc = Doc_attr.attached ~warnings container ctf.ctf_attributes in
   match ctf.ctf_desc with
   | Tctf_val(name, mutable_, virtual_, typ) ->
       let open InstanceVariable in
@@ -340,7 +340,7 @@ let rec read_class_type_field env parent ctf =
       let id = `InstanceVariable(parent, InstanceVariableName.of_string name) in
       let mutable_ = (mutable_ = Mutable) in
       let virtual_ = (virtual_ = Virtual) in
-    let type_ = read_core_type env container typ in
+    let type_ = read_core_type ~warnings env container typ in
         Some (InstanceVariable {id; doc; mutable_; virtual_; type_})
   | Tctf_method(name, private_, virtual_, typ) ->
       let open Method in
@@ -348,37 +348,37 @@ let rec read_class_type_field env parent ctf =
       let id = `Method(parent, MethodName.of_string name) in
       let private_ = (private_ = Private) in
       let virtual_ = (virtual_ = Virtual) in
-    let type_ = read_core_type env container typ in
+    let type_ = read_core_type ~warnings env container typ in
         Some (Method {id; doc; private_; virtual_; type_})
   | Tctf_constraint(typ1, typ2) ->
-    let typ1 = read_core_type env container typ1 in
-    let typ2 = read_core_type env container typ2 in
+    let typ1 = read_core_type ~warnings env container typ1 in
+    let typ2 = read_core_type ~warnings env container typ2 in
         Some (Constraint(typ1, typ2))
   | Tctf_inherit cltyp ->
-      Some (Inherit (read_class_signature env parent container cltyp))
+      Some (Inherit (read_class_signature ~warnings env parent container cltyp))
   | Tctf_attribute attr ->
-      match Doc_attr.standalone container attr with
+      match Doc_attr.standalone ~warnings container attr with
       | None -> None
       | Some doc -> Some (Comment doc)
 
-and read_self_type env container typ =
+and read_self_type ~warnings env container typ =
   if typ.ctyp_desc = Ttyp_any then None
-  else Some (read_core_type env container typ)
+  else Some (read_core_type ~warnings env container typ)
 
-and read_class_signature env parent label_parent cltyp =
+and read_class_signature ~warnings env parent label_parent cltyp =
   let open ClassType in
     match cltyp.cltyp_desc with
     | Tcty_constr(p, _, params) ->
         let p = Env.Path.read_class_type env p in
-      let params = List.map (read_core_type env label_parent) params in
+      let params = List.map (read_core_type ~warnings env label_parent) params in
           Constr(p, params)
     | Tcty_signature csig ->
         let open ClassSignature in
-      let self = read_self_type env label_parent csig.csig_self in
+      let self = read_self_type ~warnings env label_parent csig.csig_self in
         let items =
           List.fold_left
             (fun rest item ->
-               match read_class_type_field env parent item with
+               match read_class_type_field ~warnings env parent item with
                | None -> rest
                | Some item -> item :: rest)
             [] csig.csig_fields
@@ -390,74 +390,74 @@ and read_class_signature env parent label_parent cltyp =
     | Tcty_open _ -> assert false
 #endif
 
-let read_class_type_declaration env parent cltd =
+let read_class_type_declaration ~warnings env parent cltd =
   let open ClassType in
   let name = parenthesise (Ident.name cltd.ci_id_class_type) in
   let id = `ClassType(parent, Odoc_model.Names.ClassTypeName.of_string name) in
   let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
-  let doc = Doc_attr.attached container cltd.ci_attributes in
+  let doc = Doc_attr.attached ~warnings container cltd.ci_attributes in
   let virtual_ = (cltd.ci_virt = Virtual) in
   let params = List.map read_type_parameter cltd.ci_params in
-  let expr = read_class_signature env id container cltd.ci_expr in
+  let expr = read_class_signature ~warnings env id container cltd.ci_expr in
   { id; doc; virtual_; params; expr; expansion = None }
 
-let read_class_type_declarations env parent cltds =
+let read_class_type_declarations ~warnings env parent cltds =
   let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
   let open Signature in
   List.fold_left begin fun (acc,recursive) cltd ->
-    let comments = Doc_attr.standalone_multiple container cltd.ci_attributes in
+    let comments = Doc_attr.standalone_multiple ~warnings container cltd.ci_attributes in
     let comments = List.map (fun com -> Comment com) comments in
-    let cltd = read_class_type_declaration env parent cltd in
+    let cltd = read_class_type_declaration ~warnings env parent cltd in
     ((ClassType (recursive, cltd))::(List.rev_append comments acc), And)
   end ([], Ordinary) cltds
   |> fst
   |> List.rev
 
-let rec read_class_type env parent label_parent cty =
+let rec read_class_type ~warnings env parent label_parent cty =
   let open Class in
   match cty.cltyp_desc with
   | Tcty_constr _ | Tcty_signature _ ->
-    ClassType (read_class_signature env parent label_parent cty)
+    ClassType (read_class_signature ~warnings env parent label_parent cty)
   | Tcty_arrow(lbl, arg, res) ->
       let lbl = read_label lbl in
-    let arg = read_core_type env label_parent arg in
-    let res = read_class_type env parent label_parent res in
+    let arg = read_core_type ~warnings env label_parent arg in
+    let res = read_class_type ~warnings env parent label_parent res in
         Arrow(lbl, arg, res)
 #if OCAML_MAJOR = 4 && OCAML_MINOR >= 06 && OCAML_MINOR < 08
-  | Tcty_open (_, _, _, _, cty) -> read_class_type env parent label_parent cty
+  | Tcty_open (_, _, _, _, cty) -> read_class_type ~warnings env parent label_parent cty
 #elif OCAML_MAJOR = 4 && OCAML_MINOR >= 08
-  | Tcty_open (_, cty) -> read_class_type env parent label_parent cty
+  | Tcty_open (_, cty) -> read_class_type ~warnings env parent label_parent cty
 #endif
 
-let read_class_description env parent cld =
+let read_class_description ~warnings env parent cld =
   let open Class in
   let name = parenthesise (Ident.name cld.ci_id_class) in
   let id = `Class(parent, Odoc_model.Names.ClassName.of_string name) in
   let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
-  let doc = Doc_attr.attached container cld.ci_attributes in
+  let doc = Doc_attr.attached ~warnings container cld.ci_attributes in
   let virtual_ = (cld.ci_virt = Virtual) in
   let params = List.map read_type_parameter cld.ci_params in
-  let type_ = read_class_type env id container cld.ci_expr in
+  let type_ = read_class_type ~warnings env id container cld.ci_expr in
   { id; doc; virtual_; params; type_; expansion = None }
 
-let read_class_descriptions env parent clds =
+let read_class_descriptions ~warnings env parent clds =
   let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
   let open Signature in
   List.fold_left begin fun (acc, recursive) cld ->
-    let comments = Doc_attr.standalone_multiple container cld.ci_attributes in
+    let comments = Doc_attr.standalone_multiple ~warnings container cld.ci_attributes in
     let comments = List.map (fun com -> Comment com) comments in
-    let cld = read_class_description env parent cld in
+    let cld = read_class_description ~warnings env parent cld in
     ((Class (recursive, cld))::(List.rev_append comments acc), And)
   end ([], Ordinary) clds
   |> fst
   |> List.rev
 
-let rec read_with_constraint env parent (_, frag, constr) =
+let rec read_with_constraint ~warnings env parent (_, frag, constr) =
   let open ModuleType in
     match constr with
     | Twith_type decl ->
         let frag = Env.Fragment.read_type frag.Location.txt in
-        let eq = read_type_equation env parent decl in
+        let eq = read_type_equation ~warnings env parent decl in
           TypeEq(frag, eq)
     | Twith_module(p, _) ->
         let frag = Env.Fragment.read_module frag.Location.txt in
@@ -465,18 +465,18 @@ let rec read_with_constraint env parent (_, frag, constr) =
           ModuleEq(frag, eq)
     | Twith_typesubst decl ->
         let frag = Env.Fragment.read_type frag.Location.txt in
-        let eq = read_type_equation env parent decl in
+        let eq = read_type_equation ~warnings env parent decl in
           TypeSubst(frag, eq)
     | Twith_modsubst(p, _) ->
         let frag = Env.Fragment.read_module frag.Location.txt in
         let p = Env.Path.read_module env p in
           ModuleSubst(frag, p)
 
-and read_module_type env parent label_parent pos mty =
+and read_module_type ~warnings env parent label_parent pos mty =
   let open ModuleType in
     match mty.mty_desc with
     | Tmty_ident(p, _) -> Path (Env.Path.read_module_type env p)
-    | Tmty_signature sg -> Signature (read_signature env parent sg)
+    | Tmty_signature sg -> Signature (read_signature ~warnings env parent sg)
     | Tmty_functor(id, _, arg, res) ->
         let arg =
           match arg with
@@ -484,7 +484,7 @@ and read_module_type env parent label_parent pos mty =
           | Some arg ->
               let name = parenthesise (Ident.name id) in
               let id = `Argument(parent, pos, Odoc_model.Names.ArgumentName.of_string name) in
-          let arg = read_module_type env id label_parent 1 arg in
+          let arg = read_module_type ~warnings env id label_parent 1 arg in
               let expansion =
                 match arg with
                 | Signature _ -> Some Module.AlreadyASig
@@ -493,11 +493,11 @@ and read_module_type env parent label_parent pos mty =
                 Some { FunctorArgument. id; expr = arg; expansion }
         in
         let env = Env.add_argument parent pos id (ArgumentName.of_ident id) env in
-      let res = read_module_type env parent label_parent (pos + 1) res in
+      let res = read_module_type ~warnings env parent label_parent (pos + 1) res in
           Functor(arg, res)
     | Tmty_with(body, subs) ->
-      let body = read_module_type env parent label_parent pos body in
-      let subs = List.map (read_with_constraint env label_parent) subs in
+      let body = read_module_type ~warnings env parent label_parent pos body in
+      let subs = List.map (read_with_constraint ~warnings env label_parent) subs in
           With(body, subs)
     | Tmty_typeof mexpr ->
         let decl =
@@ -506,20 +506,20 @@ and read_module_type env parent label_parent pos mty =
           | Tmod_ident(p, _) -> Alias (Env.Path.read_module env p)
           | _ ->
               let mty =
-                Cmi.read_module_type env parent pos (Odoc_model.Compat.module_type mexpr.mod_type)
+                Cmi.read_module_type ~warnings env parent pos (Odoc_model.Compat.module_type mexpr.mod_type)
               in
                 ModuleType mty
         in
           TypeOf decl
     | Tmty_alias _ -> assert false
 
-and read_module_type_declaration env parent mtd =
+and read_module_type_declaration ~warnings env parent mtd =
   let open ModuleType in
   let name = parenthesise (Ident.name mtd.mtd_id) in
   let id = `ModuleType(parent, (Odoc_model.Names.ModuleTypeName.of_string name)) in
   let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
-  let doc = Doc_attr.attached container mtd.mtd_attributes in
-  let expr = opt_map (read_module_type env id container 1) mtd.mtd_type in
+  let doc = Doc_attr.attached ~warnings container mtd.mtd_attributes in
+  let expr = opt_map (read_module_type ~warnings env id container 1) mtd.mtd_type in
   let expansion =
     match expr with
     | Some (Signature _) -> Some Module.AlreadyASig
@@ -527,12 +527,12 @@ and read_module_type_declaration env parent mtd =
   in
     {id; doc; expr; expansion}
 
-and read_module_declaration env parent md =
+and read_module_declaration ~warnings env parent md =
   let open Module in
   let name = parenthesise (Ident.name md.md_id) in
   let id = `Module(parent, Odoc_model.Names.ModuleName.of_string name) in
   let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
-  let doc = Doc_attr.attached container md.md_attributes in
+  let doc = Doc_attr.attached ~warnings container md.md_attributes in
   let canonical =
     let doc = List.map Odoc_model.Location_.value doc in
     match List.find (function `Tag (`Canonical _) -> true | _ -> false) doc with
@@ -543,7 +543,7 @@ and read_module_declaration env parent md =
   let type_ =
     match md.md_type.mty_desc with
     | Tmty_alias(p, _) -> Alias (Env.Path.read_module env p)
-    | _ -> ModuleType (read_module_type env id container 1 md.md_type)
+    | _ -> ModuleType (read_module_type ~warnings env id container 1 md.md_type)
   in
   let hidden =
     match canonical with
@@ -557,14 +557,14 @@ and read_module_declaration env parent md =
   in
     {id; doc; type_; expansion; canonical; hidden; display_type = None}
 
-and read_module_declarations env parent mds =
+and read_module_declarations ~warnings env parent mds =
   let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
   let open Signature in
   List.fold_left
     (fun (acc, recursive) md ->
-      let comments = Doc_attr.standalone_multiple container md.md_attributes in
+      let comments = Doc_attr.standalone_multiple ~warnings container md.md_attributes in
       let comments = List.map (fun com -> Comment com) comments in
-      let md = read_module_declaration env parent md in
+      let md = read_module_declaration ~warnings env parent md in
       ((Module (recursive, md))::(List.rev_append comments acc), And))
     ([], Rec) mds
   |> fst
@@ -589,11 +589,11 @@ and module_of_extended_open env parent o =
   ; expansion = None }
 #endif
 
-and read_signature_item env parent item =
+and read_signature_item ~warnings env parent item =
   let open Signature in
     match item.sig_desc with
     | Tsig_value vd ->
-        [read_value_description env parent vd]
+        [read_value_description ~warnings env parent vd]
 #if OCAML_MAJOR = 4 && OCAML_MINOR = 02
     | Tsig_type decls ->
       let rec_flag = Ordinary in
@@ -605,21 +605,21 @@ and read_signature_item env parent item =
         | Nonrecursive -> Nonrec
       in
 #endif
-      read_type_declarations env parent rec_flag decls
+      read_type_declarations ~warnings env parent rec_flag decls
     | Tsig_typext tyext ->
-        [TypExt (read_type_extension env parent tyext)]
+        [TypExt (read_type_extension ~warnings env parent tyext)]
     | Tsig_exception ext ->
 #if OCAML_MAJOR = 4 && OCAML_MINOR >= 08
-        [Exception (read_exception env parent ext.tyexn_constructor)]
+        [Exception (read_exception ~warnings env parent ext.tyexn_constructor)]
 #else
-        [Exception (read_exception env parent ext)]
+        [Exception (read_exception ~warnings env parent ext)]
 #endif
     | Tsig_module md ->
-        [Module (Ordinary, read_module_declaration env parent md)]
+        [Module (Ordinary, read_module_declaration ~warnings env parent md)]
     | Tsig_recmodule mds ->
-        read_module_declarations env parent mds
+        read_module_declarations ~warnings env parent mds
     | Tsig_modtype mtd ->
-        [ModuleType (read_module_type_declaration env parent mtd)]
+        [ModuleType (read_module_type_declaration ~warnings env parent mtd)]
 #if OCAML_MAJOR = 4 && OCAML_MINOR >= 08
     | Tsig_open o ->
         [Comment `Stop; Module (Ordinary, module_of_extended_open env parent o); Comment `Stop]
@@ -627,58 +627,58 @@ and read_signature_item env parent item =
     | Tsig_open _ -> []
 #endif
     | Tsig_include incl ->
-        [Include (read_include env parent incl)]
+        [Include (read_include ~warnings env parent incl)]
     | Tsig_class cls ->
-        read_class_descriptions env parent cls
+        read_class_descriptions ~warnings env parent cls
     | Tsig_class_type cltyps ->
-        read_class_type_declarations env parent cltyps
+        read_class_type_declarations ~warnings env parent cltyps
     | Tsig_attribute attr -> begin
         let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
-          match Doc_attr.standalone container attr with
+          match Doc_attr.standalone ~warnings container attr with
           | None -> []
           | Some doc -> [Comment doc]
       end
 #if OCAML_MAJOR = 4 && OCAML_MINOR >= 08
     | Tsig_typesubst tst ->
-        read_type_substitutions env parent tst
+        read_type_substitutions ~warnings env parent tst
     | Tsig_modsubst mst ->
-        [ModuleSubstitution (read_module_substitution env parent mst)]
+        [ModuleSubstitution (read_module_substitution ~warnings env parent mst)]
 
-and read_module_substitution env parent ms =
+and read_module_substitution ~warnings env parent ms =
   let open ModuleSubstitution in
   let name = parenthesise (Ident.name ms.ms_id) in
   let id = `Module(parent, (Odoc_model.Names.ModuleName.of_string name)) in
   let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
-  let doc = Doc_attr.attached container ms.ms_attributes in
+  let doc = Doc_attr.attached ~warnings container ms.ms_attributes in
   let manifest = Env.Path.read_module env ms.ms_manifest in
   { id; doc; manifest }
 #endif
 
-and read_include env parent incl =
+and read_include ~warnings env parent incl =
   let open Include in
   let container = (parent : Identifier.Signature.t :> Identifier.LabelParent.t) in
-  let doc = Doc_attr.attached container incl.incl_attributes in
-  let expr = read_module_type env parent container 1 incl.incl_mod in
+  let doc = Doc_attr.attached ~warnings container incl.incl_attributes in
+  let expr = read_module_type ~warnings env parent container 1 incl.incl_mod in
   let decl = Module.ModuleType expr in
-  let content = Cmi.read_signature env parent (Odoc_model.Compat.signature incl.incl_type) in
+  let content = Cmi.read_signature ~warnings env parent (Odoc_model.Compat.signature incl.incl_type) in
   let expansion = { content; resolved = false} in
     {parent; doc; decl; expansion}
 
-and read_signature env parent sg =
+and read_signature ~warnings env parent sg =
   let env =
     Env.add_signature_tree_items parent sg env
   in
   let items =
     List.fold_left
       (fun items item ->
-         List.rev_append (read_signature_item env parent item) items)
+         List.rev_append (read_signature_item ~warnings env parent item) items)
       [] sg.sig_items
   in
     List.rev items
 
-let read_interface root name intf =
+let read_interface ~warnings root name intf =
   let id = `Root(root, Odoc_model.Names.UnitName.of_string name) in
-  let items = read_signature Env.empty id intf in
+  let items = read_signature ~warnings Env.empty id intf in
   let doc, items =
     let open Signature in
     match items with
@@ -686,3 +686,8 @@ let read_interface root name intf =
     | _ -> Doc_attr.empty, items
   in
     (id, doc, items)
+
+let read_interface root name intf =
+  Odoc_model.Error.accumulate_warnings (fun warnings ->
+    read_interface ~warnings root name intf
+  )
