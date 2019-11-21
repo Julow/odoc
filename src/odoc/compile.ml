@@ -21,7 +21,7 @@ open Result
 let resolve_and_substitute ~env ~output ~warn_error input_file read_file =
   Odoc_model.Error.set_warn_error warn_error;
   let filename = Fs.File.to_string input_file in
-  match read_file ~filename:filename with
+  match Odoc_model.Error.shed_warnings' (read_file ~filename) with
   | Error e -> failwith (Odoc_model.Error.to_string e)
   | Ok unit ->
     let unit = Odoc_xref.Lookup.lookup unit in
@@ -96,7 +96,8 @@ let mld ~env ~package ~output ~warn_error input =
     exit 1
   | Ok str ->
     let content =
-      match Odoc_loader.read_string name location str with
+      let r = Odoc_loader.read_string name location str in
+      match Odoc_model.Error.shed_warnings' r with
       | Error e -> failwith (Odoc_model.Error.to_string e)
       | Ok (`Docs content) -> content
       | Ok `Stop -> [] (* TODO: Error? *)

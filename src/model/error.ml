@@ -52,25 +52,43 @@ let to_string = function
 
 
 
+type 'a with_warnings = {
+  value : 'a;
+  warnings : t list;
+}
+
+type 'a with_error_and_warnings = ('a with_warnings, t) Result.result
+
+
+
+let warning_accumulator = ref []
+
 exception Conveyed_by_exception of t
 
 let raise_exception error =
   raise (Conveyed_by_exception error)
+
+let raise_warning warn =
+  warning_accumulator := warn :: !warning_accumulator
 
 let to_exception = function
   | Ok v -> v
   | Error error -> raise_exception error
 
 let catch f =
-  try Ok (f ())
-  with Conveyed_by_exception error -> Error error
+  let prev_accumulator = !warning_accumulator in
+  warning_accumulator := [];
+  let r =
+    match f () with
+    | exception Conveyed_by_exception error -> Error error
+    | value ->
+      let warnings = !warning_accumulator in
+      Ok { value; warnings }
+  in
+  warning_accumulator := prev_accumulator;
+  r
 
 
-
-type 'a with_warnings = {
-  value : 'a;
-  warnings : t list;
-}
 
 type warning_accumulator = t list ref
 
@@ -94,3 +112,10 @@ let shed_warnings with_warnings =
   with_warnings.value
 
 let set_warn_error b = warn_error := b
+
+let shed_warnings' = function
+  | Ok with_warnings -> Ok (shed_warnings with_warnings)
+  | Error _ as e -> e
+
+let shed_error_and_warnings r =
+  shed_warnings (to_exception r)

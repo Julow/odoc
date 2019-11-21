@@ -6,20 +6,27 @@ val filename_only : string -> string -> t
 
 val to_string : t -> string
 
-val raise_exception : t -> _
-val to_exception : ('a, t) Result.result -> 'a
-val catch : (unit -> 'a) -> ('a, t) Result.result
-
 type 'a with_warnings = {
   value : 'a;
   warnings : t list;
 }
+
+type 'a with_error_and_warnings = ('a with_warnings, t) Result.result
+
+val raise_exception : t -> _
+val raise_warning : t -> unit
+val to_exception : ('a, t) Result.result -> 'a
+val catch : (unit -> 'a) -> 'a with_error_and_warnings
+
+(** To be called inside a [catch] *)
+val shed_error_and_warnings : 'a with_error_and_warnings -> 'a
 
 type warning_accumulator
 
 val accumulate_warnings : (warning_accumulator -> 'a) -> 'a with_warnings
 val warning : warning_accumulator -> t -> unit
 val shed_warnings : 'a with_warnings -> 'a
+val shed_warnings' : 'a with_error_and_warnings -> ('a, t) Result.result
 
 (** When set to [true],
    [shed_warnings] will raise [Failure] if it had to print warnings. *)

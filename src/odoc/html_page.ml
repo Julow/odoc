@@ -113,7 +113,8 @@ let from_mld ~env ?(syntax=Odoc_html.Tree.OCaml) ~package ~output:root_dir ~warn
     exit 1
   | Ok str ->
     let content =
-      match Odoc_loader.read_string name location str with
+      let r = Odoc_loader.read_string name location str in
+      match Odoc_model.Error.shed_warnings' r with
       | Error e -> failwith (Odoc_model.Error.to_string e)
       | Ok (`Docs content) -> content
       | Ok `Stop -> [] (* TODO: Error? *)

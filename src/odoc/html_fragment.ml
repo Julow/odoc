@@ -27,7 +27,8 @@ let from_mld ~xref_base_uri ~env ~output ~warn_error input =
     exit 1
   | Ok str ->
     let content =
-      match Odoc_loader.read_string name location str with
+      let r = Odoc_loader.read_string name location str in
+      match Odoc_model.Error.shed_warnings' r with
       | Error e -> failwith (Odoc_model.Error.to_string e)
       | Ok (`Docs content) -> content
       | Ok `Stop -> [] (* TODO: Error? *)

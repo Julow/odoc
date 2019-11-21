@@ -81,44 +81,46 @@ let read_cmt ~make_root ~filename =
   | cmt_info ->
     match cmt_info.cmt_annots with
     | Packed(_, files) ->
-      let name = cmt_info.cmt_modname in
-      let interface, digest =
-        match cmt_info.cmt_interface_digest with
-        | Some digest -> true, digest
-        | None ->
-          match List.assoc name cmt_info.cmt_imports with
-          | Some digest -> false, digest
-          | None -> assert false
-          | exception Not_found -> assert false
-      in
-      let hidden = Odoc_model.Root.contains_double_underscore name in
-      let root = make_root ~module_name:name ~digest in
-      let id = `Root(root, Odoc_model.Names.UnitName.of_string name) in
-      let items =
-        List.map (fun file ->
-          let pref = Misc.chop_extensions file in
-          String.capitalize_ascii (Filename.basename pref))
-          files
-      in
-      let items = List.sort String.compare items in
-      let items =
-        List.map (fun name ->
-          let id = `Module(id, Odoc_model.Names.ModuleName.of_string name) in
-          let path = `Root name in
-          {Odoc_model.Lang.Compilation_unit.Packed.id; path})
-          items
-      in
-      let imports =
-        List.filter (fun (name', _) -> name <> name') cmt_info.cmt_imports in
-      let imports =
-        List.map (fun (s, d) ->
-          Odoc_model.Lang.Compilation_unit.Import.Unresolved(s, d)) imports
-      in
-      let doc = Doc_attr.empty in
-      let source = None in
-      let content = Odoc_model.Lang.Compilation_unit.Pack items in
-      Ok {Odoc_model.Lang.Compilation_unit.id; doc; digest; imports;
-          source; interface; hidden; content; expansion = None}
+      Error.catch begin fun () ->
+        let name = cmt_info.cmt_modname in
+        let interface, digest =
+          match cmt_info.cmt_interface_digest with
+          | Some digest -> true, digest
+          | None ->
+            match List.assoc name cmt_info.cmt_imports with
+            | Some digest -> false, digest
+            | None -> assert false
+            | exception Not_found -> assert false
+        in
+        let hidden = Odoc_model.Root.contains_double_underscore name in
+        let root = make_root ~module_name:name ~digest in
+        let id = `Root(root, Odoc_model.Names.UnitName.of_string name) in
+        let items =
+          List.map (fun file ->
+            let pref = Misc.chop_extensions file in
+            String.capitalize_ascii (Filename.basename pref))
+            files
+        in
+        let items = List.sort String.compare items in
+        let items =
+          List.map (fun name ->
+            let id = `Module(id, Odoc_model.Names.ModuleName.of_string name) in
+            let path = `Root name in
+            {Odoc_model.Lang.Compilation_unit.Packed.id; path})
+            items
+        in
+        let imports =
+          List.filter (fun (name', _) -> name <> name') cmt_info.cmt_imports in
+        let imports =
+          List.map (fun (s, d) ->
+            Odoc_model.Lang.Compilation_unit.Import.Unresolved(s, d)) imports
+        in
+        let doc = Doc_attr.empty in
+        let source = None in
+        let content = Odoc_model.Lang.Compilation_unit.Pack items in
+        {Odoc_model.Lang.Compilation_unit.id; doc; digest; imports;
+         source; interface; hidden; content; expansion = None}
+      end
 
     | Implementation impl ->
       Error.catch begin fun () ->
