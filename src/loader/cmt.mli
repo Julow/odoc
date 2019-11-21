@@ -14,6 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Functions in this module may raise errors and warnings
+    (see Odoc_model.Error) *)
+
 val read_implementation: Odoc_model.Root.t -> string -> Typedtree.structure ->
   Odoc_model.Paths.Identifier.Module.t *
   Odoc_model.Comment.docs *

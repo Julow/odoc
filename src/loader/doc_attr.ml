@@ -61,7 +61,7 @@ let attached parent attrs =
                 ~containing_definition:parent
                 ~location:start_pos
                 ~text:str
-              |> Odoc_model.Error.shed_warnings
+              |> Odoc_model.Error.raise_warnings
             in
             loop false (acc @ parsed) rest
           end
@@ -80,7 +80,7 @@ let read_string parent loc str : Odoc_model.Comment.docs_or_stop =
       ~containing_definition:parent
       ~location:start_pos
       ~text:str
-    |> Odoc_model.Error.shed_warnings
+    |> Odoc_model.Error.raise_warnings
   in
   `Docs doc
 
@@ -119,8 +119,8 @@ let standalone_multiple parent attrs =
     List.fold_left
       (fun acc attr ->
         match standalone parent attr  with
-         | None -> acc
-         | Some com -> com :: acc)
+        | None -> acc
+        | Some com -> com :: acc)
       [] attrs
   in
     List.rev coms

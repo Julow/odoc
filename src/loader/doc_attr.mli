@@ -19,6 +19,8 @@
 module Paths = Odoc_model.Paths
 
 
+(** Functions in this module may raise errors and warnings
+    (see Odoc_model.Error) *)
 
 val empty : Odoc_model.Comment.docs
 

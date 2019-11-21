@@ -19,13 +19,13 @@ val to_exception : ('a, t) Result.result -> 'a
 val catch : (unit -> 'a) -> 'a with_error_and_warnings
 
 (** To be called inside a [catch] *)
-val shed_error_and_warnings : 'a with_error_and_warnings -> 'a
+val raise_error_and_warnings : 'a with_error_and_warnings -> 'a
+val raise_warnings : 'a with_warnings -> 'a
 
 type warning_accumulator
 
 val accumulate_warnings : (warning_accumulator -> 'a) -> 'a with_warnings
 val warning : warning_accumulator -> t -> unit
-val shed_warnings : 'a with_warnings -> 'a
 val shed_warnings' : 'a with_error_and_warnings -> ('a, t) Result.result
 
 (** When set to [true],

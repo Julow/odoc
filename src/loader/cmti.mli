@@ -20,6 +20,8 @@ module Paths = Odoc_model.Paths
 module Ident_env = Odoc_model.Ident_env
 
 
+(** Functions in this module may raise errors and warnings
+    (see Odoc_model.Error) *)
 
 val read_interface: Odoc_model.Root.t -> string -> Typedtree.signature ->
   Paths.Identifier.Module.t *

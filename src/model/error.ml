@@ -88,6 +88,13 @@ let catch f =
   warning_accumulator := prev_accumulator;
   r
 
+let raise_warnings { value; warnings } =
+  warning_accumulator := warnings @ !warning_accumulator;
+  value
+
+let raise_error_and_warnings r =
+  raise_warnings (to_exception r)
+
 
 
 type warning_accumulator = t list ref
@@ -116,6 +123,3 @@ let set_warn_error b = warn_error := b
 let shed_warnings' = function
   | Ok with_warnings -> Ok (shed_warnings with_warnings)
   | Error _ as e -> e
-
-let shed_error_and_warnings r =
-  shed_warnings (to_exception r)
