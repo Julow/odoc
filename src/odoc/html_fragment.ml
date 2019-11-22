@@ -28,10 +28,9 @@ let from_mld ~xref_base_uri ~env ~output ~warn_error input =
   | Ok str ->
     let content =
       let r = Odoc_loader.read_string name location str in
-      match Odoc_model.Error.shed_warnings' r with
-      | Error e -> failwith (Odoc_model.Error.to_string e)
-      | Ok (`Docs content) -> content
-      | Ok `Stop -> [] (* TODO: Error? *)
+      match Odoc_model.Error.shed_error_and_warnings r with
+      | (`Docs content) -> content
+      | `Stop -> [] (* TODO: Error? *)
     in
     (* This is a mess. *)
     let page = Odoc_model.Lang.Page.{ name; content; digest } in

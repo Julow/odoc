@@ -120,6 +120,6 @@ let shed_warnings with_warnings =
 
 let set_warn_error b = warn_error := b
 
-let shed_warnings' = function
-  | Ok with_warnings -> Ok (shed_warnings with_warnings)
-  | Error _ as e -> e
+let shed_error_and_warnings = function
+  | Ok with_warnings -> shed_warnings with_warnings
+  | Error e -> failwith (to_string e)
