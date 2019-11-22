@@ -348,11 +348,14 @@ let parse warnings whole_reference_location s : (Paths.Reference.t, Error.t) Res
       (None, s, whole_reference_location)
   in
 
-  match tokenize location s with
-  | last_token::tokens -> Ok (start_from_last_component last_token old_kind tokens)
-  | [] ->
-    Error (Parse_error.should_not_be_empty
-      ~what:"reference target" whole_reference_location)
+  Error.catch_error begin fun () ->
+    match tokenize location s with
+    | last_token::tokens -> start_from_last_component last_token old_kind tokens
+    | [] ->
+      Parse_error.should_not_be_empty
+        ~what:"reference target" whole_reference_location
+      |> Error.raise_exception
+  end
 
 let read_path_longident location s =
   let open Paths.Path in

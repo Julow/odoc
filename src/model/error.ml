@@ -82,14 +82,20 @@ let catch f =
     match f () with
     | exception Conveyed_by_exception error -> Error error
     | value ->
-      let warnings = !warning_accumulator in
+      let warnings = List.rev !warning_accumulator in
       Ok { value; warnings }
   in
   warning_accumulator := prev_accumulator;
   r
 
+(** This function is only used in parser/reference.ml *)
+let catch_error f =
+  match f () with
+  | exception Conveyed_by_exception error -> Error error
+  | value -> Ok value
+
 let raise_warnings { value; warnings } =
-  warning_accumulator := warnings @ !warning_accumulator;
+  warning_accumulator := List.rev_append warnings !warning_accumulator;
   value
 
 let raise_error_and_warnings r =
