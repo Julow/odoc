@@ -88,7 +88,6 @@ let from_odoc ~env ?(syntax=Odoc_html.Tree.OCaml) ?theme_uri ~output:root_dir in
 (* Used only for [--index-for] which is deprecated and available only for
    backward compatibility. It should be removed whenever. *)
 let from_mld ~env ?(syntax=Odoc_html.Tree.OCaml) ~package ~output:root_dir ~warn_error input =
-  Odoc_model.Error.set_warn_error warn_error;
   let root_name = "index" in
   let digest = Digest.file (Fs.File.to_string input) in
   let root =
@@ -114,7 +113,7 @@ let from_mld ~env ?(syntax=Odoc_html.Tree.OCaml) ~package ~output:root_dir ~warn
   | Ok str ->
     let content =
       let r = Odoc_loader.read_string name location str in
-      match Odoc_model.Error.shed_error_and_warnings r with
+      match Odoc_model.Error.shed_error_and_warnings ~warn_error r with
       | (`Docs content) -> content
       | `Stop -> [] (* TODO: Error? *)
     in

@@ -30,10 +30,7 @@ type warning_accumulator
 val accumulate_warnings : (warning_accumulator -> 'a) -> 'a with_warnings
 val warning : warning_accumulator -> t -> unit
 
-(** In case of success with warnings, print them and return the wrapped value
-    In case of error, raise a [Failure] exception *)
-val shed_error_and_warnings : 'a with_error_and_warnings -> 'a
-
-(** When set to [true],
-   [shed_warnings] will raise [Failure] if it had to print warnings. *)
-val set_warn_error : bool -> unit
+(** In case of success with warnings, they are printed.
+    In case of error, raise a [Failure] exception.
+    If [warn_error] is [true], the presence of warning generates an error. *)
+val shed_error_and_warnings : warn_error:bool -> 'a with_error_and_warnings -> 'a

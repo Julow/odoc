@@ -1,6 +1,5 @@
 
 let from_mld ~xref_base_uri ~env ~output ~warn_error input =
-  Odoc_model.Error.set_warn_error warn_error;
   (* Internal names, they don't have effect on the output. *)
   let page_name = "__fragment_page__" in
   let package = "__fragment_package__" in
@@ -28,7 +27,7 @@ let from_mld ~xref_base_uri ~env ~output ~warn_error input =
   | Ok str ->
     let content =
       let r = Odoc_loader.read_string name location str in
-      match Odoc_model.Error.shed_error_and_warnings r with
+      match Odoc_model.Error.shed_error_and_warnings ~warn_error r with
       | (`Docs content) -> content
       | `Stop -> [] (* TODO: Error? *)
     in

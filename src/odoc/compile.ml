@@ -19,9 +19,9 @@ open Result
 
 
 let resolve_and_substitute ~env ~output ~warn_error input_file read_file =
-  Odoc_model.Error.set_warn_error warn_error;
   let filename = Fs.File.to_string input_file in
-  let unit = Odoc_model.Error.shed_error_and_warnings (read_file ~filename) in
+  let unit =
+    Odoc_model.Error.shed_error_and_warnings ~warn_error (read_file ~filename) in
   let unit = Odoc_xref.Lookup.lookup unit in
   if not unit.Odoc_model.Lang.Compilation_unit.interface then (
     Printf.eprintf "WARNING: not processing the \"interface\" file.%s\n%!"
@@ -63,7 +63,6 @@ let cmi ~env ~package ~hidden ~output ~warn_error input =
 
 (* TODO: move most of this to doc-ock. *)
 let mld ~env ~package ~output ~warn_error input =
-  Odoc_model.Error.set_warn_error warn_error;
   let root_name =
     let page_dash_root =
       Filename.chop_extension (Fs.File.(to_string @@ basename output))
@@ -95,7 +94,7 @@ let mld ~env ~package ~output ~warn_error input =
   | Ok str ->
     let content =
       let r = Odoc_loader.read_string name location str in
-      match Odoc_model.Error.shed_error_and_warnings r with
+      match Odoc_model.Error.shed_error_and_warnings ~warn_error r with
       | (`Docs content) -> content
       | `Stop -> [] (* TODO: Error? *)
     in
