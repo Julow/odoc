@@ -595,10 +595,10 @@ let rec open_component_signature :
             add_type new_id t env
         | Signature.Module (mid, _, m) ->
             let new_id = `Module (id, Ident.Name.module_ mid) in
-            add_module new_id (Delayed.get m) env
+            add_module new_id (Subst.delayed_get_module m) env
         | Signature.ModuleType (mid, m) ->
             let new_id = `ModuleType (id, Ident.Name.module_type mid) in
-            add_module_type new_id (Delayed.get m) env
+            add_module_type new_id (Subst.delayed_get_module_type m) env
         | Signature.Include i -> open_component_signature id i.expansion_ env
         | _ -> env)
       env s.items

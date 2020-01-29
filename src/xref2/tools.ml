@@ -151,13 +151,11 @@ let prefix_signature (path, s) =
             Module
               ( Ident.Rename.module_ id,
                 r,
-                Component.Delayed.put (fun () ->
-                    Subst.module_ sub (Component.Delayed.get m)) )
+                Subst.compose_delayed Subst.module_ m sub )
         | ModuleType (id, mt) ->
             ModuleType
               ( Ident.Rename.module_type id,
-                Component.Delayed.put (fun () ->
-                    Subst.module_type sub (Component.Delayed.get mt)) )
+                Subst.compose_delayed Subst.module_type mt sub )
         | Type (id, r, t) -> Type (Ident.Rename.type_ id, r, Subst.type_ sub t)
         | TypeSubstitution (id, t) ->
             TypeSubstitution (Ident.Rename.type_ id, Subst.type_ sub t)
@@ -245,13 +243,11 @@ let prefix_ident_signature
             Module
               ( Ident.Rename.module_ id,
                 r,
-                Component.Delayed.put (fun () ->
-                    Subst.module_ sub (Component.Delayed.get m)) )
+                Subst.compose_delayed Subst.module_ m sub )
         | ModuleType (id, mt) ->
             ModuleType
               ( Ident.Rename.module_type id,
-                Component.Delayed.put (fun () ->
-                    Subst.module_type sub (Component.Delayed.get mt)) )
+                Subst.compose_delayed Subst.module_type mt sub )
         | Type (id, r, t) -> Type (Ident.Rename.type_ id, r, Subst.type_ sub t)
         | TypeSubstitution (id, t) ->
             TypeSubstitution (Ident.Rename.type_ id, Subst.type_ sub t)
@@ -925,7 +921,7 @@ and lookup_module_from_resolved_fragment :
                = Odoc_model.Names.ModuleName.to_string name ->
             ( id,
               `Module (ppath, Ident.Name.module_ id),
-              Component.Delayed.get m' )
+              Subst.delayed_get_module m' )
         | _ :: xs -> find xs
         | [] -> failwith "Can't find it"
       in
@@ -944,7 +940,7 @@ and lookup_module_from_fragment :
       let rec find = function
         | Component.Signature.Module (id, _, m') :: _
           when Ident.Name.module_ id = name ->
-            (id, `Module (ppath, name), Component.Delayed.get m')
+            (id, `Module (ppath, name), Subst.delayed_get_module m')
         | _ :: xs -> find xs
         | [] -> failwith "Can't find it"
       in
@@ -1246,11 +1242,11 @@ and fragmap_module :
         match item with
         | Component.Signature.Module (id, r, m)
           when Ident.Name.module_ id = ModuleName.to_string name -> (
-            let m = Component.Delayed.get m in
+            let m = Subst.delayed_get_module m in
             match map_module m with
             | Left m ->
                 ( Component.Signature.Module
-                    (id, r, Component.Delayed.put (fun () -> m))
+                    (id, r, Component.(Substitution.NoSubst (Delayed.put (fun () -> m))))
                   :: items,
                   true,
                   removed )
@@ -1399,10 +1395,10 @@ and fragmap_type :
             match item with
             | Component.Signature.Module (id, r, m)
               when Ident.Name.module_ id = ModuleName.to_string name ->
-                let m = Component.Delayed.get m in
+                let m = Subst.delayed_get_module m in (* TODO: Do we need to apply subst ? *)
                 let item =
                   Component.Signature.Module
-                    (id, r, Component.Delayed.put (fun () -> mapfn m))
+                    (id, r, Component.(Substitution.NoSubst (Delayed.put (fun () -> mapfn m))))
                 in
                 (item :: items, true)
             | Component.Signature.Include ({ expansion_; _ } as i) ->

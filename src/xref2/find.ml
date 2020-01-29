@@ -21,7 +21,7 @@ let careful_module_in_sig s name =
   in
   let rec inner = function
     | Signature.Module (id, _, m) :: _ when Ident.Name.module_ id = name ->
-        Found (Delayed.get m)
+        Found (Subst.delayed_get_module m)
     | Signature.Include i :: rest -> (
         try inner i.Include.expansion_.items with _ -> inner rest )
     | _ :: rest -> inner rest
@@ -68,7 +68,7 @@ let module_type_in_sig s name =
   let rec inner = function
     | Signature.ModuleType (id, m) :: _ when Ident.Name.module_type id = name
       ->
-        Delayed.get m
+        Subst.delayed_get_module_type m
     | Signature.Include i :: rest -> (
         try inner i.Include.expansion_.items with _ -> inner rest )
     | _ :: rest -> inner rest
