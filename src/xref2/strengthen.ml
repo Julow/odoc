@@ -25,21 +25,23 @@ let rec signature (prefix : Cpath.resolved_module) sg =
             Module
               ( id,
                 r,
-                Component.Delayed.put (fun () ->
-                    module_
-                      (`Module
-                        (prefix, ModuleName.of_string (Ident.Name.module_ id)))
-                      (Component.Delayed.get m)) )
+                (* TODO: Is this safe ?
+                 * [module_] is called on an unsubstituted module
+                 * if it's not safe, we should remove that function *)
+                Subst.map_delayed (
+                  module_
+                    (`Module
+                      (prefix, ModuleName.of_string (Ident.Name.module_ id)))
+                ) m )
         | ModuleType (id, mt) ->
             ModuleType
               ( id,
-                Component.Delayed.put (fun () ->
-                    module_type
-                      (`ModuleType
-                        ( prefix,
-                          ModuleTypeName.of_string (Ident.Name.module_type id)
-                        ))
-                      (Component.Delayed.get mt)) )
+                Subst.map_delayed (
+                  module_type
+                    (`ModuleType
+                      ( prefix,
+                        ModuleTypeName.of_string (Ident.Name.module_type id) ))
+                ) mt )
         | Type (id, r, t) ->
             Type
               ( id,

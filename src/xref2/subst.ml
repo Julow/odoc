@@ -1,34 +1,6 @@
-module ModuleMap = Map.Make (struct
-  type t = Ident.module_
+open Component
 
-  let compare a b = Ident.compare (a :> Ident.any) (b :> Ident.any)
-end)
-
-module ModuleTypeMap = Map.Make (struct
-  type t = Ident.module_type
-
-  let compare a b = Ident.compare (a :> Ident.any) (b :> Ident.any)
-end)
-
-module TypeMap = Map.Make (struct
-  type t = Ident.path_type
-
-  let compare a b = Ident.compare (a :> Ident.any) (b :> Ident.any)
-end)
-
-module ClassTypeMap = Map.Make (struct
-  type t = Ident.path_class_type
-
-  let compare a b = Ident.compare (a :> Ident.any) (b :> Ident.any)
-end)
-
-module IdentMap = Map.Make (struct
-  type t = Ident.any
-
-  let compare = Ident.compare
-end)
-
-type t = {
+type t = Subst_t.t = {
   module_ : Cpath.resolved_module ModuleMap.t;
   module_type : Cpath.resolved_module_type ModuleTypeMap.t;
   type_ : Cpath.resolved_type TypeMap.t;
@@ -64,7 +36,7 @@ let module_ref_of_module_path : Cpath.resolved_module -> Cref.Resolved.module_ =
   | `Local x -> `Local x
   | `Identifier x -> `Identifier x
   | x ->
-      let p = Lang_of.(Path.resolved_module empty x) in
+      let p = Lang_of_t.(Path.resolved_module empty x) in
       `Identifier (Odoc_model.Paths.Path.Resolved.Module.identifier p)
 
 let add_module id subst t =
@@ -81,7 +53,7 @@ let module_type_ref_of_module_type_path :
   | `Local x -> `Local x
   | `Identifier x -> `Identifier x
   | x ->
-      let p = Lang_of.(Path.resolved_module_type empty x) in
+      let p = Lang_of_t.(Path.resolved_module_type empty x) in
       `Identifier (Odoc_model.Paths.Path.Resolved.ModuleType.identifier p)
 
 let add_module_type id subst t =
@@ -98,7 +70,7 @@ let type_ref_of_type_path : Cpath.resolved_type -> Cref.Resolved.type_ =
   | `Local x -> `Local x
   | `Identifier x -> `Identifier x
   | x ->
-      let p = Lang_of.(Path.resolved_type empty x) in
+      let p = Lang_of_t.(Path.resolved_type empty x) in
       `Identifier (Odoc_model.Paths.Path.Resolved.Type.identifier p)
 
 let add_type : Ident.type_ -> Cpath.resolved_type -> t -> t =
@@ -116,7 +88,7 @@ let class_ref_of_class_path :
   | `Local x -> `Local x
   | `Identifier x -> `Identifier x
   | x ->
-      let p = Lang_of.(Path.resolved_class_type empty x) in
+      let p = Lang_of_t.(Path.resolved_class_type empty x) in
       `Identifier (Odoc_model.Paths.Path.Resolved.ClassType.identifier p)
 
 let add_class : Ident.class_ -> Cpath.resolved_class_type -> t -> t =
@@ -161,6 +133,20 @@ let add_type_replacement : Ident.path_type -> Component.TypeExpr.t -> t -> t =
 
 let add_id_map : Ident.any -> Ident.any -> t -> t =
  fun id new_id t -> { t with id_any = IdentMap.add id new_id t.id_any }
+
+let compose_delayed f : 'a Delayed.t Subst_t.delayed -> t -> 'a Delayed.t Subst_t.delayed =
+  fun v s ->
+  match v with
+  | DelayedSubst (s', v) ->
+    let v = Delayed.put (fun () -> f s' (Delayed.get v)) in
+    DelayedSubst (s, v) (* TODO: compose s and s': Remove [f] argument *)
+  | NoSubst v -> DelayedSubst (s, v)
+
+let map_delayed f : 'a Delayed.t Subst_t.delayed -> 'b Delayed.t Subst_t.delayed =
+  let f v = Delayed.put (fun () -> f (Delayed.get v)) in
+  function
+  | DelayedSubst (s, v) -> DelayedSubst (s, f v)
+  | NoSubst v -> NoSubst (f v)
 
 let rec resolved_module_path :
     t -> Cpath.resolved_module -> Cpath.resolved_module =
@@ -811,18 +797,11 @@ and apply_sig_map s items sg =
     List.rev_map
       (function
         | Module (id, r, m) ->
-            Module
-              ( id,
-                r,
-                Component.Delayed.put (fun () ->
-                    module_ s (Component.Delayed.get m)) )
+            Module (id, r, compose_delayed module_ m s)
         | ModuleSubstitution (id, m) ->
             ModuleSubstitution (id, module_substitution s m)
         | ModuleType (id, mt) ->
-            ModuleType
-              ( id,
-                Component.Delayed.put (fun () ->
-                    module_type s (Component.Delayed.get mt)) )
+            ModuleType (id, compose_delayed module_type mt s)
         | Type (id, r, t) -> Type (id, r, type_ s t)
         | TypeSubstitution (id, t) -> TypeSubstitution (id, type_ s t)
         | Exception (id, e) -> Exception (id, exception_ s e)
@@ -836,3 +815,13 @@ and apply_sig_map s items sg =
       items
   in
   { items; removed = removed_items s sg.removed }
+
+let delayed_get_module : Module.t Delayed.t Subst_t.delayed -> Module.t =
+  function
+  | DelayedSubst (s, m) -> module_ s (Delayed.get m)
+  | NoSubst m -> Delayed.get m
+
+let delayed_get_module_type : ModuleType.t Delayed.t Subst_t.delayed -> ModuleType.t =
+  function
+  | DelayedSubst (s, mt) -> module_type s (Delayed.get mt)
+  | NoSubst mt -> Delayed.get mt

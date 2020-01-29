@@ -130,13 +130,11 @@ let prefix_signature (path, s) =
             Module
               ( Ident.Rename.module_ id,
                 r,
-                Component.Delayed.put (fun () ->
-                    Subst.module_ sub (Component.Delayed.get m)) )
+                Subst.compose_delayed Subst.module_ m sub )
         | ModuleType (id, mt) ->
             ModuleType
               ( Ident.Rename.module_type id,
-                Component.Delayed.put (fun () ->
-                    Subst.module_type sub (Component.Delayed.get mt)) )
+                Subst.compose_delayed Subst.module_type mt sub )
         | Type (id, r, t) -> Type (Ident.Rename.type_ id, r, Subst.type_ sub t)
         | TypeSubstitution (id, t) ->
             TypeSubstitution (Ident.Rename.type_ id, Subst.type_ sub t)
@@ -218,13 +216,11 @@ let prefix_ident_signature
             Module
               ( Ident.Rename.module_ id,
                 r,
-                Component.Delayed.put (fun () ->
-                    Subst.module_ sub (Component.Delayed.get m)) )
+                Subst.compose_delayed Subst.module_ m sub )
         | ModuleType (id, mt) ->
             ModuleType
               ( Ident.Rename.module_type id,
-                Component.Delayed.put (fun () ->
-                    Subst.module_type sub (Component.Delayed.get mt)) )
+                Subst.compose_delayed Subst.module_type mt sub )
         | Type (id, r, t) -> Type (Ident.Rename.type_ id, r, Subst.type_ sub t)
         | TypeSubstitution (id, t) ->
             TypeSubstitution (Ident.Rename.type_ id, Subst.type_ sub t)
@@ -322,10 +318,10 @@ type module_type_lookup_result =
 
 type type_lookup_result =
   Cpath.resolved_type
-  * (Component.Find.type_, Component.TypeExpr.t) Component.Find.found
+  * (Component_find.type_, Component.TypeExpr.t) Component_find.found
 
 type class_type_lookup_result =
-  Cpath.resolved_class_type * Component.Find.class_type
+  Cpath.resolved_class_type * Component_find.class_type
 
 exception Type_lookup_failure of Env.t * Cpath.resolved_type
 
@@ -422,8 +418,8 @@ and add_hidden m p = if m.Component.Module.hidden then `Hidden p else p
 
 and handle_module_lookup env add_canonical id p m =
   let p', sg = signature_of_module env (p, m) |> prefix_signature in
-  match Component.Find.careful_module_in_sig sg id with
-  | Component.Find.Found m' ->
+  match Component_find.careful_module_in_sig sg id with
+  | Component_find.Found m' ->
       let p' = `Module (p', Odoc_model.Names.ModuleName.of_string id) in
       let p'' = if add_canonical then add_canonical_path env m' p' else p' in
       (p'', m')
@@ -431,22 +427,23 @@ and handle_module_lookup env add_canonical id p m =
 
 and handle_module_type_lookup env id p m =
   let p', sg = signature_of_module env (p, m) |> prefix_signature in
-  let mt = Component.Find.module_type_in_sig sg id in
+  let mt = Component_find.module_type_in_sig sg id in
   (`ModuleType (p', Odoc_model.Names.ModuleTypeName.of_string id), mt)
 
 and handle_type_lookup env id p m : type_lookup_result =
   let p', sg = signature_of_module env (p, m) |> prefix_signature in
   try
-    let mt = Component.Find.careful_type_in_sig sg id in
+    let mt = Component_find.careful_type_in_sig sg id in
     (`Type (p', Odoc_model.Names.TypeName.of_string id), mt)
   with e ->
     Format.fprintf Format.err_formatter "failed to find type in path: %a (p'=%a)\n%!" Component.Fmt.resolved_module_path p Component.Fmt.resolved_module_path p';
     Format.fprintf Format.err_formatter "Signature: %a\n%!" Component.Fmt.signature sg;
     Format.fprintf Format.err_formatter "module: %a\n%!" Component.Fmt.module_ m;
     raise e
+
 and handle_class_type_lookup env id p m =
   let p', sg = signature_of_module env (p, m) |> prefix_signature in
-  let c = Component.Find.class_type_in_sig sg id in
+  let c = Component_find.class_type_in_sig sg id in
   (`ClassType (p', Odoc_model.Names.TypeName.of_string id), c)
 
 and verify_resolved_module_path : Env.t -> Cpath.resolved_module -> bool =
@@ -862,7 +859,7 @@ and lookup_module_from_resolved_fragment :
                = Odoc_model.Names.ModuleName.to_string name ->
             ( id,
               `Module (ppath, Ident.Name.module_ id),
-              Component.Delayed.get m' )
+              Subst.delayed_get_module m' )
         | _ :: xs -> find xs
         | [] -> failwith "Can't find it"
       in
@@ -881,7 +878,7 @@ and lookup_module_from_fragment :
       let rec find = function
         | Component.Signature.Module (id, _, m') :: _
           when Ident.Name.module_ id = name ->
-            (id, `Module (ppath, name), Component.Delayed.get m')
+            (id, `Module (ppath, name), Subst.delayed_get_module m')
         | _ :: xs -> find xs
         | [] -> failwith "Can't find it"
       in
@@ -1173,11 +1170,13 @@ and fragmap_module :
           | Component.Signature.Module (id, r, m)
             when Ident.Name.module_ id = ModuleName.to_string name -> (
               if name = "Named" then Format.fprintf Format.err_formatter "I'm replacing a module called 'Named'!\n%!";
-              let m = Component.Delayed.get m in
+              let m = Subst.delayed_get_module m in
               match mapfn m with
               | Left m ->
                   ( Component.Signature.Module
-                      (id, r, Component.Delayed.put (fun () -> m))
+                    ( id,
+                      r,
+                      Component.(Subst_t.NoSubst (Delayed.put (fun () -> m))) )
                     :: items,
                     removed )
               | Right p -> (items, Component.Signature.RModule (id, p) :: removed)
@@ -1294,9 +1293,9 @@ and fragmap_type :
           (function
             | Component.Signature.Module (id, r, m)
               when Ident.Name.module_ id = ModuleName.to_string name ->
-                let m = Component.Delayed.get m in
+                let m = Subst.delayed_get_module m in (* TODO: Do we need to apply subst ? *)
                 Component.Signature.Module
-                  (id, r, Component.Delayed.put (fun () -> mapfn m))
+                  (id, r, Component.(NoSubst (Delayed.put (fun () -> mapfn m))))
             | Component.Signature.Include ({expansion_; _} as i) ->
                 let items' = handle_items expansion_.items in
                 Component.Signature.Include {i with expansion_ = {expansion_ with items=items'}}
@@ -1309,7 +1308,7 @@ and fragmap_type :
 and find_module_with_replacement :
     Env.t -> Component.Signature.t -> string -> Component.Module.t =
  fun env sg name ->
-  match Component.Find.careful_module_in_sig sg name with
+  match Component_find.careful_module_in_sig sg name with
   | Found m -> m
   | Replaced path ->
       let _, m = lookup_module_from_resolved_path env path in
@@ -1404,7 +1403,7 @@ and resolve_resolved_type_fragment :
         resolve_resolved_signature_fragment env (p, sg) parent
       in
       let t' =
-        Component.Find.careful_type_in_sig sg
+        Component_find.careful_type_in_sig sg
           (Odoc_model.Names.TypeName.to_string name)
       in
 
@@ -1425,7 +1424,7 @@ and resolve_type_fragment :
   | `Dot (parent, name) ->
       let parent, _, sg = resolve_signature_fragment env (p, sg) parent in
       let _ =
-        Component.Find.careful_type_in_sig sg
+        Component_find.careful_type_in_sig sg
           (Odoc_model.Names.TypeName.to_string name)
       in
       `Type (parent, Odoc_model.Names.TypeName.of_string name)
@@ -1529,7 +1528,7 @@ and resolve_mt_resolved_type_fragment :
         resolve_mt_resolved_signature_fragment env (p, sg) parent
       in
       let _t' =
-        Component.Find.careful_type_in_sig sg
+        Component_find.careful_type_in_sig sg
           (Odoc_model.Names.TypeName.to_string name)
       in
       `Type (parent, Odoc_model.Names.TypeName.of_string name)
@@ -1546,7 +1545,7 @@ and resolve_mt_type_fragment :
   | `Dot (parent, name) ->
       let parent, _, sg = resolve_mt_signature_fragment env (p, sg) parent in
       let _ =
-        Component.Find.careful_type_in_sig sg
+        Component_find.careful_type_in_sig sg
           (Odoc_model.Names.TypeName.to_string name)
       in
       `Type (parent, Odoc_model.Names.TypeName.of_string name)

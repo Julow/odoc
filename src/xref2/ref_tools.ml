@@ -190,24 +190,24 @@ let rec resolve_type_reference : Env.t -> Type.t -> type_lookup_result option =
         resolve_label_parent_reference env parent ~add_canonical:true
         >>= signature_lookup_result_of_label_parent
         >>= fun (parent', _, sg) ->
-        Component.Find.opt_type_in_sig sg name >>= fun t ->
+        Component_find.opt_type_in_sig sg name >>= fun t ->
         return (`Type (parent', name), t)
     | `Class (parent, name) -> (
         resolve_signature_reference env parent ~add_canonical:true
         >>= fun (parent', _, sg) ->
-        Component.Find.opt_type_in_sig sg name >>= function
+        Component_find.opt_type_in_sig sg name >>= function
         | `C _ as c -> return (`Class (parent', name), c)
         | _ -> None )
     | `ClassType (parent, name) -> (
         resolve_signature_reference env parent ~add_canonical:true
         >>= fun (parent', _, sg) ->
-        Component.Find.opt_type_in_sig sg name >>= function
+        Component_find.opt_type_in_sig sg name >>= function
         | `CT _ as c -> return (`ClassType (parent', name), c)
         | _ -> None )
     | `Type (parent, name) -> (
         resolve_signature_reference env parent ~add_canonical:true
         >>= fun (parent', _, sg) ->
-        Component.Find.opt_type_in_sig sg name >>= function
+        Component_find.opt_type_in_sig sg name >>= function
         | `T _ as c -> return (`Type (parent', name), c)
         | _ -> None )
 
@@ -230,19 +230,19 @@ and resolve_resolved_type_reference :
   | `Type (parent, name) -> (
       resolve_resolved_signature_reference env parent ~add_canonical:true
       |> fun (parent', _, sg) ->
-      Component.Find.type_in_sig sg name |> function
+      Component_find.type_in_sig sg name |> function
       | `T _ as c -> (`Type (parent', name), c)
       | _ -> failwith "error" )
   | `ClassType (parent, name) -> (
       resolve_resolved_signature_reference env parent ~add_canonical:true
       |> fun (parent', _, sg) ->
-      Component.Find.type_in_sig sg name |> function
+      Component_find.type_in_sig sg name |> function
       | `CT _ as c -> (`ClassType (parent', name), c)
       | _ -> failwith "error" )
   | `Class (parent, name) -> (
       resolve_resolved_signature_reference env parent ~add_canonical:true
       |> fun (parent', _, sg) ->
-      Component.Find.type_in_sig sg name |> function
+      Component_find.type_in_sig sg name |> function
       | `CT _ as c -> (`ClassType (parent', name), c)
       | _ -> failwith "error" )
 
@@ -297,7 +297,7 @@ and resolve_resolved_module_reference :
       let _, _, sg =
         resolve_resolved_signature_reference env parent ~add_canonical
       in
-      let m = Component.Find.module_in_sig sg name in
+      let m = Component_find.module_in_sig sg name in
       let r' = if add_canonical then add_canonical_path env m r else r in
       (r', m)
   | `Canonical (p, _) ->
@@ -316,7 +316,7 @@ and resolve_resolved_module_type_reference :
       let _, _, sg =
         resolve_resolved_signature_reference env parent ~add_canonical:true
       in
-      (r, Component.Find.module_type_in_sig sg name)
+      (r, Component_find.module_type_in_sig sg name)
 
 and resolve_module_reference :
     Env.t -> Module.t -> add_canonical:bool -> module_lookup_result option =
@@ -329,7 +329,7 @@ and resolve_module_reference :
         resolve_label_parent_reference env parent ~add_canonical
         >>= signature_lookup_result_of_label_parent
         >>= fun (parent', _, sg) ->
-        Component.Find.opt_module_in_sig sg name >>= fun m ->
+        Component_find.opt_module_in_sig sg name >>= fun m ->
         let r' =
           if add_canonical then
             add_canonical_path env m (`Module (parent', name))
@@ -339,7 +339,7 @@ and resolve_module_reference :
     | `Module (parent, name) ->
         resolve_signature_reference env parent ~add_canonical
         >>= fun (parent', _, sg) ->
-        Component.Find.opt_module_in_sig sg name >>= fun m ->
+        Component_find.opt_module_in_sig sg name >>= fun m ->
         let r' =
           if add_canonical then
             add_canonical_path env m (`Module (parent', name))
@@ -379,12 +379,12 @@ and resolve_module_type_reference :
         resolve_label_parent_reference env parent ~add_canonical
         >>= signature_lookup_result_of_label_parent
         >>= fun (parent', _, sg) ->
-        Component.Find.opt_module_type_in_sig sg name >>= fun m ->
+        Component_find.opt_module_type_in_sig sg name >>= fun m ->
         return (`ModuleType (parent', name), m)
     | `ModuleType (parent, name) ->
         resolve_signature_reference env parent ~add_canonical
         >>= fun (parent', _, sg) ->
-        Component.Find.opt_module_type_in_sig sg name >>= fun m ->
+        Component_find.opt_module_type_in_sig sg name >>= fun m ->
         return (`ModuleType (parent', name), m)
     | `Root (name, _) ->
         Env.lookup_module_type_by_name name env >>= fun (`ModuleType (id, m)) ->
@@ -416,7 +416,7 @@ and resolve_label_parent_reference :
         choose
           [
             (fun () ->
-              Component.Find.opt_module_in_sig sg name >>= fun m ->
+              Component_find.opt_module_in_sig sg name >>= fun m ->
               let r' =
                 if add_canonical then
                   add_canonical_path env m (`Module (parent', name))
@@ -433,7 +433,7 @@ and resolve_label_parent_reference :
               in
               return ((r' :> Resolved.LabelParent.t), env, `S sg));
             (fun () ->
-              Component.Find.opt_module_type_in_sig sg name >>= fun m ->
+              Component_find.opt_module_type_in_sig sg name >>= fun m ->
               let r' = `ModuleType (parent', name) in
               let sg =
                 Tools.signature_of_module_type_nopath env m
@@ -521,7 +521,7 @@ and resolve_signature_reference :
           resolve_label_parent_reference env parent ~add_canonical
           >>= signature_lookup_result_of_label_parent
           >>= fun (parent', env, sg) ->
-          Component.Find.opt_module_in_sig sg name >>= fun m ->
+          Component_find.opt_module_in_sig sg name >>= fun m ->
           let r' = `Module (parent', name) in
           let sg =
             Tools.signature_of_module_nopath env m |> prefix_signature r'
@@ -535,7 +535,7 @@ and resolve_signature_reference :
       | `Module (parent, name) ->
           resolve_signature_reference env parent ~add_canonical
           >>= fun (parent', env, sg) ->
-          Component.Find.opt_module_in_sig sg name >>= fun m ->
+          Component_find.opt_module_in_sig sg name >>= fun m ->
           let r' = `Module (parent', name) in
           let sg =
             Tools.signature_of_module_nopath env m |> prefix_signature r'
@@ -549,7 +549,7 @@ and resolve_signature_reference :
       | `ModuleType (parent, name) ->
           resolve_signature_reference env parent ~add_canonical
           >>= fun (parent', env, sg) ->
-          Component.Find.opt_module_type_in_sig sg name >>= fun m ->
+          Component_find.opt_module_type_in_sig sg name >>= fun m ->
           let r' = `ModuleType (parent', name) in
           let sg =
             Tools.signature_of_module_type_nopath env m |> prefix_signature r'
@@ -593,7 +593,7 @@ and resolve_value_reference : Env.t -> Value.t -> value_lookup_result option =
         resolve_label_parent_reference env parent ~add_canonical:true
         >>= signature_lookup_result_of_label_parent
         >>= fun (parent', _, sg) ->
-        match Component.Find.opt_value_in_sig sg name with
+        match Component_find.opt_value_in_sig sg name with
         | Some v -> return (`Value (parent', name), v)
         | None -> None )
     | _ -> failwith "erk"
@@ -612,7 +612,7 @@ and resolve_label_reference : Env.t -> Label.t -> Resolved.Label.t option =
         >>= fun (p, _env, sg) ->
         match sg with
         | `S sg ->
-            Component.Find.opt_label_in_sig sg name >>= fun _ ->
+            Component_find.opt_label_in_sig sg name >>= fun _ ->
             Some (`Label (p, name))
         | `CS _sg -> None
         | `Page p -> (
@@ -622,7 +622,7 @@ and resolve_label_reference : Env.t -> Label.t -> Resolved.Label.t option =
         >>= fun (p, _, sg) ->
         match sg with
         | `S sg ->
-            Component.Find.opt_label_in_sig sg name >>= fun _ ->
+            Component_find.opt_label_in_sig sg name >>= fun _ ->
             Some (`Label (p, name))
         | `CS _sg -> None
         | `Page p -> (

@@ -2,6 +2,36 @@
     {!Lang}, which may well be too complex for our use, we'll
     see as we expand on this *)
 
+module ModuleMap = Map.Make (struct
+  type t = Ident.module_
+
+  let compare a b = Ident.compare (a :> Ident.any) (b :> Ident.any)
+end)
+
+module ModuleTypeMap = Map.Make (struct
+  type t = Ident.module_type
+
+  let compare a b = Ident.compare (a :> Ident.any) (b :> Ident.any)
+end)
+
+module TypeMap = Map.Make (struct
+  type t = Ident.path_type
+
+  let compare a b = Ident.compare (a :> Ident.any) (b :> Ident.any)
+end)
+
+module ClassTypeMap = Map.Make (struct
+  type t = Ident.path_class_type
+
+  let compare a b = Ident.compare (a :> Ident.any) (b :> Ident.any)
+end)
+
+module IdentMap = Map.Make (struct
+  type t = Ident.any
+
+  let compare = Ident.compare
+end)
+
 module CComment = struct
   open Odoc_model.Comment
 
@@ -256,9 +286,9 @@ and Signature : sig
   type recursive = Odoc_model.Lang.Signature.recursive
 
   type item =
-    | Module of Ident.module_ * recursive * Module.t Delayed.t
+    | Module of Ident.module_ * recursive * Module.t Delayed.t Subst_t.delayed
     | ModuleSubstitution of Ident.module_ * ModuleSubstitution.t
-    | ModuleType of Ident.module_type * ModuleType.t Delayed.t
+    | ModuleType of Ident.module_type * ModuleType.t Delayed.t Subst_t.delayed
     | Type of Ident.type_ * recursive * TypeDecl.t
     | TypeSubstitution of Ident.type_ * TypeDecl.t
     | Exception of Ident.exception_ * Exception.t
@@ -357,6 +387,28 @@ and InstanceVariable : sig
 end =
   InstanceVariable
 
+and Subst_t : sig
+  type t =
+    { module_ : Cpath.resolved_module ModuleMap.t
+    ; module_type : Cpath.resolved_module_type ModuleTypeMap.t
+    ; type_ : Cpath.resolved_type TypeMap.t
+    ; class_type : Cpath.resolved_class_type ClassTypeMap.t
+    ; type_replacement : TypeExpr.t TypeMap.t
+
+    (* Reference maps *)
+    ; ref_module : Cref.Resolved.module_ ModuleMap.t
+    ; ref_module_type : Cref.Resolved.module_type ModuleTypeMap.t
+    ; ref_type : Cref.Resolved.type_ TypeMap.t
+    ; ref_class_type : Cref.Resolved.class_type ClassTypeMap.t
+
+    ; id_any : Ident.any IdentMap.t
+
+    }
+
+  type 'a delayed = DelayedSubst of t * 'a | NoSubst of 'a
+
+end = Subst_t
+
 module Element = struct
   open Odoc_model.Paths
 
@@ -395,20 +447,25 @@ module Fmt = struct
     Format.fprintf (Format.formatter_of_buffer b) "%a%!" fmt c;
     Buffer.contents b
 
+  let subst_delayed f ppf = function
+    | Subst_t.DelayedSubst (_, v) ->
+      Format.fprintf ppf "@[DelayedSubst (<subst>, %a)@]" f (Delayed.get v)
+    | NoSubst v -> f ppf (Delayed.get v)
+
   let rec signature ppf sg =
     let open Signature in
     Format.fprintf ppf "@[<v>";
     List.iter
       (function
         | Module (id, _, m) ->
-            Format.fprintf ppf "@[<v 2>module %a %a@]@," Ident.fmt id module_
-              (Delayed.get m)
+            Format.fprintf ppf "@[<v 2>module %a %a@]@," Ident.fmt id
+              (subst_delayed module_) m
         | ModuleSubstitution (id, m) ->
             Format.fprintf ppf "@[<v 2>module %a := %a@]@," Ident.fmt id
               module_path m.ModuleSubstitution.manifest
         | ModuleType (id, mt) ->
             Format.fprintf ppf "@[<v 2>module type %a %a@]@," Ident.fmt id
-              module_type (Delayed.get mt)
+              (subst_delayed module_type) mt
         | Type (id, _, t) ->
             Format.fprintf ppf "@[<v 2>type %a %a@]@," Ident.fmt id type_decl t
         | TypeSubstitution (id, t) ->
@@ -2125,7 +2182,9 @@ module Of_Lang = struct
             Signature.TypeSubstitution (id, t')
         | Module (r, m) ->
             let id = List.assoc m.id ident_map.modules in
-            let m' = Delayed.put (fun () -> module_ ident_map m) in
+            let m' =
+              Subst_t.NoSubst (Delayed.put (fun () -> module_ ident_map m))
+            in
             Signature.Module (id, r, m')
         | ModuleSubstitution m ->
             let id = List.assoc m.id ident_map.modules in
@@ -2133,7 +2192,9 @@ module Of_Lang = struct
             Signature.ModuleSubstitution (id, m')
         | ModuleType m ->
             let id = List.assoc m.id ident_map.module_types in
-            let m' = Delayed.put (fun () -> module_type ident_map m) in
+            let m' =
+              Subst_t.NoSubst (Delayed.put (fun () -> module_type ident_map m))
+            in
             Signature.ModuleType (id, m')
         | Value v ->
             let id = List.assoc v.id ident_map.values in
@@ -2157,149 +2218,6 @@ module Of_Lang = struct
         items
     in
     { items; removed = [] }
-end
-
-module Find = struct
-  exception Find_failure of Signature.t * string * string
-
-  let fail sg name ty = raise (Find_failure (sg, name, ty))
-
-  type class_type = [ `C of Class.t | `CT of ClassType.t ]
-
-  type type_ = [ `T of TypeDecl.t | class_type ]
-
-  type value = [ `V of Value.t | `E of External.t ]
-
-  type ('a, 'b) found = Found of 'a | Replaced of 'b
-
-  let careful_module_in_sig s name =
-    let rec inner_removed = function
-      | Signature.RModule (id, p) :: _ when Ident.Name.module_ id = name ->
-          Replaced p
-      | _ :: rest -> inner_removed rest
-      | [] -> fail s name "module"
-    in
-    let rec inner = function
-      | Signature.Module (id, _, m) :: _ when Ident.Name.module_ id = name ->
-          Found (Delayed.get m)
-      | Signature.Include i :: rest -> (
-          try inner i.Include.expansion_.items with _ -> inner rest )
-      | _ :: rest -> inner rest
-      | [] -> inner_removed s.removed
-    in
-    inner s.items
-
-  let careful_type_in_sig s name =
-    let rec inner_removed = function
-      | Signature.RType (id, p) :: _ when Ident.Name.type_ id = name ->
-          Format.fprintf Format.err_formatter "Found replaced type %a\n%!"
-            Ident.fmt id;
-          Replaced p
-      | _ :: rest -> inner_removed rest
-      | [] -> fail s name "type"
-    in
-    let rec inner = function
-      | Signature.Type (id, _, m) :: _ when Ident.Name.type_ id = name ->
-          Found (`T m)
-      | Signature.Class (id, _, c) :: _ when Ident.Name.class_ id = name ->
-          Found (`C c)
-      | Signature.ClassType (id, _, c) :: _ when Ident.Name.class_type id = name
-        ->
-          Found (`CT c)
-      | Signature.Include i :: rest -> (
-          try inner i.Include.expansion_.items with _ -> inner rest )
-      | _ :: rest -> inner rest
-      | [] -> inner_removed s.removed
-    in
-    inner s.items
-
-  let module_in_sig s name =
-    match careful_module_in_sig s name with
-    | Found m -> m
-    | Replaced _ -> fail s name "module"
-
-  let opt_module_in_sig s name =
-    match careful_module_in_sig s name with
-    | Found m -> Some m
-    | Replaced _ -> None
-    | exception _ -> None
-
-  let module_type_in_sig s name =
-    let rec inner = function
-      | Signature.ModuleType (id, m) :: _ when Ident.Name.module_type id = name
-        ->
-          Delayed.get m
-      | Signature.Include i :: rest -> (
-          try inner i.Include.expansion_.items with _ -> inner rest )
-      | _ :: rest -> inner rest
-      | [] -> fail s name "module type"
-    in
-    inner s.items
-
-  let opt_module_type_in_sig s name =
-    try Some (module_type_in_sig s name) with _ -> None
-
-  let opt_value_in_sig s name : value option =
-    let rec inner = function
-      | Signature.Value (id, m) :: _ when Ident.Name.value id = name ->
-          Some (`V m)
-      | Signature.External (id, e) :: _ when Ident.Name.value id = name ->
-          Some (`E e)
-      | Signature.Include i :: rest -> (
-          match inner i.Include.expansion_.items with
-          | Some m -> Some m
-          | None -> inner rest )
-      | _ :: rest -> inner rest
-      | [] -> None
-    in
-
-    inner s.Signature.items
-
-  let type_in_sig s name =
-    match careful_type_in_sig s name with
-    | Found t -> t
-    | Replaced _ -> fail s name "type"
-
-  let opt_type_in_sig s name =
-    match careful_type_in_sig s name with
-    | Found t -> Some t
-    | Replaced _ -> None
-    | exception _ -> None
-
-  let class_type_in_sig s name =
-    let rec inner = function
-      | Signature.Class (id, _, c) :: _ when Ident.Name.class_ id = name -> `C c
-      | Signature.ClassType (id, _, c) :: _ when Ident.Name.class_type id = name
-        ->
-          `CT c
-      | Signature.Include i :: rest -> (
-          try inner i.Include.expansion_.items with _ -> inner rest )
-      | _ :: rest -> inner rest
-      | [] -> fail s name "class type"
-    in
-    inner s.items
-
-  let opt_label_in_sig s name =
-    let rec inner = function
-      | Signature.Comment (`Docs d) :: rest -> (
-          let rec inner' xs =
-            match xs with
-            | elt :: rest -> (
-                match elt with
-                | `Heading (_, label, _) when Ident.Name.label label = name ->
-                    Some label
-                | _ -> inner' rest )
-            | _ -> None
-          in
-          match inner' d with None -> inner rest | x -> x )
-      | Signature.Include i :: rest -> (
-          match inner i.Include.expansion_.items with
-          | Some _ as x -> x
-          | None -> inner rest )
-      | _ :: rest -> inner rest
-      | [] -> None
-    in
-    inner s.Signature.items
 end
 
 let module_of_functor_argument (arg : FunctorArgument.t) =
