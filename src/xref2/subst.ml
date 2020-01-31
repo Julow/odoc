@@ -102,14 +102,6 @@ let compose_delayed' compose v s =
   | DelayedSubst (s', v) -> DelayedSubst (compose s s', v)
   | NoSubst v -> DelayedSubst (s, v)
 
-let compose_delayed f : 'a Delayed.t Substitution.delayed -> t -> 'a Delayed.t Substitution.delayed =
-  fun v s ->
-  match v with
-  | DelayedSubst (s', v) ->
-    let v = Delayed.put (fun () -> f s' (Delayed.get v)) in
-    DelayedSubst (s, v) (* TODO: compose s and s': Remove [f] argument *)
-  | NoSubst v -> DelayedSubst (s, v)
-
 let map_delayed f : 'a Delayed.t Substitution.delayed -> 'b Delayed.t Substitution.delayed =
   let f v = Delayed.put (fun () -> f (Delayed.get v)) in
   function
@@ -807,6 +799,9 @@ and compose : t -> t -> t =
   ; ref_class_type = ClassTypeMap.merge override a.ref_class_type b.ref_class_type
   ; id_any = IdentMap.merge override a.id_any b.id_any
   }
+
+let compose_delayed : 'a Substitution.delayed -> t -> 'a Substitution.delayed =
+  fun v s -> compose_delayed' compose v s
 
 let delayed_get_module : Module.t Delayed.t Substitution.delayed -> Module.t =
   function
