@@ -96,6 +96,12 @@ let add_type_replacement : Ident.path_type -> Component.TypeExpr.t -> t -> t =
 let add_id_map : Ident.any -> Ident.any -> t -> t =
  fun id new_id t -> { t with id_any = IdentMap.add id new_id t.id_any }
 
+let compose_delayed' compose v s =
+  let open Substitution in
+  match v with
+  | DelayedSubst (s', v) -> DelayedSubst (compose s s', v)
+  | NoSubst v -> DelayedSubst (s, v)
+
 let compose_delayed f : 'a Delayed.t Substitution.delayed -> t -> 'a Delayed.t Substitution.delayed =
   fun v s ->
   match v with
@@ -759,11 +765,11 @@ and apply_sig_map s items removed =
     List.map
       (function
         | Module (id, r, m) ->
-            Module (id, r, compose_delayed module_ m s)
+            Module (id, r, compose_delayed' compose m s)
         | ModuleSubstitution (id, m) ->
             ModuleSubstitution (id, module_substitution s m)
         | ModuleType (id, mt) ->
-            ModuleType (id, compose_delayed module_type mt s)
+            ModuleType (id, compose_delayed' compose mt s)
         | Type (id, r, t) -> Type (id, r, type_ s t)
         | TypeSubstitution (id, t) -> TypeSubstitution (id, type_ s t)
         | Exception (id, e) -> Exception (id, exception_ s e)
@@ -777,6 +783,30 @@ and apply_sig_map s items removed =
       items
   in
   { items; removed = removed_items s removed }
+
+and compose : t -> t -> t =
+  let compose f _key a b =
+    match b with
+    | Some b -> Some (f b)
+    | None -> a
+  in
+  let override _key a b =
+    match b with
+    | Some _ -> b
+    | None -> a
+  in
+  fun a b ->
+  { module_ = ModuleMap.merge (compose (resolved_module_path a)) a.module_ b.module_
+  ; module_type = ModuleTypeMap.merge (compose (resolved_module_type_path a)) a.module_type b.module_type
+  ; type_ = TypeMap.merge (compose (resolved_type_path a)) a.type_ b.type_
+  ; class_type = ClassTypeMap.merge (compose (resolved_class_type_path a)) a.class_type b.class_type
+  ; type_replacement = TypeMap.merge override a.type_replacement b.type_replacement
+  ; ref_module = ModuleMap.merge override a.ref_module b.ref_module
+  ; ref_module_type = ModuleTypeMap.merge override a.ref_module_type b.ref_module_type
+  ; ref_type = TypeMap.merge override a.ref_type b.ref_type
+  ; ref_class_type = ClassTypeMap.merge override a.ref_class_type b.ref_class_type
+  ; id_any = IdentMap.merge override a.id_any b.id_any
+  }
 
 let delayed_get_module : Module.t Delayed.t Substitution.delayed -> Module.t =
   function
