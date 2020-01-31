@@ -130,11 +130,11 @@ let prefix_signature (path, s) =
             Module
               ( Ident.Rename.module_ id,
                 r,
-                Subst.compose_delayed Subst.module_ m sub )
+                Subst.compose_delayed m sub )
         | ModuleType (id, mt) ->
             ModuleType
               ( Ident.Rename.module_type id,
-                Subst.compose_delayed Subst.module_type mt sub )
+                Subst.compose_delayed mt sub )
         | Type (id, r, t) -> Type (Ident.Rename.type_ id, r, Subst.type_ sub t)
         | TypeSubstitution (id, t) ->
             TypeSubstitution (Ident.Rename.type_ id, Subst.type_ sub t)
@@ -216,11 +216,11 @@ let prefix_ident_signature
             Module
               ( Ident.Rename.module_ id,
                 r,
-                Subst.compose_delayed Subst.module_ m sub )
+                Subst.compose_delayed m sub )
         | ModuleType (id, mt) ->
             ModuleType
               ( Ident.Rename.module_type id,
-                Subst.compose_delayed Subst.module_type mt sub )
+                Subst.compose_delayed mt sub )
         | Type (id, r, t) -> Type (Ident.Rename.type_ id, r, Subst.type_ sub t)
         | TypeSubstitution (id, t) ->
             TypeSubstitution (Ident.Rename.type_ id, Subst.type_ sub t)
