@@ -838,15 +838,28 @@ and compose : t -> t -> t =
   ; id_any = IdentMap.merge override a.id_any b.id_any
   }
 
-let compose_delayed : 'a Subst_t.delayed -> t -> 'a Subst_t.delayed =
-  fun v s -> compose_delayed' compose v s
+module Delayed = struct
 
-let delayed_get_module : Module.t Subst_t.delayed -> Module.t =
-  function
-  | DelayedSubst (s, m) -> module_ s m
-  | NoSubst m -> m
+  (** [subst] is [Subst.t] *)
+  type subst = t
 
-let delayed_get_module_type : ModuleType.t Subst_t.delayed -> ModuleType.t =
-  function
-  | DelayedSubst (s, mt) -> module_type s mt
-  | NoSubst mt -> mt
+  (** Represent a component that has been substituted.
+      The substitution is performed only when necessary. Applying again a
+      substitution is a shallow operation and doesn't require mapping the entire
+      tree (see [compose] below). *)
+  type 'a t = 'a Subst_t.delayed = DelayedSubst of subst * 'a | NoSubst of 'a
+
+  let compose : 'a t -> subst -> 'a t =
+    fun v s -> compose_delayed' compose v s
+
+  let get_module : Module.t t -> Module.t =
+    function
+    | DelayedSubst (s, m) -> module_ s m
+    | NoSubst m -> m
+
+  let get_module_type : ModuleType.t t -> ModuleType.t =
+    function
+    | DelayedSubst (s, mt) -> module_type s mt
+    | NoSubst mt -> mt
+
+end
