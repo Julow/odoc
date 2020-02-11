@@ -74,25 +74,6 @@ module CComment = struct
   type docs_or_stop = [ `Docs of docs | `Stop ]
 end
 
-module Delayed = struct
-  let eager = ref false
-
-  type 'a t = { mutable v : 'a option; get : unit -> 'a }
-
-  let get : 'a t -> 'a =
-   fun x ->
-    match x.v with
-    | Some x -> x
-    | None ->
-        let v = x.get () in
-        x.v <- Some v;
-        v
-
-  let put : (unit -> 'a) -> 'a t =
-   fun f ->
-    if !eager then { v = Some (f ()); get = f } else { v = None; get = f }
-end
-
 module Opt = struct
   let map f = function Some x -> Some (f x) | None -> None
 end
@@ -286,9 +267,9 @@ and Signature : sig
   type recursive = Odoc_model.Lang.Signature.recursive
 
   type item =
-    | Module of Ident.module_ * recursive * Module.t Delayed.t Subst_t.delayed
+    | Module of Ident.module_ * recursive * Module.t Subst_t.delayed
     | ModuleSubstitution of Ident.module_ * ModuleSubstitution.t
-    | ModuleType of Ident.module_type * ModuleType.t Delayed.t Subst_t.delayed
+    | ModuleType of Ident.module_type * ModuleType.t Subst_t.delayed
     | Type of Ident.type_ * recursive * TypeDecl.t
     | TypeSubstitution of Ident.type_ * TypeDecl.t
     | Exception of Ident.exception_ * Exception.t
@@ -449,8 +430,8 @@ module Fmt = struct
 
   let subst_delayed f ppf = function
     | Subst_t.DelayedSubst (_, v) ->
-      Format.fprintf ppf "@[DelayedSubst (<subst>, %a)@]" f (Delayed.get v)
-    | NoSubst v -> f ppf (Delayed.get v)
+      Format.fprintf ppf "@[DelayedSubst (<subst>, %a)@]" f v
+    | NoSubst v -> f ppf v
 
   let rec signature ppf sg =
     let open Signature in
@@ -2183,7 +2164,7 @@ module Of_Lang = struct
         | Module (r, m) ->
             let id = List.assoc m.id ident_map.modules in
             let m' =
-              Subst_t.NoSubst (Delayed.put (fun () -> module_ ident_map m))
+              Subst_t.NoSubst (module_ ident_map m)
             in
             Signature.Module (id, r, m')
         | ModuleSubstitution m ->
@@ -2193,7 +2174,7 @@ module Of_Lang = struct
         | ModuleType m ->
             let id = List.assoc m.id ident_map.module_types in
             let m' =
-              Subst_t.NoSubst (Delayed.put (fun () -> module_type ident_map m))
+              Subst_t.NoSubst (module_type ident_map m)
             in
             Signature.ModuleType (id, m')
         | Value v ->

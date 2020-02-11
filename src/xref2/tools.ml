@@ -1176,7 +1176,7 @@ and fragmap_module :
                   ( Component.Signature.Module
                     ( id,
                       r,
-                      Component.(Subst_t.NoSubst (Delayed.put (fun () -> m))) )
+                      Component.Subst_t.NoSubst m )
                     :: items,
                     removed )
               | Right p -> (items, Component.Signature.RModule (id, p) :: removed)
@@ -1295,7 +1295,7 @@ and fragmap_type :
               when Ident.Name.module_ id = ModuleName.to_string name ->
                 let m = Subst.delayed_get_module m in (* TODO: Do we need to apply subst ? *)
                 Component.Signature.Module
-                  (id, r, Component.(NoSubst (Delayed.put (fun () -> mapfn m))))
+                  (id, r, Component.Subst_t.NoSubst (mapfn m))
             | Component.Signature.Include ({expansion_; _} as i) ->
                 let items' = handle_items expansion_.items in
                 Component.Signature.Include {i with expansion_ = {expansion_ with items=items'}}
