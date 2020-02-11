@@ -102,8 +102,7 @@ let compose_delayed' compose v s =
   | DelayedSubst (s', v) -> DelayedSubst (compose s s', v)
   | NoSubst v -> DelayedSubst (s, v)
 
-let map_delayed f : 'a Delayed.t Substitution.delayed -> 'b Delayed.t Substitution.delayed =
-  let f v = Delayed.put (fun () -> f (Delayed.get v)) in
+let map_delayed f : 'a Substitution.delayed -> 'b Substitution.delayed =
   function
   | DelayedSubst (s, v) -> DelayedSubst (s, f v)
   | NoSubst v -> NoSubst (f v)
@@ -803,12 +802,12 @@ and compose : t -> t -> t =
 let compose_delayed : 'a Substitution.delayed -> t -> 'a Substitution.delayed =
   fun v s -> compose_delayed' compose v s
 
-let delayed_get_module : Module.t Delayed.t Substitution.delayed -> Module.t =
+let delayed_get_module : Module.t Substitution.delayed -> Module.t =
   function
-  | DelayedSubst (s, m) -> module_ s (Delayed.get m)
-  | NoSubst m -> Delayed.get m
+  | DelayedSubst (s, m) -> module_ s m
+  | NoSubst m -> m
 
-let delayed_get_module_type : ModuleType.t Delayed.t Substitution.delayed -> ModuleType.t =
+let delayed_get_module_type : ModuleType.t Substitution.delayed -> ModuleType.t =
   function
-  | DelayedSubst (s, mt) -> module_type s (Delayed.get mt)
-  | NoSubst mt -> Delayed.get mt
+  | DelayedSubst (s, mt) -> module_type s mt
+  | NoSubst mt -> mt
