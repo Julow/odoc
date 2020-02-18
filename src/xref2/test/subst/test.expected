@@ -20,3 +20,13 @@ type uu/37 = resolved(local(SubTargets/25)).u
 type vv/38 = resolved(local(SubTargets/25)).v
 end
 
+Test AB . CD
+	local(A/0) -> local(B/0)
+	local(B/0) -> local(B/0)
+	local(C/0) -> local(D/0)
+	local(D/0) -> local(D/0)
+Test BC . AB
+	local(B/0) -> local(C/0)
+	local(C/0) -> local(C/0)
+Error local(A/0) -> composed: local(C/0) != sequential: local(B/0)
+	local(B/0) -> local(C/0)
