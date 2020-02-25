@@ -102,6 +102,17 @@ let compose_delayed' compose v s =
   | DelayedSubst (s', v) -> DelayedSubst (compose s s', v)
   | NoSubst v -> DelayedSubst (s, v)
 
+let compose_path ~find resolve _key (a : ([> `Local of 'a ] as 'path) option) b =
+  match a, b with
+  | Some (`Local a), Some b ->
+    begin match find a with
+    | Some _ as b' -> b'
+    | None -> Some (resolve b)
+    end
+  | Some _, Some b -> Some (resolve b)
+  | None, (Some _ as path) -> path
+  | path, None -> (path :> 'path option)
+
 let rec resolved_module_path :
     t -> Cpath.Resolved.module_ -> Cpath.Resolved.module_ =
  fun s p ->
@@ -771,21 +782,17 @@ and apply_sig_map s items removed =
   { items; removed = removed_items s removed }
 
 and compose : t -> t -> t =
-  let compose f _key a b =
-    match b with
-    | Some b -> Some (f b)
-    | None -> a
-  in
+  (* TODO: Don't override *)
   let override _key a b =
     match b with
     | Some _ -> b
     | None -> a
   in
   fun a b ->
-  { module_ = ModuleMap.merge (compose (resolved_module_path a)) a.module_ b.module_
-  ; module_type = ModuleTypeMap.merge (compose (resolved_module_type_path a)) a.module_type b.module_type
-  ; type_ = TypeMap.merge (compose (resolved_type_path a)) a.type_ b.type_
-  ; class_type = ClassTypeMap.merge (compose (resolved_class_type_path a)) a.class_type b.class_type
+  { module_ = ModuleMap.merge (compose_path ~find:(fun id -> ModuleMap.find_opt id b.module_) (resolved_module_path a)) a.module_ b.module_
+  ; module_type = ModuleTypeMap.merge override a.module_type b.module_type
+  ; type_ = TypeMap.merge override a.type_ b.type_
+  ; class_type = ClassTypeMap.merge override a.class_type b.class_type
   ; type_replacement = TypeMap.merge override a.type_replacement b.type_replacement
   ; ref_module = ModuleMap.merge override a.ref_module b.ref_module
   ; ref_module_type = ModuleTypeMap.merge override a.ref_module_type b.ref_module_type

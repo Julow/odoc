@@ -37,4 +37,5 @@ let test_subst ~s1 ~s2 =
 let test () =
   test_subst ~s1:[ ("A", "B") ] ~s2:[ ("C", "D") ];
   test_subst ~s1:[ ("B", "C") ] ~s2:[ ("A", "B") ];
+  test_subst ~s1:[ ("A", "B") ] ~s2:[ ("B", "C") ];
   ()
