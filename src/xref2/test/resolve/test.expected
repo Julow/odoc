@@ -217,16 +217,16 @@ Env:
 ENV modules: (root Root).B: : sig
 module type S/65 = sig
   type t/66 
-  end
-end 
+   (removed=[])end
+ (removed=[])end 
 (root Root).C: : global((root Root).A) with [*.M = = resolved(global((root Root).B))] 
  
 ENV module_types: (root Root).A: = sig
 module M/62 : sig
   module type S/64 
-  end
+   (removed=[])end
 module N/63 : resolved(local(M/62)).S
-end 
+ (removed=[])end 
  
 ENV types: (root Root).t: = resolved(global((root Root).C)).N.t 
 
@@ -266,29 +266,21 @@ module (root Root).B : sig
 module (root Root).C : resolved[global((root Root).A)] with [*.M := resolved[global((root Root).B)]]
 type (root Root).t = resolved[global((root Root).C)].N.t
 
-FAILURE when lookup up a module: 
-Path: local(M/84)
-Env:
-
-ENV modules: (root Root).B: : sig
-module type S/91 = sig
-  type t/92 
+AFTER 
+===== 
+module type (root Root).A = sig
+  module (root Root).A.M : sig
+    module type (root Root).A.M.S
+    end
+  module (root Root).A.N : resolved[global((root Root).A.M).S]
   end
-end 
-(root Root).C: : global((root Root).A) with [*.M := resolved(global((root Root).B))] 
- 
-ENV module_types: (root Root).A: = sig
-module M/88 : sig
-  module type S/90 
+module (root Root).B : sig
+  module type (root Root).B.S = sig
+    type (root Root).B.S.t
+    end
   end
-module N/89 : resolved(local(M/88)).S
-end 
- 
-ENV types: (root Root).t: = resolved(global((root Root).C)).N.t 
-
-ENV values: 
-ENV externals: 
-END OF ENVBacktrace:
+module (root Root).C : resolved[global((root Root).A)] with [.M := resolved[global((root Root).B)]]
+type (root Root).t = resolved[global((root Root).C).N.t]
 
 Module alias
 Resolve a module alias
