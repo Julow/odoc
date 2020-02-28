@@ -99,7 +99,7 @@ let add_id_map : Ident.any -> Ident.any -> t -> t =
 let compose_delayed' compose v s =
   let open Substitution in
   match v with
-  | DelayedSubst (s', v) -> DelayedSubst (compose s s', v)
+  | DelayedSubst (s', v) -> DelayedSubst (compose s' s, v)
   | NoSubst v -> DelayedSubst (s, v)
 
 let rec resolved_module_path :

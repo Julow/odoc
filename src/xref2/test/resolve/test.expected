@@ -210,29 +210,21 @@ module (root Root).B : sig
 module (root Root).C : resolved[global((root Root).A)] with [*.M = = resolved[global((root Root).B)]]
 type (root Root).t = resolved[global((root Root).C)].N.t
 
-FAILURE when lookup up a module: 
-Path: local(M/84)
-Env:
-
-ENV modules: (root Root).B: : sig
-module type S/65 = sig
-  type t/66 
-   (removed=[])end
- (removed=[])end 
-(root Root).C: : global((root Root).A) with [*.M = = resolved(global((root Root).B))] 
- 
-ENV module_types: (root Root).A: = sig
-module M/62 : sig
-  module type S/64 
-   (removed=[])end
-module N/63 : resolved(local(M/62)).S
- (removed=[])end 
- 
-ENV types: (root Root).t: = resolved(global((root Root).C)).N.t 
-
-ENV values: 
-ENV externals: 
-END OF ENVBacktrace:
+AFTER 
+===== 
+module type (root Root).A = sig
+  module (root Root).A.M : sig
+    module type (root Root).A.M.S
+    end
+  module (root Root).A.N : resolved[global((root Root).A.M).S]
+  end
+module (root Root).B : sig
+  module type (root Root).B.S = sig
+    type (root Root).B.S.t
+    end
+  end
+module (root Root).C : resolved[global((root Root).A)] with [.M = = resolved[global((root Root).B)]]
+type (root Root).t = resolved[global((root Root).C).N.t]
 
 Module substitution2
 Ensure a destructive substitution is taken into account during resolution
