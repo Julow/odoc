@@ -22,26 +22,23 @@ let rec signature (prefix : Cpath.Resolved.module_) sg =
       (fun item ->
         match item with
         | Module (id, r, m) ->
+            let m = Subst.Delayed.get_module m in
             Module
               ( id,
                 r,
-                (* TODO: Is this safe ?
-                 * [module_] is called on an unsubstituted module
-                 * if it's not safe, we should remove that function *)
-                Subst.map_delayed (
+                Component.Substitution.NoSubst (
                   module_
                     (`Module
-                      (prefix, ModuleName.of_string (Ident.Name.module_ id)))
-                ) m )
+                        (prefix, ModuleName.of_string (Ident.Name.module_ id))) m) )
         | ModuleType (id, mt) ->
+            let mt = Subst.Delayed.get_module_type mt in
             ModuleType
               ( id,
-                Subst.map_delayed (
+                Component.Substitution.NoSubst (
                   module_type
                     (`ModuleType
-                      ( prefix,
-                        ModuleTypeName.of_string (Ident.Name.module_type id) ))
-                ) mt )
+                        ( prefix,
+                          ModuleTypeName.of_string (Ident.Name.module_type id) )) mt) )
         | Type (id, r, t) ->
             Type
               ( id,

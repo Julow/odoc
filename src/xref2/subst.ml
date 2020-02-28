@@ -102,11 +102,6 @@ let compose_delayed' compose v s =
   | DelayedSubst (s', v) -> DelayedSubst (compose s s', v)
   | NoSubst v -> DelayedSubst (s, v)
 
-let map_delayed f : 'a Substitution.delayed -> 'b Substitution.delayed =
-  function
-  | DelayedSubst (s, v) -> DelayedSubst (s, f v)
-  | NoSubst v -> NoSubst (f v)
-
 let rec resolved_module_path :
     t -> Cpath.Resolved.module_ -> Cpath.Resolved.module_ =
  fun s p ->
