@@ -218,6 +218,15 @@ and resolved_module_reference :
   | `Canonical (m, m2) ->
       `Canonical (resolved_module_reference t m, module_reference t m2)
 
+and resolved_module_type_reference :
+    t -> Cref.Resolved.module_type -> Cref.Resolved.module_type =
+ fun t r ->
+  match r with
+  | `Local id -> (try ModuleTypeMap.find id t.ref_module_type with _ -> r)
+  | `Identifier _ -> r
+  | `ModuleType (parent, name) ->
+    `ModuleType (resolved_signature_reference t parent, name)
+
 and signature_reference : t -> Cref.signature -> Cref.signature =
  fun t r ->
   match r with
@@ -771,12 +780,6 @@ and apply_sig_map s items removed =
   { items; removed = removed_items s removed }
 
 and compose : t -> t -> t =
-  (* TODO: Don't override *)
-  let override _key a b =
-    match b with
-    | Some _ -> b
-    | None -> a
-  in
   fun a b ->
   let compose_map ~add ~fold resolve field =
     fold (fun key path acc -> add key (resolve b path) acc) (field a) (field b)
@@ -785,12 +788,14 @@ and compose : t -> t -> t =
   ; module_type = ModuleTypeMap.(compose_map ~add ~fold resolved_module_type_path) (fun t -> t.module_type)
   ; type_ = TypeMap.(compose_map ~add ~fold resolved_type_path) (fun t -> t.type_)
   ; class_type = ClassTypeMap.(compose_map ~add ~fold resolved_class_type_path) (fun t -> t.class_type)
-  ; type_replacement = TypeMap.merge override a.type_replacement b.type_replacement
+  ; type_replacement = TypeMap.(compose_map ~add ~fold type_expr) (fun t -> t.type_replacement)
   ; ref_module = ModuleMap.(compose_map ~add ~fold resolved_module_reference) (fun t -> t.ref_module)
-  ; ref_module_type = ModuleTypeMap.merge override a.ref_module_type b.ref_module_type
+  ; ref_module_type = ModuleTypeMap.(compose_map ~add ~fold resolved_module_type_reference) (fun t -> t.ref_module_type)
   ; ref_type = TypeMap.(compose_map ~add ~fold resolved_type_reference) (fun t -> t.ref_type)
   ; ref_class_type = ClassTypeMap.(compose_map ~add ~fold resolved_class_signature_reference) (fun t -> t.ref_class_type)
-  ; id_any = IdentMap.merge override a.id_any b.id_any
+  ; id_any =
+      let resolve_id t id = try IdentMap.find id t.id_any with _ -> id in
+      IdentMap.(compose_map ~add ~fold resolve_id) (fun t -> t.id_any)
   }
 
 module Delayed = struct
