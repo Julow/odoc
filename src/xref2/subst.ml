@@ -168,6 +168,20 @@ and resolved_type_path : t -> Cpath.Resolved.type_ -> Cpath.Resolved.type_ =
   | `ClassType (p, n) -> `ClassType (resolved_module_path s p, n)
   | `Class (p, n) -> `Class (resolved_module_path s p, n)
 
+(* Hack *)
+and resolved_type_path_noreplacement : t -> Cpath.Resolved.type_ -> Cpath.Resolved.type_ =
+ fun s p ->
+  match p with
+  | `Local id -> (
+      match try Some (TypeMap.find id s.type_) with Not_found -> None with
+      | Some x -> x
+      | None -> `Local id )
+  | `Identifier _ -> p
+  | `Substituted p -> `Substituted (resolved_type_path s p)
+  | `Type (p, n) -> `Type (resolved_module_path s p, n)
+  | `ClassType (p, n) -> `ClassType (resolved_module_path s p, n)
+  | `Class (p, n) -> `Class (resolved_module_path s p, n)
+
 and type_path : t -> Cpath.type_ -> Cpath.type_ =
  fun s p ->
   match p with
@@ -786,7 +800,7 @@ and compose : t -> t -> t =
   in
   { module_ = ModuleMap.(compose_map ~add ~fold resolved_module_path) (fun t -> t.module_)
   ; module_type = ModuleTypeMap.(compose_map ~add ~fold resolved_module_type_path) (fun t -> t.module_type)
-  ; type_ = TypeMap.(compose_map ~add ~fold resolved_type_path) (fun t -> t.type_)
+  ; type_ = TypeMap.(compose_map ~add ~fold resolved_type_path_noreplacement) (fun t -> t.type_)
   ; class_type = ClassTypeMap.(compose_map ~add ~fold resolved_class_type_path) (fun t -> t.class_type)
   ; type_replacement = TypeMap.(compose_map ~add ~fold type_expr) (fun t -> t.type_replacement)
   ; ref_module = ModuleMap.(compose_map ~add ~fold resolved_module_reference) (fun t -> t.ref_module)
@@ -794,8 +808,8 @@ and compose : t -> t -> t =
   ; ref_type = TypeMap.(compose_map ~add ~fold resolved_type_reference) (fun t -> t.ref_type)
   ; ref_class_type = ClassTypeMap.(compose_map ~add ~fold resolved_class_signature_reference) (fun t -> t.ref_class_type)
   ; id_any =
-      let resolve_id t id = try IdentMap.find id t.id_any with _ -> id in
-      IdentMap.(compose_map ~add ~fold resolve_id) (fun t -> t.id_any)
+      ( let resolve_id t id = try IdentMap.find id t.id_any with _ -> id in
+        IdentMap.(compose_map ~add ~fold resolve_id) (fun t -> t.id_any) )
   }
 
 module Delayed = struct
