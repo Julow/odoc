@@ -50,3 +50,5 @@ Test ABCD DEFC BF
 	local(D/0) -> local(E/0)
 	local(E/0) -> local(E/0)
 	local(F/0) -> local(C/0)
+Test (a/0 -> (b/0 * c/0)) (c/0 -> d/0)
+	a/0 -> (b/0 * d/0)
