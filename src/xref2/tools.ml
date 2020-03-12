@@ -5,6 +5,8 @@ exception OpaqueModule
 
 exception UnresolvedForwardPath
 
+exception UnresolvedPath of [ `Module of Cpath.module_ ]
+
 let is_compile = ref true
 
 let num_times = ref 0
@@ -43,11 +45,12 @@ module ResultMonad = struct
 
   let map_unresolved f m =
     match m with Resolved x -> Resolved x | Unresolved y -> Unresolved (f y)
-
-  let get_resolved = function
-    | Resolved r -> r
-    | Unresolved _ -> failwith "Unresolved"
 end
+
+let raise_unresolved_module = function
+  | ResultMonad.Resolved p -> p
+  | Unresolved p when Cpath.is_module_forward p -> raise UnresolvedForwardPath
+  | Unresolved p' -> raise (UnresolvedPath (`Module p'))
 
 let add_subst p = function
   | None, x -> (p, x)
@@ -971,20 +974,14 @@ and module_type_expr_of_module_decl :
  fun env (p, decl) ->
   match decl with
   | Component.Module.Alias path -> (
-      match lookup_and_resolve_module_from_path false true env path with
-      | Resolved (x, y) ->
-          let x', y' = module_type_expr_of_module env (x, y) in
-          if Cpath.is_resolved_module_substituted x' then
-            (`SubstAlias (p, x'), y')
-          else (p, y')
-      | Unresolved p when Cpath.is_module_forward p ->
-          raise UnresolvedForwardPath
-      | Unresolved p' ->
-          let err =
-            Format.asprintf "Failed to lookup alias module (path=%a) (res=%a)"
-              Component.Fmt.module_path path Component.Fmt.module_path p'
-          in
-          failwith err )
+      let (x, y) =
+        lookup_and_resolve_module_from_path false true env path
+        |> raise_unresolved_module
+      in
+      let x', y' = module_type_expr_of_module env (x, y) in
+      if Cpath.is_resolved_module_substituted x' then
+        (`SubstAlias (p, x'), y')
+      else (p, y') )
   | Component.Module.ModuleType expr -> (p, expr)
 
 and module_type_expr_of_module :
@@ -1000,56 +997,46 @@ and signature_of_module_alias_path :
     Cpath.module_ ->
     Cpath.Resolved.module_ * Component.Signature.t =
  fun env ~is_canonical incoming_path path ->
-  match lookup_and_resolve_module_from_path false true env path with
-  | Resolved (p', m) ->
-      let is_canonical =
-        match get_canonical_path p' with
-        | Some p2 ->
-            let incoming_path_id =
-              Cpath.resolved_module_path_of_cpath incoming_path
-              |> Path.Resolved.Module.identifier
-            in
-            let p2_path_id =
-              Cpath.resolved_module_path_of_cpath p2
-              |> Path.Resolved.Module.identifier
-            in
-            incoming_path_id = p2_path_id || is_canonical
-        | None -> is_canonical
+  let (p', m) =
+    lookup_and_resolve_module_from_path false true env path
+    |> raise_unresolved_module
+  in
+  let is_canonical =
+    match get_canonical_path p' with
+    | Some p2 ->
+      let incoming_path_id =
+        Cpath.resolved_module_path_of_cpath incoming_path
+        |> Path.Resolved.Module.identifier
       in
-      (* p' is the path to the aliased module *)
-      let p'', m' =
-        if is_canonical then signature_of_module env (incoming_path, m)
-        else
-          let p'', m' = signature_of_module env (p', m) in
-          let m'' = Strengthen.signature p'' m' in
-          let p''' = flatten_module_alias (`Alias (p'', incoming_path)) in
-          (p''', m'')
+      let p2_path_id =
+        Cpath.resolved_module_path_of_cpath p2
+        |> Path.Resolved.Module.identifier
       in
-      (p'', m')
-  | Unresolved p when Cpath.is_module_forward p -> raise UnresolvedForwardPath
-  | Unresolved p' ->
-      let err =
-        Format.asprintf "Failed to lookup alias module (path=%a) (res=%a)"
-          Component.Fmt.module_path path Component.Fmt.module_path p'
-      in
-      failwith err
+      incoming_path_id = p2_path_id || is_canonical
+    | None -> is_canonical
+  in
+  (* p' is the path to the aliased module *)
+  let p'', m' =
+    if is_canonical then signature_of_module env (incoming_path, m)
+    else
+      let p'', m' = signature_of_module env (p', m) in
+      let m'' = Strengthen.signature p'' m' in
+      let p''' = flatten_module_alias (`Alias (p'', incoming_path)) in
+      (p''', m'')
+  in
+  (p'', m')
 
 and signature_of_module_alias_nopath :
     Env.t -> Cpath.module_ -> Component.Signature.t =
  fun env path ->
-  match lookup_and_resolve_module_from_path false true env path with
-  | Resolved (p', m) ->
-      (* p' is the path to the aliased module *)
-      let m' = signature_of_module_nopath env m in
-      let m'' = Strengthen.signature p' m' in
-      m''
-  | Unresolved p when Cpath.is_module_forward p -> raise UnresolvedForwardPath
-  | Unresolved p' ->
-      let err =
-        Format.asprintf "Failed to lookup alias module (path=%a) (res=%a)"
-          Component.Fmt.module_path path Component.Fmt.module_path p'
-      in
-      failwith err
+  let (p', m) =
+    lookup_and_resolve_module_from_path false true env path
+    |> raise_unresolved_module
+  in
+  (* p' is the path to the aliased module *)
+  let m' = signature_of_module_nopath env m in
+  let m'' = Strengthen.signature p' m' in
+  m''
 
 and handle_signature_with_subs :
     Env.t ->
