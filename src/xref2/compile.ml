@@ -208,9 +208,11 @@ and module_ : Env.t -> Module.t -> Module.t =
       | Tools.OpaqueModule -> None
       | Tools.UnresolvedForwardPath -> None
       | Tools.UnresolvedPath (`Module p) as e ->
-          Lookup_failures.report_important e "Failed to expand module id %a"
+          Lookup_failures.report_important e "Failed to expand module id %a (failed to resolve %a)"
             Component.Fmt.model_identifier
-            (m.id :> Odoc_model.Paths.Identifier.t);
+            (m.id :> Odoc_model.Paths.Identifier.t)
+            Component.Fmt.module_path
+            p;
           m.expansion
   in
   try
