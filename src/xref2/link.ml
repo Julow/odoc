@@ -20,13 +20,12 @@ let with_dummy_location v =
       value = v;
     }
 
-let rec is_forward : Paths.Path.Module.t -> bool =
-  function
-    | `Resolved _ -> false
-    | `Root _ -> false
-    | `Forward _ -> true
-    | `Dot (p, _) -> is_forward p
-    | `Apply (p1, p2) -> is_forward p1 || is_forward p2
+let rec is_forward : Paths.Path.Module.t -> bool = function
+  | `Resolved _ -> false
+  | `Root _ -> false
+  | `Forward _ -> true
+  | `Dot (p, _) -> is_forward p
+  | `Apply (p1, p2) -> is_forward p1 || is_forward p2
 
 let rec should_reresolve : Paths.Path.Resolved.t -> bool =
  fun p ->
@@ -132,8 +131,13 @@ and module_path : Env.t -> Paths.Path.Module.t -> Paths.Path.Module.t =
 let rec unit (resolver : Env.resolver) t =
   let open Compilation_unit in
   Tools.is_compile := false;
-  let (imports, env) = Env.initial_env t resolver in
-  { t with content = content env t.content; doc = comment_docs env t.doc; imports }
+  let imports, env = Env.initial_env t resolver in
+  {
+    t with
+    content = content env t.content;
+    doc = comment_docs env t.doc;
+    imports;
+  }
 
 and content env =
   let open Compilation_unit in
@@ -614,77 +618,72 @@ and module_type_expr :
     =
  fun env id expr ->
   let open ModuleType in
-  match expr with
-  | Signature s -> Signature (signature env s)
-  | Path p -> Path (module_type_path env p)
-  | With (expr, subs) ->
-      let cexpr = Component.Of_Lang.(module_type_expr empty expr) in
-      let sg = Tools.signature_of_module_type_expr_nopath env cexpr in
-      (* Format.fprintf Format.err_formatter
-         "Handling `With` expression for %a (expr=%a) [%a]\n%!"
-         Component.Fmt.model_identifier
-         (id :> Paths.Identifier.t)
-         Component.Fmt.module_type_expr cexpr Component.Fmt.substitution_list
-         (List.map Component.Of_Lang.(module_type_substitution empty) subs);*)
-      With
-        ( module_type_expr env id expr,
-          List.fold_left
-            (fun (sg, subs) sub ->
-              try
-                (* Format.fprintf Format.err_formatter "Signature is: %a\n%!"
+  let with_of_sig expr subs sg =
+    (* Format.fprintf Format.err_formatter
+       "Handling `With` expression for %a (expr=%a) [%a]\n%!"
+       Component.Fmt.model_identifier
+       (id :> Paths.Identifier.t)
+       Component.Fmt.module_type_expr cexpr Component.Fmt.substitution_list
+       (List.map Component.Of_Lang.(module_type_substitution empty) subs);*)
+    With
+      ( module_type_expr env id expr,
+        List.fold_left
+          (fun (sg, subs) sub ->
+            try
+              (* Format.fprintf Format.err_formatter "Signature is: %a\n%!"
                    Component.Fmt.signature sg; *)
-                (* Format.fprintf Format.err_formatter "Handling sub: %a\n%!"
+              (* Format.fprintf Format.err_formatter "Handling sub: %a\n%!"
                    Component.Fmt.substitution
                    Component.Of_Lang.(module_type_substitution empty sub); *)
-                match sub with
-                | ModuleEq (frag, decl) ->
-                    let frag' =
-                      Tools.resolve_mt_module_fragment env (id, sg) frag
-                    in
-                    let sg' =
-                      Tools.fragmap_module env frag
-                        Component.Of_Lang.(module_type_substitution empty sub)
-                        sg
-                    in
-                    ( sg',
-                      ModuleEq (`Resolved frag', module_decl env id decl)
-                      :: subs )
-                | TypeEq (frag, eqn) ->
-                    let frag' =
-                      Tools.resolve_mt_type_fragment env (id, sg) frag
-                    in
-                    let sg' =
-                      Tools.fragmap_type env frag
-                        Component.Of_Lang.(module_type_substitution empty sub)
-                        sg
-                    in
-                    ( sg',
-                      TypeEq (`Resolved frag', type_decl_equation env eqn)
-                      :: subs )
-                | ModuleSubst (frag, mpath) ->
-                    let frag' =
-                      Tools.resolve_mt_module_fragment env (id, sg) frag
-                    in
-                    let sg' =
-                      Tools.fragmap_module env frag
-                        Component.Of_Lang.(module_type_substitution empty sub)
-                        sg
-                    in
-                    ( sg',
-                      ModuleSubst (`Resolved frag', module_path env mpath)
-                      :: subs )
-                | TypeSubst (frag, eqn) ->
-                    let frag' =
-                      Tools.resolve_mt_type_fragment env (id, sg) frag
-                    in
-                    let sg' =
-                      Tools.fragmap_type env frag
-                        Component.Of_Lang.(module_type_substitution empty sub)
-                        sg
-                    in
-                    ( sg',
-                      TypeSubst (`Resolved frag', type_decl_equation env eqn)
-                      :: subs )
+              match sub with
+              | ModuleEq (frag, decl) ->
+                  let frag' =
+                    Tools.resolve_mt_module_fragment env (id, sg) frag
+                  in
+                  let sg' =
+                    Tools.fragmap_module env frag
+                      Component.Of_Lang.(module_type_substitution empty sub)
+                      sg
+                  in
+                  ( sg',
+                    ModuleEq (`Resolved frag', module_decl env id decl) :: subs
+                  )
+              | TypeEq (frag, eqn) ->
+                  let frag' =
+                    Tools.resolve_mt_type_fragment env (id, sg) frag
+                  in
+                  let sg' =
+                    Tools.fragmap_type env frag
+                      Component.Of_Lang.(module_type_substitution empty sub)
+                      sg
+                  in
+                  ( sg',
+                    TypeEq (`Resolved frag', type_decl_equation env eqn) :: subs
+                  )
+              | ModuleSubst (frag, mpath) ->
+                  let frag' =
+                    Tools.resolve_mt_module_fragment env (id, sg) frag
+                  in
+                  let sg' =
+                    Tools.fragmap_module env frag
+                      Component.Of_Lang.(module_type_substitution empty sub)
+                      sg
+                  in
+                  ( sg',
+                    ModuleSubst (`Resolved frag', module_path env mpath) :: subs
+                  )
+              | TypeSubst (frag, eqn) ->
+                  let frag' =
+                    Tools.resolve_mt_type_fragment env (id, sg) frag
+                  in
+                  let sg' =
+                    Tools.fragmap_type env frag
+                      Component.Of_Lang.(module_type_substitution empty sub)
+                      sg
+                  in
+                  ( sg',
+                    TypeSubst (`Resolved frag', type_decl_equation env eqn)
+                    :: subs )
               with e ->
                 let bt = Printexc.get_backtrace () in
                 Printf.fprintf stderr
@@ -693,6 +692,19 @@ and module_type_expr :
                 raise e)
             (sg, []) subs
           |> snd |> List.rev )
+  in
+  match expr with
+  | Signature s -> Signature (signature env s)
+  | Path p -> Path (module_type_path env p)
+  | With (expr', subs) -> (
+      let cexpr = Component.Of_Lang.(module_type_expr empty expr') in
+      match Tools.signature_of_module_type_expr_nopath env cexpr with
+      | exception (Tools.UnresolvedPath (`Module p) as e) ->
+        Format.fprintf Format.err_formatter
+          "Unresolved module path: %a\n%!"
+          Component.Fmt.module_path p;
+        raise e
+      | sg -> with_of_sig expr' subs sg )
   | Functor (arg, res) ->
       let arg' = Opt.map (functor_argument env) arg in
       let res' = module_type_expr env id res in

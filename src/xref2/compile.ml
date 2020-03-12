@@ -211,8 +211,8 @@ and module_ : Env.t -> Module.t -> Module.t =
       with
       | Tools.OpaqueModule -> None
       | Tools.UnresolvedForwardPath -> None
-      | e ->
-        Format.fprintf Format.err_formatter "Failed to expand module id: %a\n%!%a\n%!" Component.Fmt.model_identifier (m.id :> Odoc_model.Paths.Identifier.t) Component.Fmt.module_ m';
+      | Tools.UnresolvedPath (`Module p) as e ->
+        Format.fprintf Format.err_formatter "Failed to expand module id: %a\n%!%a\n%!(failed to resolve %a)\n%!" Component.Fmt.model_identifier (m.id :> Odoc_model.Paths.Identifier.t) Component.Fmt.module_ m' Component.Fmt.module_path p;
         raise e
   in
   try
