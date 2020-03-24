@@ -97,6 +97,7 @@ let () =
     All_subst.(test_module [ [ ("A", "B") ]; [ ("C", "D") ]; [ ("B", "C") ] ]);
     All_subst.(test_module [ [ ("A", "B") ]; [ ("C", "D") ]; [ ("A", "C") ] ]);
     All_subst.(test_module [ [ ("A", "B"); ("C", "D") ]; [ ("D", "E"); ("F", "C") ]; [ ("B", "F") ] ]);
+    All_subst.(test_module [ [ ("A", "B") ]; [ ("A", "C") ] ]);
 
     Subst_type_expr.(test
         [
