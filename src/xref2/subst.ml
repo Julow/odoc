@@ -173,20 +173,6 @@ and resolved_type_path : t -> Cpath.Resolved.type_ -> Cpath.Resolved.type_ =
   | `ClassType (p, n) -> `ClassType (resolved_module_path s p, n)
   | `Class (p, n) -> `Class (resolved_module_path s p, n)
 
-(* Hack *)
-and resolved_type_path_noreplacement : t -> Cpath.Resolved.type_ -> Cpath.Resolved.type_ =
- fun s p ->
-  match p with
-  | `Local id -> (
-      match try Some (TypeMap.find id s.type_) with Not_found -> None with
-      | Some x -> x
-      | None -> `Local id )
-  | `Identifier _ -> p
-  | `Substituted p -> `Substituted (resolved_type_path s p)
-  | `Type (p, n) -> `Type (resolved_module_path s p, n)
-  | `ClassType (p, n) -> `ClassType (resolved_module_path s p, n)
-  | `Class (p, n) -> `Class (resolved_module_path s p, n)
-
 and type_path : t -> Cpath.type_ -> Cpath.type_ =
  fun s p ->
   match p with
@@ -803,11 +789,23 @@ and compose : t -> t -> t =
   let compose_map ~add ~fold resolve field =
     fold (fun key path acc -> add key (resolve b path) acc) (field a) (field b)
   in
+  let type_, type_replacement =
+    (* resolving a type may fail with [TypeReplacement],
+       in that case, add it to the type_replacement map *)
+    let fold_type key path (t, tr) =
+      match resolved_type_path b path with
+      | path' -> (TypeMap.add key path' t, tr)
+      | exception TypeReplacement texpr -> (t, TypeMap.add key texpr tr)
+    in
+    let type_, type_replacement = TypeMap.fold fold_type a.type_ (b.type_, b.type_replacement) in
+    let fold_type_replacement key path acc = TypeMap.add key path acc in
+    let type_replacement = TypeMap.fold fold_type_replacement a.type_replacement type_replacement in
+    type_, type_replacement
+  in
   { module_ = ModuleMap.(compose_map ~add ~fold resolved_module_path) (fun t -> t.module_)
   ; module_type = ModuleTypeMap.(compose_map ~add ~fold resolved_module_type_path) (fun t -> t.module_type)
-  ; type_ = TypeMap.(compose_map ~add ~fold resolved_type_path_noreplacement) (fun t -> t.type_)
+  ; type_; type_replacement
   ; class_type = ClassTypeMap.(compose_map ~add ~fold resolved_class_type_path) (fun t -> t.class_type)
-  ; type_replacement = TypeMap.(compose_map ~add ~fold type_expr) (fun t -> t.type_replacement)
   ; ref_module = ModuleMap.(compose_map ~add ~fold resolved_module_reference) (fun t -> t.ref_module)
   ; ref_module_type = ModuleTypeMap.(compose_map ~add ~fold resolved_module_type_reference) (fun t -> t.ref_module_type)
   ; ref_type = TypeMap.(compose_map ~add ~fold resolved_type_reference) (fun t -> t.ref_type)
