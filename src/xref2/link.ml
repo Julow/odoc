@@ -8,6 +8,17 @@ end
 
 exception Loop
 
+let print_unresolved_path_error = function
+  | `Module p ->
+      Format.eprintf "Unresolved module path: %a\n%!" Component.Fmt.module_path
+        p
+  | `ModuleType p ->
+      Format.eprintf "Unresolved module type path: %a\n%!"
+        Component.Fmt.module_type_path p
+  | `Substitution p ->
+      Format.eprintf "Unresolved module path while substituting: %a\n%!"
+        Component.Fmt.module_path p
+
 let with_dummy_location v =
   Location_.
     {
@@ -126,7 +137,7 @@ and module_path : Env.t -> Paths.Path.Module.t -> Paths.Path.Module.t =
           "Failed to lookup module path (%s): %a\n%!" (Printexc.to_string e)
           Component.Fmt.model_path
           (p :> Paths.Path.t);
-      raise e
+        raise e
 
 let rec unit (resolver : Env.resolver) t =
   let open Compilation_unit in
@@ -699,11 +710,9 @@ and module_type_expr :
   | With (expr', subs) -> (
       let cexpr = Component.Of_Lang.(module_type_expr empty expr') in
       match Tools.signature_of_module_type_expr_nopath env cexpr with
-      | exception (Tools.UnresolvedPath (`Module p) as e) ->
-        Format.fprintf Format.err_formatter
-          "Unresolved module path: %a\n%!"
-          Component.Fmt.module_path p;
-        raise e
+      | exception (Tools.UnresolvedPath err as e) ->
+          print_unresolved_path_error err;
+          raise e
       | sg -> with_of_sig expr' subs sg )
   | Functor (arg, res) ->
       let arg' = Opt.map (functor_argument env) arg in
