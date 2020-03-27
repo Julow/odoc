@@ -5,7 +5,10 @@ exception OpaqueModule
 
 exception UnresolvedForwardPath
 
-exception UnresolvedPath of [ `Module of Cpath.module_ ]
+exception UnresolvedPath of [
+  | `Module of Cpath.module_
+  | `ModuleType of Cpath.module_type 
+  | `Substitution of Cpath.module_ ]
 
 let is_compile = ref true
 
@@ -51,6 +54,14 @@ let raise_unresolved_module = function
   | ResultMonad.Resolved p -> p
   | Unresolved p when Cpath.is_module_forward p -> raise UnresolvedForwardPath
   | Unresolved p' -> raise (UnresolvedPath (`Module p'))
+
+let raise_unresolved_module_type = function
+  | ResultMonad.Resolved p -> p
+  | Unresolved p -> raise (UnresolvedPath (`ModuleType p))
+
+let raise_unresolved_module_substitution = function
+  | ResultMonad.Resolved p -> p
+  | Unresolved p -> raise (UnresolvedPath (`Substitution p))
 
 let add_subst p = function
   | None, x -> (p, x)
@@ -974,7 +985,7 @@ and module_type_expr_of_module_decl :
  fun env (p, decl) ->
   match decl with
   | Component.Module.Alias path -> (
-      let (x, y) =
+      let x, y =
         lookup_and_resolve_module_from_path false true env path
         |> raise_unresolved_module
       in
@@ -997,7 +1008,7 @@ and signature_of_module_alias_path :
     Cpath.module_ ->
     Cpath.Resolved.module_ * Component.Signature.t =
  fun env ~is_canonical incoming_path path ->
-  let (p', m) =
+  let p', m =
     lookup_and_resolve_module_from_path false true env path
     |> raise_unresolved_module
   in
@@ -1029,7 +1040,7 @@ and signature_of_module_alias_path :
 and signature_of_module_alias_nopath :
     Env.t -> Cpath.module_ -> Component.Signature.t =
  fun env path ->
-  let (p', m) =
+  let p', m =
     lookup_and_resolve_module_from_path false true env path
     |> raise_unresolved_module
   in
@@ -1060,19 +1071,18 @@ and signature_of_module_type_expr :
     Cpath.Resolved.module_ * Component.Signature.t =
  fun env (incoming_path, m) ->
   match m with
-  | Component.ModuleType.Path p -> (
+  | Component.ModuleType.Path p ->
       (*            Format.fprintf Format.std_formatter "Looking up path: %a\n%!" Component.Fmt.path p;*)
-      match lookup_and_resolve_module_type_from_path false env p with
-      | Resolved (p, mt) ->
-          let p'', sg = signature_of_module_type env (incoming_path, mt) in
-          if
-            Cpath.is_resolved_module_type_substituted p
-            || Cpath.is_resolved_module_substituted p''
-          then (`Subst (p, incoming_path), sg)
-          else (incoming_path, sg)
-      | Unresolved _p ->
-          let p = Component.Fmt.(string_of module_type_path p) in
-          failwith (Printf.sprintf "Couldn't find signature: %s" p) )
+      let p, mt =
+        lookup_and_resolve_module_type_from_path false env p
+        |> raise_unresolved_module_type
+      in
+      let p'', sg = signature_of_module_type env (incoming_path, mt) in
+      if
+        Cpath.is_resolved_module_type_substituted p
+        || Cpath.is_resolved_module_substituted p''
+      then (`Subst (p, incoming_path), sg)
+      else (incoming_path, sg)
   | Component.ModuleType.Signature s -> (incoming_path, s)
   | Component.ModuleType.With (s, subs) ->
       let p', sg = signature_of_module_type_expr env (incoming_path, s) in
@@ -1089,12 +1099,12 @@ and signature_of_module_type_expr_nopath :
     Env.t -> Component.ModuleType.expr -> Component.Signature.t =
  fun env m ->
   match m with
-  | Component.ModuleType.Path p -> (
-      match lookup_and_resolve_module_type_from_path false env p with
-      | Resolved (_, mt) -> signature_of_module_type_nopath env mt
-      | Unresolved _p ->
-          let p = Component.Fmt.(string_of module_type_path p) in
-          failwith (Printf.sprintf "Couldn't find signature: %s" p) )
+  | Component.ModuleType.Path p ->
+      let _, mt =
+        lookup_and_resolve_module_type_from_path false env p
+        |> raise_unresolved_module_type
+      in
+      signature_of_module_type_nopath env mt
   | Component.ModuleType.Signature s -> s
   | Component.ModuleType.With (s, subs) ->
       let sg = signature_of_module_type_expr_nopath env s in
@@ -1173,10 +1183,12 @@ and fragmap_module :
     | None, ModuleEq (_, type_) ->
         (* Finished the substitution *)
         Left { m with Component.Module.type_; expansion = None }
-    | None, ModuleSubst (_, p) -> (
-        match lookup_and_resolve_module_from_path false false env p with
-        | Resolved (p, _) -> Right p
-        | Unresolved _p' -> failwith "Can't resolve module substitution path" )
+    | None, ModuleSubst (_, p) ->
+        let p, _ =
+          lookup_and_resolve_module_from_path false false env p
+          |> raise_unresolved_module_substitution
+        in
+        Right p
     | Some f, subst -> (
         let new_subst =
           match subst with
