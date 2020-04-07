@@ -27,28 +27,31 @@ let rec signature (prefix : Cpath.Resolved.module_) sg =
               ( id,
                 r,
                 NoSubst (
+                  lazy (
                     module_
                       (`Module
                         (`Module prefix, ModuleName.of_string (Ident.Name.module_ id)))
-                      (Subst.Delayed.get_module m)) )
+                      (Subst.Delayed.get_module m))) )
         | ModuleType (id, mt) ->
             ModuleType
               ( id,
                 NoSubst (
+                  lazy (
                     module_type
                       (`ModuleType
                         ( `Module prefix,
                           ModuleTypeName.of_string (Ident.Name.module_type id)
                         ))
-                      (Subst.Delayed.get_module_type mt)) )
+                      (Subst.Delayed.get_module_type mt))) )
         | Type (id, r, t) ->
             Type
               ( id,
                 r,
                 NoSubst (
-                  type_decl
-                    (`Type (`Module prefix, TypeName.of_string (Ident.Name.type_ id)))
-                    (Subst.Delayed.get_type t)) )
+                  lazy (
+                    type_decl
+                      (`Type (`Module prefix, TypeName.of_string (Ident.Name.type_ id)))
+                      (Subst.Delayed.get_type t))) )
         | Exception _ | TypExt _ | Value _ | External _ | Class _ | ClassType _
         | Include _ | ModuleSubstitution _ | TypeSubstitution _ | Comment _ ->
             item)

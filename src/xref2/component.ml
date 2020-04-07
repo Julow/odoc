@@ -339,8 +339,8 @@ and Substitution : sig
   }
 
   type 'a delayed =
-    | DelayedSubst of { subst : t; item : 'a; mutable memo : 'a option }
-    | NoSubst of 'a
+    | DelayedSubst of { subst : t; item : 'a Lazy.t; mutable memo : 'a option }
+    | NoSubst of 'a Lazy.t
 end =
   Substitution
 
@@ -401,9 +401,9 @@ module Fmt = struct
     Buffer.contents b
 
   let subst_delayed f ppf = function
-    | Substitution.DelayedSubst { item; _ } ->
-      Format.fprintf ppf "@[DelayedSubst (<subst>, %a)@]" f item
-    | NoSubst v -> f ppf v
+    | Substitution.DelayedSubst { item = lazy v; _ } ->
+      Format.fprintf ppf "@[DelayedSubst (<subst>, %a)@]" f v
+    | NoSubst (lazy v) -> f ppf v
 
   let rec signature ppf sg =
     let open Signature in
@@ -1968,7 +1968,7 @@ module Of_Lang = struct
         function
         | Type (r, t) ->
             let id = List.assoc t.id ident_map.types in
-            let t' = Substitution.NoSubst (type_decl ident_map t) in
+            let t' = Substitution.NoSubst (lazy (type_decl ident_map t)) in
             Signature.Type (id, r, t')
         | TypeSubstitution t ->
             let id = List.assoc t.id ident_map.types in
@@ -1976,7 +1976,7 @@ module Of_Lang = struct
             Signature.TypeSubstitution (id, t')
         | Module (r, m) ->
             let id = List.assoc m.id ident_map.modules in
-            let m' = Substitution.NoSubst (module_ ident_map m) in
+            let m' = Substitution.NoSubst (lazy (module_ ident_map m)) in
             Signature.Module (id, r, m')
         | ModuleSubstitution m ->
             let id = List.assoc m.id ident_map.modules in
@@ -1984,7 +1984,7 @@ module Of_Lang = struct
             Signature.ModuleSubstitution (id, m')
         | ModuleType m ->
             let id = List.assoc m.id ident_map.module_types in
-            let m' = Substitution.NoSubst (module_type ident_map m) in
+            let m' = Substitution.NoSubst (lazy (module_type ident_map m)) in
             Signature.ModuleType (id, m')
         | Value v ->
             let id = List.assoc v.id ident_map.values in

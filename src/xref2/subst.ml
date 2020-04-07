@@ -609,16 +609,16 @@ module Delayed = struct
       tree (see [compose] below). In addition to that, it also implements
       memoization of the result of really applying the substitution. *)
   type 'a t = 'a Substitution.delayed =
-    | DelayedSubst of { subst : subst; item : 'a; mutable memo : 'a option }
-    | NoSubst of 'a
+    | DelayedSubst of { subst : subst; item : 'a Lazy.t; mutable memo : 'a option }
+    | NoSubst of 'a Lazy.t
 
   let compose : 'a t -> subst -> 'a t =
     fun v s -> compose_delayed' compose v s
 
   let _memo_get : (subst -> 'a -> 'a) -> 'a t -> 'a =
     fun resolve -> function
-      | DelayedSubst { memo = Some item; _ } | NoSubst item -> item
-      | DelayedSubst ({ memo = None; subst; item } as t) ->
+      | DelayedSubst { memo = Some item; _ } | NoSubst (lazy item) -> item
+      | DelayedSubst ({ memo = None; subst; item = lazy item } as t) ->
           let r = resolve subst item in
           t.memo <- Some r;
           r
