@@ -331,11 +331,11 @@ end =
 
 and Substitution : sig
   type t = {
-    module_ : Cpath.Resolved.module_ ModuleMap.t;
-    module_type : Cpath.Resolved.module_type ModuleTypeMap.t;
-    type_ : Cpath.Resolved.type_ TypeMap.t;
-    class_type : Cpath.Resolved.class_type ClassTypeMap.t;
-    type_replacement : TypeExpr.t TypeMap.t;
+    module_ : Cpath.Resolved.module_ Lazy.t ModuleMap.t;
+    module_type : Cpath.Resolved.module_type Lazy.t ModuleTypeMap.t;
+    type_ : Cpath.Resolved.type_ Lazy.t TypeMap.t;
+    class_type : Cpath.Resolved.class_type Lazy.t ClassTypeMap.t;
+    type_replacement : TypeExpr.t Lazy.t TypeMap.t;
   }
 
   type 'a delayed =
