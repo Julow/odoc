@@ -338,7 +338,9 @@ and Substitution : sig
     type_replacement : TypeExpr.t TypeMap.t;
   }
 
-  type 'a delayed = DelayedSubst of t * 'a | NoSubst of 'a
+  type 'a delayed =
+    | DelayedSubst of { subst : t; item : 'a; mutable memo : 'a option }
+    | NoSubst of 'a
 end =
   Substitution
 
@@ -399,8 +401,8 @@ module Fmt = struct
     Buffer.contents b
 
   let subst_delayed f ppf = function
-    | Substitution.DelayedSubst (_, v) ->
-      Format.fprintf ppf "@[DelayedSubst (<subst>, %a)@]" f v
+    | Substitution.DelayedSubst { item; _ } ->
+      Format.fprintf ppf "@[DelayedSubst (<subst>, %a)@]" f item
     | NoSubst v -> f ppf v
 
   let rec signature ppf sg =

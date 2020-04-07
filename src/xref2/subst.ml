@@ -67,9 +67,12 @@ let add_type_replacement : Ident.path_type -> Component.TypeExpr.t -> t -> t =
 
 let compose_delayed' compose v s =
   let open Substitution in
-  match v with
-  | DelayedSubst (s', v) -> DelayedSubst (compose s' s, v)
-  | NoSubst v -> DelayedSubst (s, v)
+  let subst, item =
+    match v with
+    | DelayedSubst { subst; item; _ } -> (compose subst s, item)
+    | NoSubst item -> (s, item)
+  in
+  DelayedSubst { subst; item; memo = None }
 
 let local_module_path : t -> Ident.module_ -> Cpath.Resolved.module_ =
  fun s id ->
@@ -603,25 +606,25 @@ module Delayed = struct
   (** Represent a component that has been substituted.
       The substitution is performed only when necessary. Applying again a
       substitution is a shallow operation and doesn't require mapping the entire
-      tree (see [compose] below). *)
-  type 'a t = 'a Substitution.delayed = DelayedSubst of subst * 'a | NoSubst of 'a
+      tree (see [compose] below). In addition to that, it also implements
+      memoization of the result of really applying the substitution. *)
+  type 'a t = 'a Substitution.delayed =
+    | DelayedSubst of { subst : subst; item : 'a; mutable memo : 'a option }
+    | NoSubst of 'a
 
   let compose : 'a t -> subst -> 'a t =
     fun v s -> compose_delayed' compose v s
 
-  let get_module : Module.t t -> Module.t =
-    function
-    | DelayedSubst (s, m) -> module_ s m
-    | NoSubst m -> m
+  let _memo_get : (subst -> 'a -> 'a) -> 'a t -> 'a =
+    fun resolve -> function
+      | DelayedSubst { memo = Some item; _ } | NoSubst item -> item
+      | DelayedSubst ({ memo = None; subst; item } as t) ->
+          let r = resolve subst item in
+          t.memo <- Some r;
+          r
 
-  let get_module_type : ModuleType.t t -> ModuleType.t =
-    function
-    | DelayedSubst (s, mt) -> module_type s mt
-    | NoSubst mt -> mt
-
-  let get_type : TypeDecl.t t -> TypeDecl.t =
-    function
-    | DelayedSubst (s, t) -> type_ s t
-    | NoSubst t -> t
+  let get_module : Module.t t -> Module.t = _memo_get module_
+  let get_module_type : ModuleType.t t -> ModuleType.t = _memo_get module_type
+  let get_type : TypeDecl.t t -> TypeDecl.t = _memo_get type_
 
 end
