@@ -67,9 +67,11 @@ let add_type_replacement : Ident.path_type -> Component.TypeExpr.t -> t -> t =
 
 let compose_delayed' compose v s =
   let open Substitution in
-  match v with
-  | DelayedSubst (s', v) -> DelayedSubst (compose s' s, v)
-  | NoSubst v -> DelayedSubst (s, v)
+  lazy (
+    match Lazy.force v with
+    | DelayedSubst (s', v) -> DelayedSubst (compose s' s, v)
+    | NoSubst v -> DelayedSubst (s, v)
+  )
 
 let local_module_path : t -> Ident.module_ -> Cpath.Resolved.module_ =
  fun s id ->
@@ -606,22 +608,22 @@ module Delayed = struct
       tree (see [compose] below). *)
   type 'a t = 'a Substitution.delayed = DelayedSubst of subst * 'a | NoSubst of 'a
 
-  let compose : 'a t -> subst -> 'a t =
+  let compose : 'a t Lazy.t -> subst -> 'a t Lazy.t =
     fun v s -> compose_delayed' compose v s
 
-  let get_module : Module.t t -> Module.t =
+  let get_module : Module.t t Lazy.t -> Module.t =
     function
-    | DelayedSubst (s, m) -> module_ s m
-    | NoSubst m -> m
+    | lazy (DelayedSubst (s, m)) -> module_ s m
+    | lazy (NoSubst m) -> m
 
-  let get_module_type : ModuleType.t t -> ModuleType.t =
+  let get_module_type : ModuleType.t t Lazy.t -> ModuleType.t =
     function
-    | DelayedSubst (s, mt) -> module_type s mt
-    | NoSubst mt -> mt
+    | lazy (DelayedSubst (s, mt)) -> module_type s mt
+    | lazy (NoSubst mt) -> mt
 
-  let get_type : TypeDecl.t t -> TypeDecl.t =
+  let get_type : TypeDecl.t t Lazy.t -> TypeDecl.t =
     function
-    | DelayedSubst (s, t) -> type_ s t
-    | NoSubst t -> t
+    | lazy (DelayedSubst (s, t)) -> type_ s t
+    | lazy (NoSubst t) -> t
 
 end

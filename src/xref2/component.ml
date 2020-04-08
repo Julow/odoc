@@ -228,10 +228,10 @@ and Signature : sig
   type recursive = Odoc_model.Lang.Signature.recursive
 
   type item =
-    | Module of Ident.module_ * recursive * Module.t Substitution.delayed
+    | Module of Ident.module_ * recursive * Module.t Substitution.delayed Lazy.t
     | ModuleSubstitution of Ident.module_ * ModuleSubstitution.t
-    | ModuleType of Ident.module_type * ModuleType.t Substitution.delayed
-    | Type of Ident.type_ * recursive * TypeDecl.t Substitution.delayed
+    | ModuleType of Ident.module_type * ModuleType.t Substitution.delayed Lazy.t
+    | Type of Ident.type_ * recursive * TypeDecl.t Substitution.delayed Lazy.t
     | TypeSubstitution of Ident.type_ * TypeDecl.t
     | Exception of Ident.exception_ * Exception.t
     | TypExt of Extension.t
@@ -399,9 +399,9 @@ module Fmt = struct
     Buffer.contents b
 
   let subst_delayed f ppf = function
-    | Substitution.DelayedSubst (_, v) ->
+    | lazy (Substitution.DelayedSubst (_, v)) ->
       Format.fprintf ppf "@[DelayedSubst (<subst>, %a)@]" f v
-    | NoSubst v -> f ppf v
+    | lazy (NoSubst v) -> f ppf v
 
   let rec signature ppf sg =
     let open Signature in
@@ -1966,7 +1966,7 @@ module Of_Lang = struct
         function
         | Type (r, t) ->
             let id = List.assoc t.id ident_map.types in
-            let t' = Substitution.NoSubst (type_decl ident_map t) in
+            let t' = lazy (Substitution.NoSubst (type_decl ident_map t)) in
             Signature.Type (id, r, t')
         | TypeSubstitution t ->
             let id = List.assoc t.id ident_map.types in
@@ -1974,7 +1974,7 @@ module Of_Lang = struct
             Signature.TypeSubstitution (id, t')
         | Module (r, m) ->
             let id = List.assoc m.id ident_map.modules in
-            let m' = Substitution.NoSubst (module_ ident_map m) in
+            let m' = lazy (Substitution.NoSubst (module_ ident_map m)) in
             Signature.Module (id, r, m')
         | ModuleSubstitution m ->
             let id = List.assoc m.id ident_map.modules in
@@ -1982,7 +1982,7 @@ module Of_Lang = struct
             Signature.ModuleSubstitution (id, m')
         | ModuleType m ->
             let id = List.assoc m.id ident_map.module_types in
-            let m' = Substitution.NoSubst (module_type ident_map m) in
+            let m' = lazy (Substitution.NoSubst (module_type ident_map m)) in
             Signature.ModuleType (id, m')
         | Value v ->
             let id = List.assoc v.id ident_map.values in

@@ -1145,7 +1145,7 @@ and fragmap_module :
             match map_module m with
             | Left m ->
                 ( Component.Signature.Module
-                    (id, r, Component.(Substitution.NoSubst m))
+                    (id, r, lazy Component.(Substitution.NoSubst m))
                   :: items,
                   true,
                   removed )
@@ -1219,7 +1219,7 @@ and fragmap_type :
               when Ident.Name.type_ id = name -> (
                 match mapfn (Subst.Delayed.get_type t) with
                 | Left x ->
-                    (Component.Signature.Type (id, r, (Component.Substitution.NoSubst x)) :: items, true, removed)
+                    (Component.Signature.Type (id, r, lazy (Component.Substitution.NoSubst x)) :: items, true, removed)
                 | Right y ->
                     (items, true, Component.Signature.RType (id, y) :: removed)
                 )
@@ -1297,7 +1297,7 @@ and fragmap_type :
                 let m = Subst.Delayed.get_module m in
                 let item =
                   Component.Signature.Module
-                    (id, r, Component.Substitution.NoSubst (mapfn m))
+                    (id, r, lazy (Component.Substitution.NoSubst (mapfn m)))
                 in
                 (item :: items, true)
             | Component.Signature.Include ({ expansion_; _ } as i) ->
