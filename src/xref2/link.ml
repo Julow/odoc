@@ -1,12 +1,18 @@
 (* Second round of resolution tackles references and forward paths *)
 open Odoc_model
 open Lang
+open Utils.ResultMonad
 
 module Opt = struct
   let map f = function Some x -> Some (f x) | None -> None
 end
 
 exception Loop
+
+type error = [
+  | `Unresolved_module_path of Cpath.module_type
+  | `Signature_of_module_type of Component.ModuleType.expr * Tools.signature_of_module_error 
+]
 
 let rec is_forward : Paths.Path.Module.t -> bool =
   function
@@ -62,18 +68,12 @@ let type_path : Env.t -> Paths.Path.Type.t -> Paths.Path.Type.t =
       | Resolved (p', _) ->
         (* Format.fprintf Format.err_formatter "result 2: %a\n%!" Component.Fmt.resolved_type_path p'; *)
         `Resolved (Cpath.resolved_type_path_of_cpath p')
-      | Unresolved p -> Cpath.type_path_of_cpath p
-      | exception e ->
-          Format.fprintf Format.err_formatter
-            "Failed to lookup type path (%s): %a\n%!" (Printexc.to_string e)
-            Component.Fmt.model_path
-            (p :> Paths.Path.t);
-          p)
+      | Unresolved p -> Cpath.type_path_of_cpath p )
 
 and module_type_path :
-    Env.t -> Paths.Path.ModuleType.t -> Paths.Path.ModuleType.t =
+    Env.t -> Paths.Path.ModuleType.t -> (Paths.Path.ModuleType.t, error) result =
  fun env p ->
-  if not (should_resolve (p :> Paths.Path.t)) then p
+  if not (should_resolve (p :> Paths.Path.t)) then Ok p
   else
     let cp = Component.Of_Lang.(module_type_path empty p) in
     (* Format.fprintf Format.err_formatter
@@ -81,20 +81,15 @@ and module_type_path :
        cp; *)
     match cp with
     | `Resolved p ->
-      `Resolved (Tools.reresolve_module_type env p |> Cpath.resolved_module_type_path_of_cpath)   
+      let p' = Tools.reresolve_module_type env p |> Cpath.resolved_module_type_path_of_cpath in
+      Ok (`Resolved p')
     | _ ->
       match Tools.lookup_and_resolve_module_type_from_path true env cp with
       | Resolved (p', _) ->
         (* Format.fprintf Format.err_formatter "It became: %a\n%!"
            Component.Fmt.resolved_module_type_path p'; *)
-        `Resolved (Cpath.resolved_module_type_path_of_cpath p')
-      | Unresolved _p -> failwith "Unresolved module type path"
-      | exception e ->
-        Format.fprintf Format.err_formatter
-          "Failed to lookup module_type path (%s): %a\n%!"
-          (Printexc.to_string e) Component.Fmt.model_path
-          (p :> Paths.Path.t);
-        p
+        Ok (`Resolved (Cpath.resolved_module_type_path_of_cpath p'))
+      | Unresolved _p -> Error (`Unresolved_module_path cp)
 
 and module_path : Env.t -> Paths.Path.Module.t -> Paths.Path.Module.t =
  fun env p ->
@@ -387,7 +382,6 @@ and module_ : Env.t -> Module.t -> Module.t =
     (m.id :> Paths.Identifier.t); *)
   if m.hidden then m
   else
-    try
       let env =
         Env.add_functor_args (m.id :> Paths.Identifier.Signature.t) env
       in
@@ -463,35 +457,17 @@ and module_ : Env.t -> Module.t -> Module.t =
         (m.id :> Paths.Identifier.t)
         (t1 -. start_time) (t2 -. t1) (t3 -. t2) (t4 -. t3) (end_time -. t4);
       result
-    with
-    | Find.Find_failure (sg, name, ty) as e ->
-        let bt = Printexc.get_backtrace () in
-        Format.fprintf Format.err_formatter
-          "Find failure: Failed to find %s %s in %a\n" ty name
-          Component.Fmt.signature sg;
-        Printf.fprintf stderr "Backtrace: %s\n%!" bt;
-        raise e
-    | Env.MyFailure (x, _) as e ->
-        Format.fprintf Format.err_formatter
-          "Failed to expand module: looking up identifier %a while expanding \
-           module %a\n\
-           %!"
-          Component.Fmt.model_identifier x Component.Fmt.model_identifier
-          (m.id :> Paths.Identifier.t);
-        raise e
-    | e ->
-        Printf.fprintf stderr "Failed to resolve module: %s\n%s\n%!"
-          (Printexc.to_string e)
-          (Printexc.get_backtrace ());
-        raise e
 
 and module_decl :
-    Env.t -> Paths.Identifier.Signature.t -> Module.decl -> Module.decl =
+    Env.t -> Paths.Identifier.Signature.t -> Module.decl ->
+    (Module.decl, error) result =
  fun env id decl ->
   let open Module in
   match decl with
-  | ModuleType expr -> ModuleType (module_type_expr env id expr)
-  | Alias p -> Alias (module_path env p)
+  | ModuleType expr ->
+    module_type_expr env id expr >>= fun mt ->
+    Ok (ModuleType mt)
+  | Alias p -> Ok (Alias (module_path env p))
 
 and module_type : Env.t -> ModuleType.t -> ModuleType.t =
  fun env m ->
@@ -535,10 +511,10 @@ and module_type : Env.t -> ModuleType.t -> ModuleType.t =
       (Printexc.to_string e);
     raise e
 
-and include_ : Env.t -> Include.t -> Include.t =
+and include_ : Env.t -> Include.t -> (Include.t, error) result =
  fun env i ->
   let open Include in
-  let decl = module_decl env i.parent i.decl in
+  module_decl env i.parent i.decl >>= fun decl ->
   let hidden_rhs = should_hide_module_decl decl in
   let doc = comment_docs env i.doc in
   let should_be_inlined =
@@ -546,8 +522,7 @@ and include_ : Env.t -> Include.t -> Include.t =
       element.Odoc_model.Location_.value = `Tag `Inline in
     List.exists is_inline_tag doc
   in
-  try
-    {
+  Ok {
       i with
       decl;
       expansion =
@@ -555,25 +530,6 @@ and include_ : Env.t -> Include.t -> Include.t =
       inline = should_be_inlined || hidden_rhs;
       doc = doc;
     }
-  with Env.MyFailure (_id, _env) as e ->
-    (* Format.fprintf Format.err_formatter
-         "Failed to find module:\nIdentifier: %a\n\n"
-         Component.Fmt.model_identifier
-         (id :> Odoc_model.Paths.Identifier.t);
-       List.iter
-         (fun (ident, _) ->
-           Format.fprintf Format.err_formatter "%a;\n"
-             Component.Fmt.model_identifier
-             (ident :> Odoc_model.Paths.Identifier.t))
-         (Env.modules_of env);
-
-           let i' = Component.Of_Lang.(module_decl empty i.decl) in
-           Format.fprintf Format.err_formatter
-             "Failed to resolve include: %a\nGot exception %s (parent=%a)\n%!"
-             Component.Fmt.module_decl i' (Printexc.to_string e)
-             Component.Fmt.model_identifier
-             (i.parent :> Paths.Identifier.t);*)
-    raise e
 
 and functor_parameter_parameter : Env.t -> FunctorParameter.parameter -> FunctorParameter.parameter =
  fun env' a ->
@@ -643,9 +599,12 @@ and handle_fragments env id sg subs =
                   Component.Of_Lang.(module_type_substitution empty lsub)
                   sg
               in
-              ( sg',
-                ModuleEq (frag', module_decl env id decl)
-                :: subs )
+              let decl =
+                match module_decl env id decl with
+                | Ok decl -> decl
+                | Error _ -> failwith "handle_fragments"
+              in
+              (sg', ModuleEq (frag', decl) :: subs)
           | TypeEq (cfrag, _), TypeEq (frag, eqn) ->
           let frag' = match cfrag with
           | `Resolved f -> 
@@ -702,30 +661,30 @@ and handle_fragments env id sg subs =
     |> snd |> List.rev
 
 and module_type_expr :
-    Env.t -> Paths.Identifier.Signature.t -> ModuleType.expr -> ModuleType.expr
+    Env.t -> Paths.Identifier.Signature.t -> ModuleType.expr ->
+    (ModuleType.expr, error) result
     =
  fun env id expr ->
   let open ModuleType in
   match expr with
-  | Signature s -> Signature (signature env s)
-  | Path p -> Path (module_type_path env p)
+  | Signature s -> Ok (Signature (signature env s))
+  | Path p -> module_type_path env p >>= fun p' -> Ok (Path p')
   | With (expr, subs) ->
       let cexpr = Component.Of_Lang.(module_type_expr empty expr) in
-      let sg =
-        match Tools.signature_of_module_type_expr env cexpr with
-        | Ok sg -> sg
-        | Error e ->
-            let exception Link_module_type_expr of Tools.signature_of_module_error in
-            raise (Link_module_type_expr e)
-      in
-      With
-        ( module_type_expr env id expr,
-            handle_fragments env id sg subs)
+      Tools.signature_of_module_type_expr env cexpr
+      |> map_error (fun e -> `Signature_of_module_type (cexpr, e))
+      >>= fun sg ->
+      Ok (
+        With
+          ( module_type_expr env id expr,
+            handle_fragments env id sg subs))
   | Functor (arg, res) ->
       let arg' = functor_argument env arg in
-      let res' = module_type_expr env id res in
-      Functor (arg', res')
-  | TypeOf decl -> TypeOf (module_decl env id decl)
+      module_type_expr env id res >>= fun res' ->
+      Ok (Functor (arg', res'))
+  | TypeOf decl ->
+    module_decl env id decl >>= fun decl ->
+    Ok (TypeOf decl)
 
 and type_decl_representation :
     Env.t -> TypeDecl.Representation.t -> TypeDecl.Representation.t =
