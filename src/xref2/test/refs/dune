@@ -1,0 +1,9 @@
+(rule
+ (targets refs.output)
+ (action
+  (run ocaml-mdx test -o %{targets} %{dep:refs.md})))
+
+(alias
+ (name runtest)
+ (action
+  (diff refs.md refs.output)))
