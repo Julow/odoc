@@ -421,37 +421,6 @@ and resolve_label_reference : Env.t -> Label.t -> Resolved.Label.t option =
             try Some (`Identifier (List.assoc (LabelName.to_string name) p))
             with _ -> None ) )
 
-and resolve_datatype_reference : Env.t -> DataType.t -> Resolved.DataType.t option =
-  let open Tools.OptionMonad in
-  fun env r ->
-    match r with
-    | `Resolved r -> Some r
-    | `Root (unit, tag) ->
-    | `Dot (parent, name) ->
-    | `Type (sg, type_name) ->
-
-and resolve_constructor_reference : Env.t -> Constructor.t -> Resolved.Constructor.t option =
-  let open Utils.OptionMonad in
-  fun env r ->
-    match r with
-    | `Resolved r -> Some r
-    | `Root (name, _) -> (
-        match Env.lookup_any_by_name (UnitName.to_string name) env with
-        | `Constructor _ | `Extension _ | `Exception _ -> None
-        | _ -> None
-      )
-    | `Dot (parent, name) -> (
-        resolve_label_parent_reference env parent ~add_canonical:true
-        >>= signature_lookup_result_of_label_parent
-        >>= fun (parent', cp, sg) ->
-        let sg = Tools.prefix_signature (cp, sg) in
-        `In_parent (parent', name, sg)
-      )
-    | `Constructor (datatype, name) ->
-        (* ConstructorName.t *)
-    | `Extension _
-    | `Exception _ -> None
-
 and resolve_reference : Env.t -> t -> Resolved.t option =
   let open Utils.OptionMonad in
   fun env r ->
@@ -493,9 +462,6 @@ and resolve_reference : Env.t -> t -> Resolved.t option =
         resolve_value_reference env r >>= fun x -> return (x :> Resolved.t)
     | (`Root (_, `TLabel) | `Label (_, _)) as r ->
         resolve_label_reference env r >>= fun x -> return (x :> Resolved.t)
-    | (`Root (_, `TConstructor) | `Constructor (_, _)) as r ->
-        resolve_constructor_reference env r >>= fun x -> return (x :> Resolved.t)
-
     | `Root (name, `TPage) -> (
         match Env.lookup_page (UnitName.to_string name) env with
         | Some p ->
