@@ -26,9 +26,13 @@ Test data:
 ```ocaml
 let test_mli = {|
 
+  type t1 = A | B
+
   val f1 : unit -> unit
 
   module M : sig
+
+    type t2 = A | B
 
     val f2 : unit -> unit
 
@@ -69,6 +73,10 @@ Explicit kind
 `Identifier (`Value (`Root (Common.root, Root), f1))
 # resolve_ref "val:M.f2"
 Exception: Failure "erk".
+# resolve_ref "constructor:A"
+Exception: Failure "resolve_reference".
+# resolve_ref "constructor:M.A"
+Exception: Failure "resolve_reference".
 ```
 
 Implicit
@@ -83,4 +91,8 @@ Implicit
 # resolve_ref "M.f2"
 - : Odoc_model.Paths_types.Resolved_reference.any =
 `Value (`Identifier (`Module (`Root (Common.root, Root), M)), f2)
+# resolve_ref "A"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.A"
+Exception: Failure "resolve_reference".
 ```
