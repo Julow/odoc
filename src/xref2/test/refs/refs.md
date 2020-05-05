@@ -6,6 +6,7 @@ Prelude:
 
 ```ocaml
 (* Prelude *)
+#require "odoc.xref2";;
 #require "odoc.xref_test";;
 open Odoc_xref2;;
 open Odoc_xref_test;;
@@ -26,9 +27,13 @@ Test data:
 ```ocaml
 let test_mli = {|
 
+  type t1 = A
+
   val f1 : unit -> unit
 
   module M : sig
+
+    type t2 = B
 
     val f2 : unit -> unit
 
@@ -69,6 +74,12 @@ Explicit kind
 `Identifier (`Value (`Root (Common.root, Root), f1))
 # resolve_ref "val:M.f2"
 Exception: Failure "erk".
+# resolve_ref "type:t1"
+- : Odoc_model.Paths_types.Resolved_reference.any =
+`Identifier (`Type (`Root (Common.root, Root), t1))
+# resolve_ref "type:M.t2"
+- : Odoc_model.Paths_types.Resolved_reference.any =
+`Type (`Identifier (`Module (`Root (Common.root, Root), M)), t2)
 ```
 
 Implicit
@@ -83,4 +94,10 @@ Implicit
 # resolve_ref "M.f2"
 - : Odoc_model.Paths_types.Resolved_reference.any =
 `Value (`Identifier (`Module (`Root (Common.root, Root), M)), f2)
+# resolve_ref "t1"
+- : Odoc_model.Paths_types.Resolved_reference.any =
+`Identifier (`Type (`Root (Common.root, Root), t1))
+# resolve_ref "M.t2"
+- : Odoc_model.Paths_types.Resolved_reference.any =
+`Type (`Identifier (`Module (`Root (Common.root, Root), M)), t2)
 ```
