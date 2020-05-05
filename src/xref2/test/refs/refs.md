@@ -73,13 +73,12 @@ Explicit kind
 - : Odoc_model.Paths_types.Resolved_reference.any =
 `Identifier (`Value (`Root (Common.root, Root), f1))
 # resolve_ref "val:M.f2"
-Exception: Failure "erk".
+Exception: Failure "resolve_reference".
 # resolve_ref "type:t1"
 - : Odoc_model.Paths_types.Resolved_reference.any =
 `Identifier (`Type (`Root (Common.root, Root), t1))
 # resolve_ref "type:M.t2"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Type (`Identifier (`Module (`Root (Common.root, Root), M)), t2)
+Exception: Failure "resolve_reference".
 ```
 
 Implicit
@@ -92,12 +91,10 @@ Implicit
 - : Odoc_model.Paths_types.Resolved_reference.any =
 `Identifier (`Value (`Root (Common.root, Root), f1))
 # resolve_ref "M.f2"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Value (`Identifier (`Module (`Root (Common.root, Root), M)), f2)
+Exception: Failure "resolve_reference".
 # resolve_ref "t1"
 - : Odoc_model.Paths_types.Resolved_reference.any =
 `Identifier (`Type (`Root (Common.root, Root), t1))
 # resolve_ref "M.t2"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Type (`Identifier (`Module (`Root (Common.root, Root), M)), t2)
+Exception: Failure "resolve_reference".
 ```

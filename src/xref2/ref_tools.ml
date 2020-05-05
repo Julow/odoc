@@ -490,3 +490,63 @@ and resolve_reference : Env.t -> t -> Resolved.t option =
               resolve_value_reference env r >>= fun x -> return (x :> Resolved.t));
           ]
     | _ -> None
+
+let _ = resolve_reference
+
+open Utils.OptionMonad
+
+type ref_kind_known = [
+  | `Module of Signature.t * ModuleName.t
+  | `ModuleType of Signature.t * ModuleTypeName.t
+  | `Type of Signature.t * TypeName.t
+  | `Constructor of DataType.t * ConstructorName.t
+  | `Field of Parent.t * FieldName.t
+  | `Extension of Signature.t * ExtensionName.t
+  | `Exception of Signature.t * ExceptionName.t
+  | `Value of Signature.t * ValueName.t
+  | `Class of Signature.t * ClassName.t
+  | `ClassType of Signature.t * ClassTypeName.t
+  | `Method of ClassSignature.t * MethodName.t
+  | `InstanceVariable of ClassSignature.t * InstanceVariableName.t
+  | `Label of LabelParent.t * LabelName.t
+]
+
+let resolve_reference_known _env _r = None
+
+(* let lookup_by_tag tag env name : Odoc_model.Paths.Identifier.t option = *)
+
+let lookup tag name env : Component.Element.any option =
+  ignore tag;
+  Env.lookup_any_by_name name env
+
+let resolve_reference_root env name tag : Odoc_model.Paths.Reference.Resolved.t option =
+  let get_id =
+    function
+    | `Module (id, _) -> (id :> Identifier.t)
+    | `ModuleType (id, _) -> (id :> Identifier.t)
+    | `Type (id, _) -> (id :> Identifier.t)
+    | `Value (id, _) -> (id :> Identifier.t)
+    | `Label id -> (id :> Identifier.t)
+    | `Class (id, _) -> (id :> Identifier.t)
+    | `ClassType (id, _) -> (id :> Identifier.t)
+    | `External (id, _) -> (id :> Identifier.t)
+  in
+  lookup tag name env
+  >>= fun r -> Some (`Identifier (get_id r))
+
+let resolve_reference_by_name env ~parent tag name =
+  ignore (env, parent, tag, name); None
+
+let resolve_parent env parent =
+  ignore (env, parent); None
+
+let resolve_reference : Env.t -> t -> Resolved.t option =
+  fun env r ->
+    match r with
+    | `Resolved r -> Some r
+    | `Root (unit_name, tag) -> resolve_reference_root env (UnitName.to_string unit_name) tag
+    | `Dot (parent, name) ->
+      resolve_parent env parent
+      >>= fun (parent, tag) ->
+      resolve_reference_by_name env ~parent tag name
+    | #ref_kind_known as r -> resolve_reference_known env r
