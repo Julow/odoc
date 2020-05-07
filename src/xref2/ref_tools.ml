@@ -1,3 +1,4 @@
+open Utils.OptionMonad
 open Odoc_model.Paths
 open Odoc_model.Names
 open Reference
@@ -493,8 +494,6 @@ and resolve_reference : Env.t -> t -> Resolved.t option =
 
 let _ = resolve_reference
 
-open Utils.OptionMonad
-
 type ref_kind_known =
   [ `Module of Signature.t * ModuleName.t
   | `ModuleType of Signature.t * ModuleTypeName.t
@@ -516,7 +515,9 @@ let resolve_reference_known _env _r = None
 
 let lookup tag name env : Component.Element.any option =
   ignore tag;
-  Env.lookup_any_by_name name env
+  match Env.lookup_any_by_name name env with
+  | e :: _ -> Some e
+  | [] -> None
 
 let resolve_reference_root env name tag :
     Odoc_model.Paths.Reference.Resolved.t option =
