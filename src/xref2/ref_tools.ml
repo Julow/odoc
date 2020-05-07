@@ -495,8 +495,8 @@ let _ = resolve_reference
 
 open Utils.OptionMonad
 
-type ref_kind_known = [
-  | `Module of Signature.t * ModuleName.t
+type ref_kind_known =
+  [ `Module of Signature.t * ModuleName.t
   | `ModuleType of Signature.t * ModuleTypeName.t
   | `Type of Signature.t * TypeName.t
   | `Constructor of DataType.t * ConstructorName.t
@@ -508,8 +508,7 @@ type ref_kind_known = [
   | `ClassType of Signature.t * ClassTypeName.t
   | `Method of ClassSignature.t * MethodName.t
   | `InstanceVariable of ClassSignature.t * InstanceVariableName.t
-  | `Label of LabelParent.t * LabelName.t
-]
+  | `Label of LabelParent.t * LabelName.t ]
 
 let resolve_reference_known _env _r = None
 
@@ -519,9 +518,9 @@ let lookup tag name env : Component.Element.any option =
   ignore tag;
   Env.lookup_any_by_name name env
 
-let resolve_reference_root env name tag : Odoc_model.Paths.Reference.Resolved.t option =
-  let get_id =
-    function
+let resolve_reference_root env name tag :
+    Odoc_model.Paths.Reference.Resolved.t option =
+  let get_id = function
     | `Module (id, _) -> (id :> Identifier.t)
     | `ModuleType (id, _) -> (id :> Identifier.t)
     | `Type (id, _) -> (id :> Identifier.t)
@@ -531,22 +530,57 @@ let resolve_reference_root env name tag : Odoc_model.Paths.Reference.Resolved.t 
     | `ClassType (id, _) -> (id :> Identifier.t)
     | `External (id, _) -> (id :> Identifier.t)
   in
-  lookup tag name env
-  >>= fun r -> Some (`Identifier (get_id r))
+  lookup tag name env >>= fun r -> Some (`Identifier (get_id r))
 
-let resolve_reference_by_name env ~parent tag name =
-  ignore (env, parent, tag, name); None
+let resolve_reference_dot_sg env ~parent_path ~parent_ref ~parent_sg name =
+  Find.any_in_sig parent_sg name >>= function
+  | `Module (_, _, m) ->
+      let name = Odoc_model.Names.ModuleName.of_string name in
+      let resolved_parent, _, _ =
+        process_module env true (Component.Delayed.get m)
+          (`Module (parent_path, name))
+          (`Module (parent_ref, name))
+      in
+      Some (`Module ((resolved_parent :> Resolved.Signature.t), name))
+  | `ModuleType _ -> None
+  | `Type _ -> None
+  | `Exception _ -> None
+  | `Value _ -> None
+  | `External _ -> None
+  | `Class _ -> None
+  | `ClassType _ -> None
+  | `Constructor _ -> None
+  | `ExtConstructor _ -> None
+  | `ModuleSubstitution _ | `TypeSubstitution _ -> None
+  | `Removed _ -> None
 
-let resolve_parent env parent =
-  ignore (env, parent); None
+let resolve_reference_dot env parent name =
+  resolve_label_parent_reference env parent ~add_canonical:true >>= function
+  | ( ( ( `Identifier #Odoc_model.Paths.Identifier.Signature.t
+        | `SubstAlias _ | `Module _ | `Canonical _ | `ModuleType _ | `Hidden _
+          ) as parent_ref ),
+      Some parent_path,
+      parent_comp ) -> (
+      match parent_comp with
+      | `S parent_sg ->
+          let parent_path = Tools.reresolve_parent env parent_path in
+          let parent_sg = Tools.prefix_signature (parent_path, parent_sg) in
+          resolve_reference_dot_sg ~parent_path ~parent_ref ~parent_sg env name
+      | `CS _csg -> None
+      | `Page _ids -> None )
+  | ( ( `Identifier #Odoc_model.Paths_types.Identifier.path_type
+      | `Type _ | `Class _ | `ClassType _ ),
+      Some _,
+      _ ) ->
+      None
+  | `Identifier #Odoc_model.Paths_types.Identifier.page, Some _, _ -> None
+  | _, None, _ -> None
 
 let resolve_reference : Env.t -> t -> Resolved.t option =
-  fun env r ->
-    match r with
-    | `Resolved r -> Some r
-    | `Root (unit_name, tag) -> resolve_reference_root env (UnitName.to_string unit_name) tag
-    | `Dot (parent, name) ->
-      resolve_parent env parent
-      >>= fun (parent, tag) ->
-      resolve_reference_by_name env ~parent tag name
-    | #ref_kind_known as r -> resolve_reference_known env r
+ fun env r ->
+  match r with
+  | `Resolved r -> Some r
+  | `Root (unit_name, tag) ->
+      resolve_reference_root env (UnitName.to_string unit_name) tag
+  | `Dot (parent, name) -> resolve_reference_dot env parent name
+  | #ref_kind_known as r -> resolve_reference_known env r
