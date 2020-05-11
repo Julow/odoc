@@ -536,20 +536,19 @@ let resolve_reference_root env name tag :
 let resolve_reference_dot_sg env ~parent_path ~parent_ref ~parent_sg name =
   Find.any_in_sig parent_sg name >>= function
   | `Module (_, _, m) ->
-      let name = Odoc_model.Names.ModuleName.of_string name in
+      let name = ModuleName.of_string name in
       let resolved_parent, _, _ =
         process_module env true (Component.Delayed.get m)
           (`Module (parent_path, name))
           (`Module (parent_ref, name))
       in
       Some (`Module ((resolved_parent :> Resolved.Signature.t), name))
-  | `ModuleType _ -> None
-  | `Type _ -> None
-  | `Exception _ -> None
-  | `Value _ -> None
-  | `External _ -> None
-  | `Class _ -> None
-  | `ClassType _ -> None
+  | `ModuleType _ -> Some (`ModuleType (parent_ref, ModuleTypeName.of_string name))
+  | `Type _ -> Some (`Type (parent_ref, TypeName.of_string name))
+  | `Exception _ -> Some (`Exception (parent_ref, ExceptionName.of_string name))
+  | `Value _ | `External _ -> Some (`Value (parent_ref, ValueName.of_string name))
+  | `Class _ -> Some (`Class (parent_ref, ClassName.of_string name))
+  | `ClassType _ -> Some (`ClassType (parent_ref, ClassTypeName.of_string name))
   | `Constructor _ -> None
   | `ExtConstructor _ -> None
   | `ModuleSubstitution _ | `TypeSubstitution _ -> None
