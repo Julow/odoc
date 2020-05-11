@@ -17,6 +17,8 @@ open Odoc_xref_test;;
 #install_printer Odoc_model.Names.ModuleName.fmt;;
 #install_printer Odoc_model.Names.ModuleTypeName.fmt;;
 #install_printer Odoc_model.Names.TypeName.fmt;;
+#install_printer Odoc_model.Names.ClassName.fmt;;
+#install_printer Odoc_model.Names.ClassTypeName.fmt;;
 #install_printer Odoc_model.Names.ParameterName.fmt;;
 #install_printer Odoc_model.Names.ExceptionName.fmt;;
 #install_printer Odoc_model.Names.FieldName.fmt;;
@@ -61,7 +63,9 @@ let parse_ref ref_str =
   | Ok ref -> ref
   | Error e -> failwith (Error.to_string e)
 
-let resolve_ref ref_str =
+type ref = Odoc_model.Paths_types.Resolved_reference.any
+
+let resolve_ref ref_str : ref =
   match Ref_tools.resolve_reference env (parse_ref ref_str) with
   | None -> failwith "resolve_reference"
   | Some r -> r
@@ -69,104 +73,92 @@ let resolve_ref ref_str =
 
 ## Resolving
 
-Explicit kind
+Explicit, root:
 
 ```ocaml
 # resolve_ref "module:M"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Identifier (`Module (`Root (Common.root, Root), M))
+- : ref = `Identifier (`Module (`Root (Common.root, Root), M))
 # resolve_ref "val:f1"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Identifier (`Value (`Root (Common.root, Root), f1))
-# resolve_ref "val:M.f2"
-Exception: Failure "resolve_reference".
+- : ref = `Identifier (`Value (`Root (Common.root, Root), f1))
 # resolve_ref "type:t1"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Identifier (`Type (`Root (Common.root, Root), t1))
-# resolve_ref "type:M.t2"
-Exception: Failure "resolve_reference".
+- : ref = `Identifier (`Type (`Root (Common.root, Root), t1))
 # resolve_ref "module-type:T1"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Identifier (`ModuleType (`Root (Common.root, Root), T1))
-# resolve_ref "module-type:M.T1"
-Exception: Failure "resolve_reference".
+- : ref = `Identifier (`ModuleType (`Root (Common.root, Root), T1))
 # resolve_ref "exception:E1"
-Exception: Failure "resolve_reference".
-# resolve_ref "exception:M.E2"
 Exception: Failure "resolve_reference".
 # resolve_ref "constructor:C1"
 Exception: Failure "resolve_reference".
-# resolve_ref "constructor:M.C2"
-Exception: Failure "resolve_reference".
 # resolve_ref "val:e1"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Identifier (`Value (`Root (Common.root, Root), e1))
-# resolve_ref "val:M.e2"
-Exception: Failure "resolve_reference".
+- : ref = `Identifier (`Value (`Root (Common.root, Root), e1))
 # resolve_ref "class:c1"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Identifier (`Class (`Root (Common.root, Root), <abstr>))
-# resolve_ref "class:M.c2"
-Exception: Failure "resolve_reference".
-# resolve_ref "classtype:ct1"
-Exception: Odoc_model.Error.Conveyed_by_exception _.
-File "_none_", line 1, characters 0-9:
-'classtype' is deprecated, use 'class-type' instead.
-# resolve_ref "classtype:M.ct2"
-Exception: Odoc_model.Error.Conveyed_by_exception _.
-File "_none_", line 1, characters 0-9:
-'classtype' is deprecated, use 'class-type' instead.
+- : ref = `Identifier (`Class (`Root (Common.root, Root), c1))
+# resolve_ref "class-type:ct1"
+- : ref = `Identifier (`ClassType (`Root (Common.root, Root), ct1))
 ```
 
-Implicit
+Explicit, in sig:
+
+```ocaml
+# resolve_ref "val:M.f2"
+Exception: Failure "resolve_reference".
+# resolve_ref "type:M.t2"
+Exception: Failure "resolve_reference".
+# resolve_ref "module-type:M.T1"
+Exception: Failure "resolve_reference".
+# resolve_ref "exception:M.E2"
+Exception: Failure "resolve_reference".
+# resolve_ref "constructor:M.C2"
+Exception: Failure "resolve_reference".
+# resolve_ref "val:M.e2"
+Exception: Failure "resolve_reference".
+# resolve_ref "class:M.c2"
+Exception: Failure "resolve_reference".
+# resolve_ref "class-type:M.ct2"
+Exception: Failure "resolve_reference".
+```
+
+Implicit, root:
 
 ```ocaml
 # resolve_ref "M"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Identifier (`Module (`Root (Common.root, Root), M))
+- : ref = `Identifier (`Module (`Root (Common.root, Root), M))
 # resolve_ref "f1"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Identifier (`Value (`Root (Common.root, Root), f1))
-# resolve_ref "M.f2"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Value (`Identifier (`Module (`Root (Common.root, Root), M)), f2)
+- : ref = `Identifier (`Value (`Root (Common.root, Root), f1))
 # resolve_ref "t1"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Identifier (`Type (`Root (Common.root, Root), t1))
-# resolve_ref "M.t2"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Type (`Identifier (`Module (`Root (Common.root, Root), M)), t2)
+- : ref = `Identifier (`Type (`Root (Common.root, Root), t1))
 # resolve_ref "T1"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Identifier (`ModuleType (`Root (Common.root, Root), T1))
-# resolve_ref "M.T2"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`ModuleType (`Identifier (`Module (`Root (Common.root, Root), M)), T2)
+- : ref = `Identifier (`ModuleType (`Root (Common.root, Root), T1))
 # resolve_ref "E1"
 Exception: Failure "resolve_reference".
-# resolve_ref "M.E2"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Exception (`Identifier (`Module (`Root (Common.root, Root), M)), E2)
 # resolve_ref "C1"
 Exception: Failure "resolve_reference".
+# resolve_ref "e1"
+- : ref = `Identifier (`Value (`Root (Common.root, Root), e1))
+# resolve_ref "c1"
+- : ref = `Identifier (`Class (`Root (Common.root, Root), c1))
+# resolve_ref "ct1"
+- : ref = `Identifier (`ClassType (`Root (Common.root, Root), ct1))
+```
+
+Implicit, in sig:
+
+```ocaml
+# resolve_ref "M.f2"
+- : ref = `Value (`Identifier (`Module (`Root (Common.root, Root), M)), f2)
+# resolve_ref "M.t2"
+- : ref = `Type (`Identifier (`Module (`Root (Common.root, Root), M)), t2)
+# resolve_ref "M.T1"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.E2"
+- : ref =
+`Exception (`Identifier (`Module (`Root (Common.root, Root), M)), E2)
 # resolve_ref "M.C2"
 Exception: Failure "resolve_reference".
-# resolve_ref "e1"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Identifier (`Value (`Root (Common.root, Root), e1))
 # resolve_ref "M.e2"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Value (`Identifier (`Module (`Root (Common.root, Root), M)), e2)
-# resolve_ref "c1"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Identifier (`Class (`Root (Common.root, Root), <abstr>))
+- : ref = `Value (`Identifier (`Module (`Root (Common.root, Root), M)), e2)
 # resolve_ref "M.c2"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Class (`Identifier (`Module (`Root (Common.root, Root), M)), <abstr>)
-# resolve_ref "ct1"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`Identifier (`ClassType (`Root (Common.root, Root), <abstr>))
+- : ref = `Class (`Identifier (`Module (`Root (Common.root, Root), M)), c2)
 # resolve_ref "M.ct2"
-- : Odoc_model.Paths_types.Resolved_reference.any =
-`ClassType (`Identifier (`Module (`Root (Common.root, Root), M)), <abstr>)
+- : ref =
+`ClassType (`Identifier (`Module (`Root (Common.root, Root), M)), ct2)
 ```
