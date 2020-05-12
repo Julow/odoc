@@ -248,3 +248,70 @@ Exception: Failure "resolve_reference".
 # resolve_ref "M.t2.f2"
 Exception: Failure "resolve_reference".
 ```
+
+Known kind:
+
+```ocaml
+# resolve_ref "module-M"
+- : ref = `Identifier (`Module (`Root (Common.root, Root), M))
+# resolve_ref "type-t1"
+- : ref = `Identifier (`Type (`Root (Common.root, Root), t1))
+# resolve_ref "module-type-T1"
+- : ref = `Identifier (`ModuleType (`Root (Common.root, Root), T1))
+# resolve_ref "class-c1"
+- : ref = `Identifier (`Class (`Root (Common.root, Root), c1))
+# resolve_ref "class-type-ct1"
+- : ref = `Identifier (`ClassType (`Root (Common.root, Root), ct1))
+# resolve_ref "type-x1"
+- : ref = `Identifier (`Type (`Root (Common.root, Root), x1))
+# resolve_ref "class-c1.m1"
+Exception: Failure "resolve_reference".
+# resolve_ref "class-c1.v1"
+Exception: Failure "resolve_reference".
+# resolve_ref "class-type-ct1.tm1"
+Exception: Failure "resolve_reference".
+# resolve_ref "class-type-ct1.tv1"
+Exception: Failure "resolve_reference".
+# resolve_ref "type-t1.f1"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.type-t2"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.module-type-T2"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.class-c2"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.class-type-ct2"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.type-x2"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.class-c2.m2"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.class-c2.v2"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.class-type-ct2.tm2"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.class-type-ct2.tv2"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.type-t2.f2"
+Exception: Failure "resolve_reference".
+# resolve_ref "module-M.type-t2"
+Exception: Failure "resolve_reference".
+# resolve_ref "module-M.module-type-T2"
+Exception: Failure "resolve_reference".
+# resolve_ref "module-M.class-c2"
+Exception: Failure "resolve_reference".
+# resolve_ref "module-M.class-type-ct2"
+Exception: Failure "resolve_reference".
+# resolve_ref "module-M.type-x2"
+Exception: Failure "resolve_reference".
+# resolve_ref "module-M.class-c2.m2"
+Exception: Failure "resolve_reference".
+# resolve_ref "module-M.class-c2.v2"
+Exception: Failure "resolve_reference".
+# resolve_ref "module-M.class-type-ct2.tm2"
+Exception: Failure "resolve_reference".
+# resolve_ref "module-M.class-type-ct2.tv2"
+Exception: Failure "resolve_reference".
+# resolve_ref "module-M.type-t2.f2"
+Exception: Failure "resolve_reference".
+```
