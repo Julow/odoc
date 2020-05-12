@@ -549,7 +549,9 @@ let resolve_reference_dot_sg env ~parent_path ~parent_ref ~parent_sg name =
   | `Value _ | `External _ -> Some (`Value (parent_ref, ValueName.of_string name))
   | `Class _ -> Some (`Class (parent_ref, ClassName.of_string name))
   | `ClassType _ -> Some (`ClassType (parent_ref, ClassTypeName.of_string name))
-  | `Constructor _ -> None
+  | `Constructor (typ_name, _, _) ->
+      let datatype = `Type (parent_ref, typ_name) in
+      Some (`Constructor (datatype, ConstructorName.of_string name))
   | `ExtConstructor _ -> None
   | `ModuleSubstitution _ | `TypeSubstitution _ -> None
   | `Removed _ -> None

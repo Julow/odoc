@@ -51,10 +51,11 @@ let careful_type_in_sig (s : Signature.t) name =
   in
   inner s.items
 
-let any_in_type (typ : TypeDecl.t) name =
+let any_in_type id (typ : TypeDecl.t) name =
+  let typename_of_typeid (`LType (n, _) | `LCoreType n) = n in
   let rec inner = function
     | ({ TypeDecl.Constructor.name = name'; _ } as cons) :: _ when name' = name ->
-        Some (`Constructor (typ, cons))
+        Some (`Constructor (typename_of_typeid id, typ, cons))
     | _ :: tl -> inner tl
     | [] -> None
   in
@@ -102,8 +103,8 @@ let any_in_sig (s : Signature.t) name =
         match inner inc.Include.expansion_.items with
         | Some _ as found -> found
         | None -> inner tl )
-    | Type (_, _, t) :: tl -> (
-        match any_in_type (Delayed.get t) name with
+    | Type (id, _, t) :: tl -> (
+        match any_in_type id (Delayed.get t) name with
         | Some _ as found -> found
         | None -> inner tl )
     | TypExt typext :: tl -> (

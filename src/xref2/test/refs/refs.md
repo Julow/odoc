@@ -22,6 +22,7 @@ open Odoc_xref_test;;
 #install_printer Odoc_model.Names.ParameterName.fmt;;
 #install_printer Odoc_model.Names.ExceptionName.fmt;;
 #install_printer Odoc_model.Names.FieldName.fmt;;
+#install_printer Odoc_model.Names.ConstructorName.fmt;;
 ```
 
 Test data:
@@ -153,7 +154,9 @@ Exception: Failure "resolve_reference".
 - : ref =
 `Exception (`Identifier (`Module (`Root (Common.root, Root), M)), E2)
 # resolve_ref "M.C2"
-Exception: Failure "resolve_reference".
+- : ref =
+`Constructor
+  (`Type (`Identifier (`Module (`Root (Common.root, Root), M)), t2), C2)
 # resolve_ref "M.e2"
 - : ref = `Value (`Identifier (`Module (`Root (Common.root, Root), M)), e2)
 # resolve_ref "M.c2"
