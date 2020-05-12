@@ -31,21 +31,39 @@ Test data:
 let test_mli = {|
 
   type t1 = C1
+  type r1 = { f1 : int }
   val f1 : unit -> unit
   module type T1 = sig end
   exception E1
   external e1 : unit -> unit = "e1"
-  class c1 : object end
-  class type ct1 = object end
+  class c1 : object
+    val v1 : unit
+    method m1 : unit
+  end
+  class type ct1 = object
+    val tv1 : unit
+    method tm1 : unit
+  end
+  type x1 = ..
+  type x1 += X1
 
   module M : sig
     type t2 = C2
+    type r2 = { f2 : int }
     val f2 : unit -> unit
     module type T2 = sig end
     exception E2
     external e2 : unit -> unit = "e2"
-    class c2 : object end
-    class type ct2 = object end
+    class c2 : object
+      val v2 : unit
+      method m2 : unit
+    end
+    class type ct2 = object
+      val tv2 : unit
+      method tm2 : unit
+    end
+    type x2 = ..
+    type x2 += X2
   end
 
 |}
@@ -95,16 +113,34 @@ Exception: Failure "resolve_reference".
 - : ref = `Identifier (`Class (`Root (Common.root, Root), c1))
 # resolve_ref "class-type:ct1"
 - : ref = `Identifier (`ClassType (`Root (Common.root, Root), ct1))
+# resolve_ref "type:x1"
+- : ref = `Identifier (`Type (`Root (Common.root, Root), x1))
+# resolve_ref "constructor:X1" (* X1 is an extension constructor *)
+Exception: Failure "resolve_reference".
+# resolve_ref "extension:X1"
+Exception: Failure "resolve_reference".
+# resolve_ref "method:c1.m1"
+Exception: Failure "resolve_reference".
+# resolve_ref "instance-variable:c1.v1"
+Exception: Failure "resolve_reference".
+# resolve_ref "method:ct1.tm1" (* ct1 is a class type *)
+Exception: Failure "resolve_reference".
+# resolve_ref "instance-variable:ct1.tv1"
+Exception: Failure "resolve_reference".
+# resolve_ref "field:t1.f1"
+Exception: Failure "resolve_reference".
 ```
 
 Explicit, in sig:
 
 ```ocaml
+# resolve_ref "module:M"
+- : ref = `Identifier (`Module (`Root (Common.root, Root), M))
 # resolve_ref "val:M.f2"
 Exception: Failure "resolve_reference".
 # resolve_ref "type:M.t2"
 Exception: Failure "resolve_reference".
-# resolve_ref "module-type:M.T1"
+# resolve_ref "module-type:M.T2"
 Exception: Failure "resolve_reference".
 # resolve_ref "exception:M.E2"
 Exception: Failure "resolve_reference".
@@ -115,6 +151,22 @@ Exception: Failure "resolve_reference".
 # resolve_ref "class:M.c2"
 Exception: Failure "resolve_reference".
 # resolve_ref "class-type:M.ct2"
+Exception: Failure "resolve_reference".
+# resolve_ref "type:M.x2"
+Exception: Failure "resolve_reference".
+# resolve_ref "constructor:M.X2" (* X2 is an extension constructor *)
+Exception: Failure "resolve_reference".
+# resolve_ref "extension:M.X2"
+Exception: Failure "resolve_reference".
+# resolve_ref "method:M.c2.m2"
+Exception: Failure "resolve_reference".
+# resolve_ref "instance-variable:M.c2.v2"
+Exception: Failure "resolve_reference".
+# resolve_ref "method:M.ct2.tm2" (* ct2 is a class type *)
+Exception: Failure "resolve_reference".
+# resolve_ref "instance-variable:M.ct2.tv2"
+Exception: Failure "resolve_reference".
+# resolve_ref "field:M.t2.f2"
 Exception: Failure "resolve_reference".
 ```
 
@@ -139,17 +191,34 @@ Exception: Failure "resolve_reference".
 - : ref = `Identifier (`Class (`Root (Common.root, Root), c1))
 # resolve_ref "ct1"
 - : ref = `Identifier (`ClassType (`Root (Common.root, Root), ct1))
+# resolve_ref "x1"
+- : ref = `Identifier (`Type (`Root (Common.root, Root), x1))
+# resolve_ref "X1"
+Exception: Failure "resolve_reference".
+# resolve_ref "c1.m1"
+Exception: Failure "resolve_reference".
+# resolve_ref "c1.v1"
+Exception: Failure "resolve_reference".
+# resolve_ref "ct1.tm1" (* ct1 is a class type *)
+Exception: Failure "resolve_reference".
+# resolve_ref "ct1.tv1"
+Exception: Failure "resolve_reference".
+# resolve_ref "t1.f1"
+Exception: Failure "resolve_reference".
 ```
 
 Implicit, in sig:
 
 ```ocaml
+# resolve_ref "M"
+- : ref = `Identifier (`Module (`Root (Common.root, Root), M))
 # resolve_ref "M.f2"
 - : ref = `Value (`Identifier (`Module (`Root (Common.root, Root), M)), f2)
 # resolve_ref "M.t2"
 - : ref = `Type (`Identifier (`Module (`Root (Common.root, Root), M)), t2)
-# resolve_ref "M.T1"
-Exception: Failure "resolve_reference".
+# resolve_ref "M.T2"
+- : ref =
+`ModuleType (`Identifier (`Module (`Root (Common.root, Root), M)), T2)
 # resolve_ref "M.E2"
 - : ref =
 `Exception (`Identifier (`Module (`Root (Common.root, Root), M)), E2)
@@ -164,4 +233,18 @@ Exception: Failure "resolve_reference".
 # resolve_ref "M.ct2"
 - : ref =
 `ClassType (`Identifier (`Module (`Root (Common.root, Root), M)), ct2)
+# resolve_ref "M.x2"
+- : ref = `Type (`Identifier (`Module (`Root (Common.root, Root), M)), x2)
+# resolve_ref "M.X2"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.c2.m2"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.c2.v2"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.ct2.tm2" (* ct2 is a class type *)
+Exception: Failure "resolve_reference".
+# resolve_ref "M.ct2.tv2"
+Exception: Failure "resolve_reference".
+# resolve_ref "M.t2.f2"
+Exception: Failure "resolve_reference".
 ```
