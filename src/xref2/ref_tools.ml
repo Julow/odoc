@@ -509,9 +509,19 @@ type ref_kind_known =
   | `InstanceVariable of ClassSignature.t * InstanceVariableName.t
   | `Label of LabelParent.t * LabelName.t ]
 
-let resolve_reference_known _env _r = None
-
-(* let lookup_by_tag tag env name : Odoc_model.Paths.Identifier.t option = *)
+let process_module_ref env ~add_canonical m base_ref =
+  let base_ref =
+    if m.Component.Module.hidden then `Hidden base_ref else base_ref
+  in
+  let r =
+    match Tools.get_module_path_modifiers env add_canonical m with
+    | None | Some (`SubstMT _) -> base_ref
+    | Some (`SubstAliased cp) | Some (`Aliased cp) ->
+        let cp = Tools.reresolve_module env cp in
+        let p = Lang_of.(Path.resolved_module empty cp) in
+        `SubstAlias (p, base_ref)
+  in
+  if add_canonical then add_canonical_path env m r else r
 
 let lookup tag name env : Component.Element.any option =
   ignore tag;
@@ -533,13 +543,12 @@ let resolve_reference_root env name tag :
   in
   lookup tag name env >>= fun r -> Some (`Identifier (get_id r))
 
-let resolve_reference_dot_sg env ~parent_path ~parent_ref ~parent_sg name =
+let resolve_reference_dot_sg env ~parent_ref ~parent_sg name =
   Find.any_in_sig parent_sg name >>= function
   | `Module (_, _, m) ->
       let name = ModuleName.of_string name in
-      let resolved_parent, _, _ =
-        process_module env true (Component.Delayed.get m)
-          (`Module (parent_path, name))
+      let resolved_parent =
+        process_module_ref env ~add_canonical:true (Component.Delayed.get m)
           (`Module (parent_ref, name))
       in
       Some (`Module ((resolved_parent :> Resolved.Signature.t), name))
@@ -567,7 +576,7 @@ let resolve_reference_dot env parent name =
       | `S parent_sg ->
           let parent_path = Tools.reresolve_parent env parent_path in
           let parent_sg = Tools.prefix_signature (parent_path, parent_sg) in
-          resolve_reference_dot_sg ~parent_path ~parent_ref ~parent_sg env name
+          resolve_reference_dot_sg ~parent_ref ~parent_sg env name
       | `CS _csg -> None
       | `Page _ids -> None )
   | ( ( `Identifier #Odoc_model.Paths_types.Identifier.path_type
@@ -577,6 +586,25 @@ let resolve_reference_dot env parent name =
       None
   | `Identifier #Odoc_model.Paths_types.Identifier.page, Some _, _ -> None
   | _, None, _ -> None
+
+let resolve_parent_sig env parent_sig =
+  resolve_signature_reference env parent_sig ~add_canonical:true >>=
+  fun (ref, cp, sg) ->
+  let cp = Tools.reresolve_parent env cp in
+  let sg = Tools.prefix_signature (cp, sg) in
+  Some (ref, sg)
+
+let resolve_reference_known env r : Resolved.t option =
+  match r with
+  | `Module (parent_uref, name) ->
+      resolve_parent_sig env parent_uref >>= fun (parent_ref, sg) ->
+      Find.module_in_sig sg (ModuleName.to_string name) >>= fun m ->
+      let r =
+        process_module_ref env ~add_canonical:true m
+          (`Module (parent_ref, name))
+      in
+      Some (r :> Resolved.t)
+  | _ -> None
 
 let resolve_reference : Env.t -> t -> Resolved.t option =
  fun env r ->

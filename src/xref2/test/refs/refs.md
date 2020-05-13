@@ -99,7 +99,7 @@ Explicit, root:
 # resolve_ref "module:M"
 - : ref = `Identifier (`Module (`Root (Common.root, Root), M))
 # resolve_ref "module:M.N"
-Exception: Failure "resolve_reference".
+- : ref = `Module (`Identifier (`Module (`Root (Common.root, Root), M)), N)
 # resolve_ref "val:f1"
 - : ref = `Identifier (`Value (`Root (Common.root, Root), f1))
 # resolve_ref "type:t1"
@@ -262,9 +262,9 @@ Known kind:
 `Module
   (`Module (`Identifier (`Module (`Root (Common.root, Root), M)), N), N)
 # resolve_ref "M.module-N"
-Exception: Failure "resolve_reference".
+- : ref = `Module (`Identifier (`Module (`Root (Common.root, Root), M)), N)
 # resolve_ref "module-M.module-N"
-Exception: Failure "resolve_reference".
+- : ref = `Module (`Identifier (`Module (`Root (Common.root, Root), M)), N)
 # resolve_ref "type-t1"
 - : ref = `Identifier (`Type (`Root (Common.root, Root), t1))
 # resolve_ref "module-type-T1"
