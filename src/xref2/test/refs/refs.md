@@ -64,6 +64,7 @@ let test_mli = {|
     end
     type x2 = ..
     type x2 += X2
+    module N : sig end
   end
 
 |}
@@ -97,6 +98,8 @@ Explicit, root:
 ```ocaml
 # resolve_ref "module:M"
 - : ref = `Identifier (`Module (`Root (Common.root, Root), M))
+# resolve_ref "module:M.N"
+Exception: Failure "resolve_reference".
 # resolve_ref "val:f1"
 - : ref = `Identifier (`Value (`Root (Common.root, Root), f1))
 # resolve_ref "type:t1"
@@ -134,8 +137,6 @@ Exception: Failure "resolve_reference".
 Explicit, in sig:
 
 ```ocaml
-# resolve_ref "module:M"
-- : ref = `Identifier (`Module (`Root (Common.root, Root), M))
 # resolve_ref "val:M.f2"
 Exception: Failure "resolve_reference".
 # resolve_ref "type:M.t2"
@@ -175,6 +176,10 @@ Implicit, root:
 ```ocaml
 # resolve_ref "M"
 - : ref = `Identifier (`Module (`Root (Common.root, Root), M))
+# resolve_ref "M.N"
+- : ref =
+`Module
+  (`Module (`Identifier (`Module (`Root (Common.root, Root), M)), N), N)
 # resolve_ref "f1"
 - : ref = `Identifier (`Value (`Root (Common.root, Root), f1))
 # resolve_ref "t1"
@@ -210,8 +215,6 @@ Exception: Failure "resolve_reference".
 Implicit, in sig:
 
 ```ocaml
-# resolve_ref "M"
-- : ref = `Identifier (`Module (`Root (Common.root, Root), M))
 # resolve_ref "M.f2"
 - : ref = `Value (`Identifier (`Module (`Root (Common.root, Root), M)), f2)
 # resolve_ref "M.t2"
@@ -254,6 +257,14 @@ Known kind:
 ```ocaml
 # resolve_ref "module-M"
 - : ref = `Identifier (`Module (`Root (Common.root, Root), M))
+# resolve_ref "module-M.N"
+- : ref =
+`Module
+  (`Module (`Identifier (`Module (`Root (Common.root, Root), M)), N), N)
+# resolve_ref "M.module-N"
+Exception: Failure "resolve_reference".
+# resolve_ref "module-M.module-N"
+Exception: Failure "resolve_reference".
 # resolve_ref "type-t1"
 - : ref = `Identifier (`Type (`Root (Common.root, Root), t1))
 # resolve_ref "module-type-T1"
