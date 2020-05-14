@@ -124,6 +124,11 @@ and process_module env add_canonical m base_path' base_ref' :
       m )
   else (r, p, m)
 
+and process_module_type env ~add_canonical mt base_path base_ref : module_type_lookup_result =
+  ignore add_canonical;
+  let cp = Tools.process_module_type env mt base_path in
+  base_ref, cp, mt
+
 and handle_module_lookup env add_canonical id parent_path parent_ref sg =
   match Find.careful_module_in_sig sg id with
   | Some (Find.Found m) ->
@@ -338,16 +343,35 @@ and resolve_signature_reference :
       | (`Root (_, `TModuleType) | `ModuleType (_, _)) as r ->
           resolve_module_type_reference env r ~add_canonical
           >>= module_type_lookup_to_signature_lookup env
-      | (`Root (_, `TUnknown) | `Dot (_, _)) as r ->
-          choose
-            [
-              (fun () ->
-                resolve_module_reference env r ~add_canonical
-                >>= module_lookup_to_signature_lookup env);
-              (fun () ->
-                resolve_module_type_reference env r ~add_canonical
-                >>= module_type_lookup_to_signature_lookup env);
-            ]
+      | `Root (name, `TUnknown) -> (
+          Env.lookup_signature_by_name (UnitName.to_string name) env
+          >>= function
+          | `Module (_, _) ->
+              resolve_signature_reference env ~add_canonical
+                (`Root (name, `TModule))
+          | `ModuleType (_, _) ->
+              resolve_signature_reference env ~add_canonical
+                (`Root (name, `TModuleType)) )
+      | `Dot (parent, name) -> (
+          resolve_label_parent_reference env parent ~add_canonical
+          >>= signature_lookup_result_of_label_parent
+          >>= fun (parent', cp_unresolved, sg) ->
+          let cp_reresolved = Tools.reresolve_parent env cp_unresolved in
+          let sg = Tools.prefix_signature (cp_reresolved, sg) in
+          Find.signature_in_sig sg name >>= function
+          | `Module (_, _, m) ->
+              let name = ModuleName.of_string name in
+              module_lookup_to_signature_lookup env
+              @@ process_module env add_canonical (Component.Delayed.get m)
+                   (`Module (cp_reresolved, name))
+                   (`Module (parent', name))
+          | `ModuleType (_, mt) ->
+              let name = ModuleTypeName.of_string name in
+              module_type_lookup_to_signature_lookup env
+              @@ process_module_type env add_canonical
+                   (Component.Delayed.get mt)
+                   (`ModuleType (cp_reresolved, name))
+                   (`ModuleType (parent', name)) )
     in
     (*        Memos2.add memo2 id result; *)
     match Memos2.find_all memo2 id with
