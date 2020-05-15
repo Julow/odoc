@@ -490,3 +490,60 @@ and resolve_reference : Env.t -> t -> Resolved.t option =
               resolve_value_reference env r >>= fun x -> return (x :> Resolved.t));
           ]
     | _ -> None
+
+(* new *)
+
+open Utils.OptionMonad
+
+type 's scope =
+  | Module : Module.t scope
+  | ModuleType : ModuleType.t scope
+  | Any : t scope
+
+(* val lookup_in_env : 'a scope -> Env.t -> string -> 'a *)
+(* val lookup_in_sig : ([< in_sig ] as 'a) scope -> Component.Signature.t -> string -> 'a *)
+(* val lookup_in_datatype : ([< in_datatype ] as 'a) scope -> Component.DataType.t -> string -> 'a *)
+
+type 's element =
+  | E_Module : Component.Element.module_ -> Module.t element
+  | E_ModuleType : Component.Element.module_type -> ModuleType.t element
+  | Any : Component.Element.any -> t element
+
+let lookup_in_env (type s) : s scope -> Env.t -> string -> s element option =
+ fun scope env name ->
+  match scope with
+  | Module -> (
+      Env.lookup_module_by_name name env >>= function
+      | Resolved (id, m) -> Some (E_Module (`Module (id, m)))
+      | Forward -> None )
+  | ModuleType ->
+      Env.lookup_module_type_by_name name env >>= fun mt ->
+      Some (E_ModuleType mt)
+  | Any -> (
+      match Env.lookup_any_by_name name env with
+      | any :: _ -> Some (Any any)
+      | [] -> None )
+
+type 's parent_result =
+  | P_Module :
+      Resolved.Module.t * Cpath.Resolved.module_ * Component.Module.t
+          -> Module.t scope
+  | P_ModuleType :
+      Resolved.ModuleType.t * Cpath.Resolved.module_type * Component.ModuleType.t
+          -> ModuleType.t scope
+
+let resolve_parent (type s) :
+  s scope -> Env.t -> s (* scope key is unresolved reference type *) -> s parent_result
+  fun scope env unresolved ->
+    match unresolved with
+    | `Resolved r -> reresolve_parent scope env r
+    | `Root (name, tag) -> lookup_parent_in_env scope env name tag
+    | `Dot (parent, name) ->
+      None (* TODO *)
+    | (
+
+(* val resolve_parent : *)
+(*   ('unresolved, 'resolved, 'cp) scope -> *)
+(*   Env.t -> *)
+(*   ([< t ] as 'unresolved) -> *)
+(*   ('resolved * 'cp * 'resolved component) option *)
