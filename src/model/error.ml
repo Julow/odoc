@@ -107,3 +107,26 @@ let shed_warnings with_warnings =
   with_warnings.value
 
 let set_warn_error b = warn_error := b
+
+let implicit_acc = ref []
+
+let implicit_warning ?suggestion format =
+  let k message = implicit_acc := message :: !implicit_acc in
+  kmake k ?suggestion format
+
+type loc = [ `With_loc of Location_.span | `Filename_only of string ]
+
+let with_implicit_accumulator location f =
+  let make_warning =
+    match location with
+    | `With_loc location ->
+        fun message -> `With_full_location { location; message }
+    | `Filename_only file ->
+        fun message -> `With_filename_only { file; message }
+  in
+  let prev_acc = !implicit_acc in
+  implicit_acc := [];
+  let value = f () in
+  let warnings = List.rev_map make_warning !implicit_acc in
+  implicit_acc := prev_acc;
+  { value; warnings }

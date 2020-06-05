@@ -138,7 +138,7 @@ and comment_inline_element :
  fun env x ->
   match x with
   | `Styled (s, ls) ->
-      `Styled (s, List.map (with_location comment_inline_element env) ls)
+      `Styled (s, List.map (with_location' comment_inline_element env) ls)
   | `Reference (r, []) -> (
       (* Format.fprintf Format.err_formatter "XXXXXXXXXX about to resolve reference: %a\n%!" (Component.Fmt.model_reference) r; *)
       match Ref_tools.resolve_reference env r with
@@ -164,7 +164,7 @@ and comment_inline_element :
 and comment_nestable_block_element env (x : Comment.nestable_block_element) =
   match x with
   | `Paragraph elts ->
-      `Paragraph (List.map (with_location comment_inline_element env) elts)
+      `Paragraph (List.map (with_location' comment_inline_element env) elts)
   | (`Code_block _ | `Verbatim _) as x -> x
   | `List (x, ys) ->
       `List
@@ -197,6 +197,20 @@ and with_location :
     a Location_.with_location ->
     a Location_.with_location =
  fun fn env x -> { x with Location_.value = fn env x.Location_.value }
+
+(** Like [with_location] but allow to raise warnings. *)
+and with_location' :
+    (Env.t -> 'a -> 'a) ->
+    Env.t ->
+    'a Location_.with_location ->
+    'a Location_.with_location =
+ fun fn env x ->
+  let { Error.value; warnings } =
+    Error.with_implicit_accumulator (`With_loc x.location) (fun () ->
+        fn env x.value)
+  in
+  List.iter Lookup_failures.report_warning warnings;
+  { x with value }
 
 and comment_docs env d = List.map (with_location comment_block_element env) d
 

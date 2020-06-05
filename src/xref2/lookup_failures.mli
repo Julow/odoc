@@ -13,6 +13,11 @@ val report_important :
 (** Like [report] above but may raise the exception [exn] if strict mode is
     enabled *)
 
+val report_warning : Odoc_model.Error.t -> unit
+(** Report a warning to the enclosing [catch_failures].
+    The warning will be displayed before other failures. *)
+
 val to_warning :
   filename:string -> 'a with_failures -> 'a Odoc_model.Error.with_warnings
-(** Convert the failures to a warning. *)
+(** Convert the failures to a warning. Warnings reported with [report_warning]
+    are also included. *)

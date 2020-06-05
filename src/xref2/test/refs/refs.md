@@ -30,7 +30,33 @@ open Odoc_xref_test;;
 #install_printer Odoc_model.Names.LabelName.fmt;;
 ```
 
-Test data:
+Helpers:
+
+```ocaml
+let parse_ref ref_str =
+  let open Odoc_model in
+  Error.set_warn_error true;
+  let parse acc = Odoc_parser__Reference.parse acc (Location_.span []) ref_str in
+  match Error.shed_warnings (Error.accumulate_warnings parse) with
+  | Ok ref -> ref
+  | Error e -> failwith (Error.to_string e)
+
+(* Shorten type for nicer output *)
+type ref = Odoc_model.Paths_types.Resolved_reference.any
+
+let resolve_ref' env ref_str : ref =
+  let open Odoc_model in
+  let unresolved = parse_ref ref_str in
+  let resolve () = Ref_tools.resolve_reference env unresolved in
+  let loc = `Filename_only "tests" in
+  match Error.shed_warnings (Error.with_implicit_accumulator loc resolve) with
+  | None -> failwith "resolve_reference"
+  | Some r -> r
+```
+
+## Resolving
+
+Env:
 
 ```ocaml
 let test_mli = {|
@@ -81,29 +107,9 @@ let test_mli = {|
 |}
 let sg = Common.signature_of_mli_string test_mli
 let env = Env.open_signature sg Env.empty
+
+let resolve_ref = resolve_ref' env
 ```
-
-Helpers:
-
-```ocaml
-let parse_ref ref_str =
-  let open Odoc_model in
-  Error.set_warn_error true;
-  let parse acc = Odoc_parser__Reference.parse acc (Location_.span []) ref_str in
-  match Error.shed_warnings (Error.accumulate_warnings parse) with
-  | Ok ref -> ref
-  | Error e -> failwith (Error.to_string e)
-
-type ref = Odoc_model.Paths_types.Resolved_reference.any
-
-let resolve_ref ref_str : ref =
-  let unresolved = parse_ref ref_str in
-  match Ref_tools.resolve_reference env unresolved with
-  | None -> failwith "resolve_reference"
-  | Some r -> r
-```
-
-## Resolving
 
 Explicit, root:
 
@@ -488,4 +494,61 @@ Exception: Failure "resolve_reference".
 Exception: Failure "resolve_reference".
 # resolve_ref "M.s2.rf2"
 Exception: Failure "resolve_reference".
+```
+
+## Ambiguous references
+
+```ocaml
+let test_mli = {|
+  type t = X
+  val t : t
+
+  module X : sig end
+
+|}
+let sg = Common.signature_of_mli_string test_mli
+let env = Env.open_signature sg Env.empty
+
+let resolve_ref = resolve_ref' env
+```
+
+Ambiguous:
+
+```ocaml
+# resolve_ref "t"
+Exception: Odoc_model.Error.Conveyed_by_exception _.
+File "tests":
+Reference to 't' is ambiguous
+# resolve_ref "X"
+Exception: Odoc_model.Error.Conveyed_by_exception _.
+File "tests":
+Reference to 'X' is ambiguous
+```
+
+Unambiguous:
+
+```ocaml
+# resolve_ref "type-t"
+- : ref = `Identifier (`Type (`Root (Common.root, Root), t))
+# resolve_ref "val-t"
+- : ref = `Identifier (`Value (`Root (Common.root, Root), t))
+# resolve_ref "constructor-X"
+- : ref =
+`Identifier (`Constructor (`Type (`Root (Common.root, Root), t), X))
+# resolve_ref "module-X"
+- : ref = `Identifier (`Module (`Root (Common.root, Root), X))
+```
+
+Unambiguous 2:
+
+```ocaml
+# resolve_ref "type:t"
+- : ref = `Identifier (`Type (`Root (Common.root, Root), t))
+# resolve_ref "val:t"
+- : ref = `Identifier (`Value (`Root (Common.root, Root), t))
+# resolve_ref "constructor:X"
+- : ref =
+`Identifier (`Constructor (`Type (`Root (Common.root, Root), t), X))
+# resolve_ref "module:X"
+- : ref = `Identifier (`Module (`Root (Common.root, Root), X))
 ```
