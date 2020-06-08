@@ -1,5 +1,8 @@
 (* Find *)
 
+type module_ =
+  [ `M of Component.Module.t | `M_removed of Cpath.Resolved.module_ ]
+
 type class_type = [ `C of Component.Class.t | `CT of Component.ClassType.t ]
 
 type type_ =
@@ -10,11 +13,6 @@ type type_ =
 type value = [ `E of Component.External.t | `V of Component.Value.t ]
 
 type ('a, 'b) found = Found of 'a | Replaced of 'b
-
-val careful_module_in_sig :
-  Component.Signature.t ->
-  string ->
-  (Component.Module.t, Cpath.Resolved.module_) found option
 
 val careful_type_in_sig :
   Component.Signature.t ->
@@ -97,7 +95,7 @@ val signature_in_sig :
     Ident.module_type * Component.ModuleType.t Component.Delayed.t ]
   option
 
-val module_in_sig : Component.Signature.t -> string -> Component.Module.t option
+val module_in_sig : Component.Signature.t -> string -> module_ option
 
 val module_type_in_sig :
   Component.Signature.t -> string -> Component.ModuleType.t option

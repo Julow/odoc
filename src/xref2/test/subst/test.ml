@@ -68,8 +68,8 @@ let module_substitution () =
 
   let m =
     match Find.module_in_sig c "S" with
-    | Some m -> m
-    | None -> failwith "Error finding module!"
+    | Some (`M m) -> m
+    | Some (`M_removed _) | None -> failwith "Error finding module!"
   in
 
   let m' = Subst.module_ subst m in

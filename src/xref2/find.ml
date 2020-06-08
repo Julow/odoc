@@ -1,5 +1,8 @@
 open Component
 
+type module_ =
+  [ `M of Component.Module.t | `M_removed of Cpath.Resolved.module_ ]
+
 type class_type = [ `C of Class.t | `CT of ClassType.t ]
 
 type type_ = [ `T of TypeDecl.t | class_type ]
@@ -8,24 +11,77 @@ type value = [ `V of Value.t | `E of External.t ]
 
 type ('a, 'b) found = Found of 'a | Replaced of 'b
 
-let careful_module_in_sig (s : Signature.t) name =
-  let rec inner_removed = function
-    | Signature.RModule (id, p) :: _ when Ident.Name.typed_module id = name ->
-        Some (Replaced p)
-    | _ :: rest -> inner_removed rest
-    | [] -> None
-  in
-  let rec inner = function
-    | Signature.Module (id, _, m) :: _ when Ident.Name.typed_module id = name ->
-        Some (Found (Delayed.get m))
-    | Signature.Include i :: rest -> (
-        match inner i.Include.expansion_.items with
-        | Some _ as found -> found
-        | None -> inner rest )
-    | _ :: rest -> inner rest
-    | [] -> inner_removed s.removed
-  in
-  inner s.items
+module N = Ident.Name
+
+let rec find_map f = function
+  | hd :: tl -> (
+      match f hd with Some _ as found -> found | None -> find_map f tl )
+  | [] -> None
+
+class ['a] find_in_sig =
+  object (self)
+    (* Signature items *)
+    method module_ _ _ = None
+
+    method module_type _ _ = None
+
+    (* method type_ _ _ = None *)
+    method include_ i = self#signature i.Include.expansion_
+
+    (* Signatures *)
+    method signature sg = find_map self#signature_item sg.Signature.items
+
+    method signature_item : _ -> 'a option =
+      function
+      | Signature.Module (id, _, m_delayed) -> self#module_ id m_delayed
+      (* | ModuleSubstitution of Ident.module_ * ModuleSubstitution.t *)
+      | ModuleType (id, mt_delayed) -> self#module_type id mt_delayed
+      (* | Type of Ident.type_ * recursive * TypeDecl.t Delayed.t *)
+      (* | TypeSubstitution of Ident.type_ * TypeDecl.t *)
+      (* | Exception of Ident.exception_ * Exception.t *)
+      (* | TypExt of Extension.t *)
+      (* | Value of Ident.value * Value.t *)
+      (* | External of Ident.value * External.t *)
+      (* | Class of Ident.class_ * recursive * Class.t *)
+      (* | ClassType of Ident.class_type * recursive * ClassType.t *)
+      | Include inc -> self#include_ inc
+      (* | Open of Open.t *)
+      (* | Comment of CComment.docs_or_stop *)
+      | _ -> None
+  end
+
+class ['a] find_in_sig_maybe_removed =
+  object (self)
+    inherit ['a] find_in_sig as super
+
+    method removed_module _ _ = None
+
+    method removed_type _ _ = None
+
+    method! signature sg =
+      match super#signature sg with
+      | Some _ as x -> x
+      | None -> find_map self#removed_item sg.Signature.removed
+
+    method removed_item : _ -> 'a option =
+      function
+      | RModule (id, mp) -> self#removed_module id mp
+      | RType (id, te) -> self#removed_type id te
+  end
+
+class ['a] module_in_sig name =
+  object
+    inherit ['a] find_in_sig_maybe_removed
+
+    method! module_ id m_delayed =
+      if N.typed_module id = name then Some (`M (Delayed.get m_delayed))
+      else None
+
+    method! removed_module id mp =
+      if N.typed_module id = name then Some (`M_removed mp) else None
+  end
+
+let module_in_sig sg name = (new module_in_sig name)#signature sg
 
 let careful_type_in_sig (s : Signature.t) name =
   let rec inner_removed = function
@@ -178,11 +234,6 @@ let signature_in_sig (s : Signature.t) name =
     | [] -> None
   in
   inner s.items
-
-let module_in_sig s name =
-  match careful_module_in_sig s name with
-  | Some (Found m) -> Some m
-  | Some (Replaced _) | None -> None
 
 let module_type_in_sig (s : Signature.t) name =
   let rec inner = function

@@ -425,12 +425,12 @@ and process_module_path env ~add_canonical m p =
   p''
 
 and handle_module_lookup env ~add_canonical id parent sg sub =
-  match Find.careful_module_in_sig sg id with
-  | Some (Find.Found m) ->
+  match Find.module_in_sig sg id with
+  | Some (`M m) ->
       let p' = `Module (parent, Odoc_model.Names.ModuleName.of_string id) in
       let m' = Subst.module_ sub m in
       Some (process_module_path env ~add_canonical m' p', m')
-  | Some (Replaced p) -> (
+  | Some (`M_removed p) -> (
       match lookup_module ~mark_substituted:false env p with
       | Ok m -> Some (p, m)
       | Error _ -> None )
@@ -476,10 +476,10 @@ and lookup_module :
         | Error _ as e -> e )
     | `Module (parent, name) ->
         let find_in_sg sg sub =
-          match Find.careful_module_in_sig sg (ModuleName.to_string name) with
+          match Find.module_in_sig sg (ModuleName.to_string name) with
           | None -> Error `Find_failure
-          | Some (Find.Found m) -> Ok (Subst.module_ sub m)
-          | Some (Replaced p) -> lookup_module ~mark_substituted env p
+          | Some (`M m) -> Ok (Subst.module_ sub m)
+          | Some (`M_removed p) -> lookup_module ~mark_substituted env p
         in
         lookup_parent ~mark_substituted env parent
         |> map_error (fun e ->
@@ -1326,9 +1326,9 @@ and find_module_with_replacement :
       [ simple_module_lookup_error | parent_lookup_error ] )
     Result.result =
  fun env sg name ->
-  match Find.careful_module_in_sig sg name with
-  | Some (Found m) -> Ok m
-  | Some (Replaced path) -> lookup_module ~mark_substituted:false env path
+  match Find.module_in_sig sg name with
+  | Some (`M m) -> Ok m
+  | Some (`M_removed path) -> lookup_module ~mark_substituted:false env path
   | None -> Error `Find_failure
 
 and resolve_signature_fragment :

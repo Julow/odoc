@@ -153,9 +153,13 @@ module M = struct
       : t option =
     let parent_cp = Tools.reresolve_parent env parent_cp in
     let sg = Tools.prefix_signature (parent_cp, sg) in
-    Find.module_in_sig sg (ModuleName.to_string name) >>= fun m ->
-    Some
-      (of_component env m (`Module (parent_cp, name)) (`Module (parent, name)))
+    Find.module_in_sig sg (ModuleName.to_string name) >>= function
+    | `M m ->
+        Some
+          (of_component env m
+             (`Module (parent_cp, name))
+             (`Module (parent, name)))
+    | `M_removed _ -> None
 
   let of_element env (`Module (id, m)) : t option =
     let base = `Identifier id in
