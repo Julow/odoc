@@ -450,19 +450,19 @@ and rename_bound_idents s sg =
   function
   | [] -> (s, List.rev sg)
   | Module (id, r, m) :: rest ->
-      let id' = Ident.Rename.module_ id in
+      let id' = ModuleName.to_string id in
       rename_bound_idents
         (add_module id (`Local id') s)
         (Module (id', r, m) :: sg)
         rest
   | ModuleSubstitution (id, m) :: rest ->
-      let id' = Ident.Rename.module_ id in
+      let id' = ModuleName.to_string id in
       rename_bound_idents
         (add_module id (`Local id') s)
         (ModuleSubstitution (id', m) :: sg)
         rest
   | ModuleType (id, mt) :: rest ->
-      let id' = Ident.Rename.module_type id in
+      let id' = ModuleTypeName.to_string id in
       rename_bound_idents
         (add_module_type id (`Local id') s)
         (ModuleType (id', mt) :: sg)

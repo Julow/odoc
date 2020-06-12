@@ -244,20 +244,22 @@ end =
   Value
 
 and Signature : sig
+  open Odoc_model.Names
+
   type recursive = Odoc_model.Lang.Signature.recursive
 
   type item =
-    | Module of Ident.module_ * recursive * Module.t Delayed.t
-    | ModuleSubstitution of Ident.module_ * ModuleSubstitution.t
-    | ModuleType of Ident.module_type * ModuleType.t Delayed.t
-    | Type of Ident.type_ * recursive * TypeDecl.t Delayed.t
-    | TypeSubstitution of Ident.type_ * TypeDecl.t
-    | Exception of Ident.exception_ * Exception.t
+    | Module of ModuleName.t * recursive * Module.t Delayed.t
+    | ModuleSubstitution of ModuleName.t * ModuleSubstitution.t
+    | ModuleType of ModuleTypeName.t * ModuleType.t Delayed.t
+    | Type of TypeName.t * recursive * TypeDecl.t Delayed.t
+    | TypeSubstitution of TypeName.t * TypeDecl.t
+    | Exception of ExceptionName.t * Exception.t
     | TypExt of Extension.t
-    | Value of Ident.value * Value.t
-    | External of Ident.value * External.t
-    | Class of Ident.class_ * recursive * Class.t
-    | ClassType of Ident.class_type * recursive * ClassType.t
+    | Value of ValueName.t * Value.t
+    | External of ValueName.t * External.t
+    | Class of ClassName.t * recursive * Class.t
+    | ClassType of ClassTypeName.t * recursive * ClassType.t
     | Include of Include.t
     | Open of Open.t
     | Comment of CComment.docs_or_stop
@@ -265,8 +267,8 @@ and Signature : sig
   (* When doing destructive substitution we keep track of the items that have been removed,
        and the path they've been substituted with *)
   type removed_item =
-    | RModule of Ident.module_ * Cpath.Resolved.module_
-    | RType of Ident.type_ * TypeExpr.t
+    | RModule of ModuleName.t * Cpath.Resolved.module_
+    | RType of TypeName.t * TypeExpr.t
 
   type t = { items : item list; removed : removed_item list }
 end =
@@ -438,34 +440,34 @@ module Fmt = struct
     List.iter
       (function
         | Module (id, _, m) ->
-            Format.fprintf ppf "@[<v 2>module %a %a@]@," Ident.fmt id module_
+            Format.fprintf ppf "@[<v 2>module %a %a@]@," ModuleName.fmt id module_
               (Delayed.get m)
         | ModuleSubstitution (id, m) ->
-            Format.fprintf ppf "@[<v 2>module %a := %a@]@," Ident.fmt id
+            Format.fprintf ppf "@[<v 2>module %a := %a@]@," ModuleName.fmt id
               module_path m.ModuleSubstitution.manifest
         | ModuleType (id, mt) ->
-            Format.fprintf ppf "@[<v 2>module type %a %a@]@," Ident.fmt id
+            Format.fprintf ppf "@[<v 2>module type %a %a@]@," ModuleTypeName.fmt id
               module_type (Delayed.get mt)
         | Type (id, _, t) ->
-            Format.fprintf ppf "@[<v 2>type %a %a@]@," Ident.fmt id type_decl
+            Format.fprintf ppf "@[<v 2>type %a %a@]@," TypeName.fmt id type_decl
               (Delayed.get t)
         | TypeSubstitution (id, t) ->
-            Format.fprintf ppf "@[<v 2>type %a := %a@]@," Ident.fmt id type_decl
+            Format.fprintf ppf "@[<v 2>type %a := %a@]@," TypeName.fmt id type_decl
               t
         | Exception (id, e) ->
-            Format.fprintf ppf "@[<v 2>exception %a %a@]@," Ident.fmt id
+            Format.fprintf ppf "@[<v 2>exception %a %a@]@," ExceptionName.fmt id
               exception_ e
         | TypExt e ->
             Format.fprintf ppf "@[<v 2>type_extension %a@]@," extension e
         | Value (id, v) ->
-            Format.fprintf ppf "@[<v 2>val %a %a@]@," Ident.fmt id value v
+            Format.fprintf ppf "@[<v 2>val %a %a@]@," ValueName.fmt id value v
         | External (id, e) ->
-            Format.fprintf ppf "@[<v 2>external %a %a@]@," Ident.fmt id
+            Format.fprintf ppf "@[<v 2>external %a %a@]@," ValueName.fmt id
               external_ e
         | Class (id, _, c) ->
-            Format.fprintf ppf "@[<v 2>class %a %a@]@," Ident.fmt id class_ c
+            Format.fprintf ppf "@[<v 2>class %a %a@]@," ClassName.fmt id class_ c
         | ClassType (id, _, c) ->
-            Format.fprintf ppf "@[<v 2>class type %a %a@]@," Ident.fmt id
+            Format.fprintf ppf "@[<v 2>class type %a %a@]@," ClassTypeName.fmt id
               class_type c
         | Include i -> Format.fprintf ppf "@[<v 2>include %a@]@," include_ i
         | Open o -> Format.fprintf ppf "open [ %a ]" signature o.expansion
@@ -477,10 +479,10 @@ module Fmt = struct
     let open Signature in
     match r with
     | RModule (id, path) ->
-        Format.fprintf ppf "module %a (%a)" Ident.fmt id resolved_module_path
+        Format.fprintf ppf "module %a (%a)" ModuleName.fmt id resolved_module_path
           path
     | RType (id, texpr) ->
-        Format.fprintf ppf "type %a (%a)" Ident.fmt id type_expr texpr
+        Format.fprintf ppf "type %a (%a)" TypeName.fmt id type_expr texpr
 
   and removed_item_list ppf r =
     match r with
@@ -1224,16 +1226,16 @@ end
 
 module Of_Lang = struct
   open Odoc_model
+  open Names
 
   type map = {
-    modules : Ident.module_ Paths.Identifier.Maps.Module.t;
-    module_types : Ident.module_type Paths.Identifier.Maps.ModuleType.t;
-    types : Ident.type_ Paths.Identifier.Maps.Type.t;
-    path_types : Ident.path_type Paths.Identifier.Maps.Path.Type.t;
-    path_class_types :
-      Ident.path_class_type Paths.Identifier.Maps.Path.ClassType.t;
-    classes : Ident.class_ Paths.Identifier.Maps.Class.t;
-    class_types : Ident.class_type Paths.Identifier.Maps.ClassType.t;
+    modules : ModuleName.t Paths.Identifier.Maps.Module.t;
+    module_types : ModuleTypeName.t Paths.Identifier.Maps.ModuleType.t;
+    types : TypeName.t Paths.Identifier.Maps.Type.t;
+    path_types : PathTypeName.t Paths.Identifier.Maps.Path.Type.t;
+    path_class_types : ClassTypeName.t Paths.Identifier.Maps.Path.ClassType.t;
+    classes : ClassName.t Paths.Identifier.Maps.Class.t;
+    class_types : ClassTypeName.t Paths.Identifier.Maps.ClassType.t;
   }
 
   let empty =

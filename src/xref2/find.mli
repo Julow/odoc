@@ -1,4 +1,6 @@
 (* Find *)
+open Component
+open Odoc_model.Names
 
 type class_type = [ `C of Component.Class.t | `CT of Component.ClassType.t ]
 
@@ -51,39 +53,25 @@ val any_in_comment :
   [> `Label of Ident.label ] option
 
 val any_in_sig :
-  Component.Signature.t ->
+  Signature.t ->
   string ->
-  [> `Class of Ident.class_ * Component.Signature.recursive * Component.Class.t
-  | `ClassType of
-    Ident.class_type * Component.Signature.recursive * Component.ClassType.t
-  | `Constructor of
-    Odoc_model.Names.TypeName.t
-    * Component.TypeDecl.t
-    * Component.TypeDecl.Constructor.t
-  | `Exception of Ident.exception_ * Component.Exception.t
-  | `ExtConstructor of Component.Extension.t * Component.Extension.Constructor.t
-  | `External of Ident.value * Component.External.t
-  | `Field of
-    Odoc_model.Names.TypeName.t
-    * Component.TypeDecl.t
-    * Component.TypeDecl.Field.t
-  | `Label of Ident.label
-  | `Module of
-    Ident.module_
-    * Component.Signature.recursive
-    * Component.Module.t Component.Delayed.t
-  | `ModuleSubstitution of Ident.module_ * Component.ModuleSubstitution.t
-  | `ModuleType of
-    Ident.module_type * Component.ModuleType.t Component.Delayed.t
+  [> `Class of ClassName.t * Class.t
+  | `ClassType of ClassTypeName.t * ClassType.t
+  | `Constructor of TypeName.t * TypeDecl.t * TypeDecl.Constructor.t
+  | `Exception of ExceptionName.t * Exception.t
+  | `ExtConstructor of Extension.t * Extension.Constructor.t
+  | `External of ValueName.t * External.t
+  | `Field of TypeName.t * TypeDecl.t * TypeDecl.Field.t
+  | `Label of LabelName.t
+  | `Module of ModuleName.t * Module.t Delayed.t
+  | `ModuleSubstitution of ModuleName.t * ModuleSubstitution.t
+  | `ModuleType of ModuleTypeName.t * ModuleType.t Delayed.t
   | `Removed of
-    [> `Module of Ident.module_ * Cpath.Resolved.module_
-    | `Type of Ident.type_ * Component.TypeExpr.t ]
-  | `Type of
-    Ident.type_
-    * Component.Signature.recursive
-    * Component.TypeDecl.t Component.Delayed.t
-  | `TypeSubstitution of Ident.type_ * Component.TypeDecl.t
-  | `Value of Ident.value * Component.Value.t ]
+    [> `Module of ModuleName.t * Cpath.Resolved.module_
+    | `Type of TypeName.t * TypeExpr.t ]
+  | `Type of TypeName.t * TypeDecl.t Delayed.t
+  | `TypeSubstitution of TypeName.t * TypeDecl.t
+  | `Value of ValueName.t * Value.t ]
   option
 
 val signature_in_sig :

@@ -595,7 +595,7 @@ let resolve_reference_dot_sg env ~parent_path ~parent_ref ~parent_sg name =
   let parent_path = Tools.reresolve_parent env parent_path in
   let parent_sg = Tools.prefix_signature (parent_path, parent_sg) in
   Find.any_in_sig parent_sg name >>= function
-  | `Module (_, _, m) ->
+  | `Module (_, m) ->
       let name = ModuleName.of_string name in
       resolved3
         (M.of_component env (Component.Delayed.get m)
@@ -607,11 +607,11 @@ let resolve_reference_dot_sg env ~parent_path ~parent_ref ~parent_sg name =
         (MT.of_component env (Component.Delayed.get mt)
            (`ModuleType (parent_path, name))
            (`ModuleType (parent_ref, name)))
-  | `Type (_, _, t) ->
+  | `Type (_, t) ->
       DT.of_component env (Component.Delayed.get t) ~parent_ref name
       >>= resolved2
-  | `Class (_, _, c) -> CL.of_component env c ~parent_ref name >>= resolved2
-  | `ClassType (_, _, ct) ->
+  | `Class (_, c) -> CL.of_component env c ~parent_ref name >>= resolved2
+  | `ClassType (_, ct) ->
       CT.of_component env ct ~parent_ref name >>= resolved2
   | `Value _ -> V.of_component env ~parent_ref name >>= resolved1
   | `External _ -> V.external_of_component env ~parent_ref name >>= resolved1

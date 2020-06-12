@@ -233,20 +233,22 @@ and Value : sig
 end
 
 and Signature : sig
+  open Odoc_model.Names
+
   type recursive = Odoc_model.Lang.Signature.recursive
 
   type item =
-    | Module of Ident.module_ * recursive * Module.t Delayed.t
-    | ModuleSubstitution of Ident.module_ * ModuleSubstitution.t
-    | ModuleType of Ident.module_type * ModuleType.t Delayed.t
-    | Type of Ident.type_ * recursive * TypeDecl.t Delayed.t
-    | TypeSubstitution of Ident.type_ * TypeDecl.t
-    | Exception of Ident.exception_ * Exception.t
+    | Module of ModuleName.t * recursive * Module.t Delayed.t
+    | ModuleSubstitution of ModuleName.t * ModuleSubstitution.t
+    | ModuleType of ModuleTypeName.t * ModuleType.t Delayed.t
+    | Type of TypeName.t * recursive * TypeDecl.t Delayed.t
+    | TypeSubstitution of TypeName.t * TypeDecl.t
+    | Exception of ExceptionName.t * Exception.t
     | TypExt of Extension.t
-    | Value of Ident.value * Value.t
-    | External of Ident.value * External.t
-    | Class of Ident.class_ * recursive * Class.t
-    | ClassType of Ident.class_type * recursive * ClassType.t
+    | Value of ValueName.t * Value.t
+    | External of ValueName.t * External.t
+    | Class of ClassName.t * recursive * Class.t
+    | ClassType of ClassTypeName.t * recursive * ClassType.t
     | Include of Include.t
     | Open of Open.t
     | Comment of CComment.docs_or_stop
@@ -254,8 +256,8 @@ and Signature : sig
   (* When doing destructive substitution we keep track of the items that have been removed,
        and the path they've been substituted with *)
   type removed_item =
-    | RModule of Ident.module_ * Cpath.Resolved.module_
-    | RType of Ident.type_ * TypeExpr.t
+    | RModule of ModuleName.t * Cpath.Resolved.module_
+    | RType of TypeName.t * TypeExpr.t
 
   type t = { items : item list; removed : removed_item list }
 end

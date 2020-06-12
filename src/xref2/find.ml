@@ -1,4 +1,5 @@
 open Component
+open Odoc_model.Names
 
 type class_type = [ `C of Class.t | `CT of ClassType.t ]
 
@@ -10,13 +11,13 @@ type ('a, 'b) found = Found of 'a | Replaced of 'b
 
 let careful_module_in_sig (s : Signature.t) name =
   let rec inner_removed = function
-    | Signature.RModule (id, p) :: _ when Ident.Name.module_ id = name ->
+    | Signature.RModule (id, p) :: _ when ModuleName.to_string id = name ->
         Some (Replaced p)
     | _ :: rest -> inner_removed rest
     | [] -> None
   in
   let rec inner = function
-    | Signature.Module (id, _, m) :: _ when Ident.Name.module_ id = name ->
+    | Signature.Module (id, _, m) :: _ when ModuleName.to_string id = name ->
         Some (Found (Delayed.get m))
     | Signature.Include i :: rest -> (
         match inner i.Include.expansion_.items with
@@ -29,17 +30,17 @@ let careful_module_in_sig (s : Signature.t) name =
 
 let careful_type_in_sig (s : Signature.t) name =
   let rec inner_removed = function
-    | Signature.RType (id, p) :: _ when Ident.Name.type_ id = name ->
+    | Signature.RType (id, p) :: _ when TypeName.to_string id = name ->
         Some (Replaced p)
     | _ :: rest -> inner_removed rest
     | [] -> None
   in
   let rec inner = function
-    | Signature.Type (id, _, m) :: _ when Ident.Name.type_ id = name ->
+    | Signature.Type (id, _, m) :: _ when TypeName.to_string id = name ->
         Some (Found (`T (Component.Delayed.get m)))
-    | Signature.Class (id, _, c) :: _ when Ident.Name.class_ id = name ->
+    | Signature.Class (id, _, c) :: _ when ClassName.to_string id = name ->
         Some (Found (`C c))
-    | Signature.ClassType (id, _, c) :: _ when Ident.Name.class_type id = name
+    | Signature.ClassType (id, _, c) :: _ when ClassTypeName.to_string id = name
       ->
         Some (Found (`CT c))
     | Signature.Include i :: rest -> (
@@ -51,11 +52,9 @@ let careful_type_in_sig (s : Signature.t) name =
   in
   inner s.items
 
-let typename_of_typeid (`LType (n, _) | `LCoreType n) = n
-
 let datatype_in_sig (s : Signature.t) name =
   let rec inner = function
-    | Signature.Type (id, _, m) :: _ when Ident.Name.type_ id = name ->
+    | Signature.Type (id, _, m) :: _ when TypeName.to_string id = name ->
         Some (Component.Delayed.get m)
     | Signature.Include i :: tl -> (
         match inner i.Include.expansion_.items with
@@ -100,7 +99,7 @@ let any_in_comment d name =
     match xs with
     | elt :: rest -> (
         match elt.Odoc_model.Location_.value with
-        | `Heading (_, label, _) when Ident.Name.label label = name ->
+        | `Heading (_, label, _) when LabelName.to_string label = name ->
             Some (`Label label)
         | _ -> inner rest )
     | [] -> None
@@ -108,46 +107,47 @@ let any_in_comment d name =
   inner d
 
 let any_in_sig (s : Signature.t) name =
-  let module N = Ident.Name in
   let rec inner_removed = function
-    | Signature.RModule (id, m) :: _ when N.module_ id = name ->
-        Some (`Removed (`Module (id, m)))
-    | RType (id, t) :: _ when N.type_ id = name ->
-        Some (`Removed (`Type (id, t)))
+    | Signature.RModule (name', m) :: _ when ModuleName.to_string name' = name
+      ->
+        Some (`Removed (`Module (name', m)))
+    | RType (name', t) :: _ when TypeName.to_string name' = name ->
+        Some (`Removed (`Type (name', t)))
     | _ :: tl -> inner_removed tl
     | [] -> None
   in
   let rec inner = function
-    | Signature.Module (id, rec_, m) :: _ when N.module_ id = name ->
-        Some (`Module (id, rec_, m))
-    | ModuleSubstitution (id, ms) :: _ when N.module_ id = name ->
-        Some (`ModuleSubstitution (id, ms))
-    | ModuleType (id, mt) :: _ when N.module_type id = name ->
-        Some (`ModuleType (id, mt))
-    | Type (id, rec_, t) :: _ when N.type_ id = name ->
-        Some (`Type (id, rec_, t))
-    | TypeSubstitution (id, ts) :: _ when N.type_ id = name ->
-        Some (`TypeSubstitution (id, ts))
-    | Exception (id, exc) :: _ when N.exception_ id = name ->
-        Some (`Exception (id, exc))
-    | Value (id, v) :: _ when N.value id = name -> Some (`Value (id, v))
-    | External (id, vex) :: _ when N.value id = name ->
-        Some (`External (id, vex))
-    | Class (id, rec_, c) :: _ when N.class_ id = name ->
-        Some (`Class (id, rec_, c))
-    | ClassType (id, rec_, ct) :: _ when N.class_type id = name ->
-        Some (`ClassType (id, rec_, ct))
+    | Signature.Module (name', _, m) :: _ when ModuleName.to_string name' = name ->
+        Some (`Module (name', m))
+    | ModuleSubstitution (name', ms) :: _
+      when ModuleName.to_string name' = name ->
+        Some (`ModuleSubstitution (name', ms))
+    | ModuleType (name', mt) :: _ when ModuleTypeName.to_string name' = name ->
+        Some (`ModuleType (name', mt))
+    | Type (name', _, t) :: _ when TypeName.to_string name' = name ->
+        Some (`Type (name', t))
+    | TypeSubstitution (name', ts) :: _ when TypeName.to_string name' = name ->
+        Some (`TypeSubstitution (name', ts))
+    | Exception (name', exc) :: _ when ExceptionName.to_string name' = name ->
+        Some (`Exception (name', exc))
+    | Value (name', v) :: _ when ValueName.to_string name' = name ->
+        Some (`Value (name', v))
+    | External (name', vex) :: _ when ValueName.to_string name' = name ->
+        Some (`External (name', vex))
+    | Class (name', _, c) :: _ when ClassName.to_string name' = name ->
+        Some (`Class (name', c))
+    | ClassType (name', _, ct) :: _
+      when ClassTypeName.to_string name' = name ->
+        Some (`ClassType (name', ct))
     | Include inc :: tl -> (
         match inner inc.Include.expansion_.items with
         | Some _ as found -> found
         | None -> inner tl )
-    | Type (id, _, t) :: tl -> (
+    | Type (name', _, t) :: tl -> (
         let typ = Delayed.get t in
         match any_in_type typ name with
-        | Some (`Constructor cons) ->
-            Some (`Constructor (typename_of_typeid id, typ, cons))
-        | Some (`Field field) ->
-            Some (`Field (typename_of_typeid id, typ, field))
+        | Some (`Constructor cons) -> Some (`Constructor (name', typ, cons))
+        | Some (`Field field) -> Some (`Field (name', typ, field))
         | None -> inner tl )
     | TypExt typext :: tl -> (
         match any_in_typext typext name with
@@ -186,7 +186,7 @@ let module_in_sig s name =
 
 let module_type_in_sig (s : Signature.t) name =
   let rec inner = function
-    | Signature.ModuleType (id, m) :: _ when Ident.Name.module_type id = name ->
+    | Signature.ModuleType (id, m) :: _ when ModuleTypeName.to_string id = name ->
         Some (Delayed.get m)
     | Signature.Include i :: rest -> (
         match inner i.Include.expansion_.items with
@@ -202,9 +202,9 @@ let opt_module_type_in_sig s name =
 
 let opt_value_in_sig s name : value option =
   let rec inner = function
-    | Signature.Value (id, m) :: _ when Ident.Name.value id = name ->
+    | Signature.Value (id, m) :: _ when ValueName.to_string id = name ->
         Some (`V m)
-    | Signature.External (id, e) :: _ when Ident.Name.value id = name ->
+    | Signature.External (id, e) :: _ when ValueName.to_string id = name ->
         Some (`E e)
     | Signature.Include i :: rest -> (
         match inner i.Include.expansion_.items with
@@ -223,9 +223,9 @@ let type_in_sig s name =
 
 let class_type_in_sig (s : Signature.t) name =
   let rec inner = function
-    | Signature.Class (id, _, c) :: _ when Ident.Name.class_ id = name ->
+    | Signature.Class (id, _, c) :: _ when ClassName.to_string id = name ->
         Some (`C c)
-    | Signature.ClassType (id, _, c) :: _ when Ident.Name.class_type id = name
+    | Signature.ClassType (id, _, c) :: _ when ClassTypeName.to_string id = name
       ->
         Some (`CT c)
     | Signature.Include i :: rest -> (
@@ -244,7 +244,7 @@ let opt_label_in_sig s name =
           match xs with
           | elt :: rest -> (
               match elt.Odoc_model.Location_.value with
-              | `Heading (_, label, _) when Ident.Name.label label = name ->
+              | `Heading (_, label, _) when LabelName.to_string label = name ->
                   Some label
               | _ -> inner' rest )
           | _ -> None
@@ -272,7 +272,7 @@ let find_in_sig sg f =
 
 let exception_in_sig s name =
   find_in_sig s (function
-    | Signature.Exception (id, e) when Ident.Name.exception_ id = name -> Some e
+    | Signature.Exception (id, e) when Exception_Name.to_string id = name -> Some e
     | _ -> None)
 
 let extension_in_sig s name =
@@ -323,20 +323,20 @@ let find_in_class_signature cs f =
 
 let any_in_class_signature cs name =
   find_in_class_signature cs (function
-    | ClassSignature.Method (id, m) when Ident.Name.method_ id = name ->
+    | ClassSignature.Method (id, m) when Method_Name.to_string id = name ->
         Some (`Method m)
-    | InstanceVariable (id, iv) when Ident.Name.instance_variable id = name ->
+    | InstanceVariable (id, iv) when Instance_variableName.to_string id = name ->
         Some (`InstanceVariable iv)
     | _ -> None)
 
 let method_in_class_signature cs name =
   find_in_class_signature cs (function
-    | ClassSignature.Method (id, m) when Ident.Name.method_ id = name -> Some m
+    | ClassSignature.Method (id, m) when Method_Name.to_string id = name -> Some m
     | _ -> None)
 
 let instance_variable_in_class_signature cs name =
   find_in_class_signature cs (function
     | ClassSignature.InstanceVariable (id, iv)
-      when Ident.Name.instance_variable id = name ->
+      when Instance_variableName.to_string id = name ->
         Some (`InstanceVariable iv)
     | _ -> None)

@@ -16,6 +16,7 @@ this is probably the best thing to produce in this case.
 
 open Component
 open Delayed
+open Odoc_model.Names
 
 let rec signature : Cpath.module_ -> ?canonical:(Cpath.module_ * Odoc_model.Paths.Reference.Module.t) -> Signature.t -> Signature.t =
   fun prefix  ?canonical sg ->
@@ -25,7 +26,7 @@ let rec signature : Cpath.module_ -> ?canonical:(Cpath.module_ * Odoc_model.Path
       (fun item ->
         match item with
         | Module (id, r, m) ->
-            let name = Ident.Name.module_ id in
+            let name = ModuleName.to_string id in
             let canonical = match canonical with
               | Some (p, r) -> Some (`Dot (p, name), `Dot ((r :> Odoc_model.Paths.Reference.LabelParent.t), name))
               | None -> None
@@ -42,14 +43,14 @@ let rec signature : Cpath.module_ -> ?canonical:(Cpath.module_ * Odoc_model.Path
               ( id,
                 put (fun () ->
                     module_type
-                      (`Dot (prefix, Ident.Name.module_type id))
+                      (`Dot (prefix, ModuleTypeName.to_string id))
                       (get mt)) )
         | Type (id, r, t) ->
             Type
               ( id,
                 r,
                 put (fun () ->
-                    type_decl (`Dot (prefix, Ident.Name.type_ id)) (get t)) )
+                    type_decl (`Dot (prefix, TypeName.to_string id)) (get t)) )
         | Exception _ | TypExt _ | Value _ | External _ | Class _ | ClassType _
         | Include _ | ModuleSubstitution _ | TypeSubstitution _ | Comment _
         | Open _ ->

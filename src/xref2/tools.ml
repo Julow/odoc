@@ -73,20 +73,15 @@ let prefix_substitution path sg =
   let rec get_sub sub' is =
     match is with
     | [] -> sub'
-    | Type (id, _, _) :: rest ->
-        let name = Ident.Name.typed_type id in
+    | Type (name, _, _) :: rest ->
         get_sub (Subst.add_type id (`Type (path, name)) sub') rest
-    | Module (id, _, _) :: rest ->
-        let name = Ident.Name.typed_module id in
+    | Module (name, _, _) :: rest ->
         get_sub (Subst.add_module id (`Module (path, name)) sub') rest
-    | ModuleType (id, _) :: rest ->
-        let name = Ident.Name.typed_module_type id in
+    | ModuleType (name, _) :: rest ->
         get_sub (Subst.add_module_type id (`ModuleType (path, name)) sub') rest
-    | ModuleSubstitution (id, _) :: rest ->
-        let name = Ident.Name.typed_module id in
+    | ModuleSubstitution (name, _) :: rest ->
         get_sub (Subst.add_module id (`Module (path, name)) sub') rest
-    | TypeSubstitution (id, _) :: rest ->
-        let name = Ident.Name.typed_type id in
+    | TypeSubstitution (name, _) :: rest ->
         get_sub (Subst.add_type id (`Type (path, name)) sub') rest
     | Exception _ :: rest
     | TypExt _ :: rest
