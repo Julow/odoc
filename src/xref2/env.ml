@@ -649,6 +649,27 @@ let rec open_signature : Odoc_model.Lang.Signature.t -> t -> t =
         | Odoc_model.Lang.Signature.Open o -> open_signature o.expansion env)
       e s
 
+let rec open_component_signature parent sg env =
+  List.fold_left (open_component_signature_item parent) sg.Signature.items env
+
+and open_component_signature_item parent item env =
+  let open Component in
+  match item with
+  | Signature.Module (id, _, m) -> add_module (`Module (parent, id)) (Delayed.get m) env
+  | ModuleSubstitution (_id, _ms) -> env (* TODO *)
+  | ModuleType (id, mt) -> add_module_type (`ModuleType (parent, id)) (Delayed.get mt) env
+  | Type (id, _, t) -> add_type (`Type (parent, id)) (Delayed.get t) env
+  | TypeSubstitution (_id, _t) -> env (* TODO *)
+  | Exception (id, e) -> add_exception (`Exception (parent, id)) e env
+  | TypExt _ex -> env (* TODO *)
+  | Value (id, v) -> add_value (`Value (parent, id)) v env
+  | External (id, e) -> add_external (`External (parent, id)) e env
+  | Class (id, _, c) -> add_class (`Class (parent, id)) c env
+  | ClassType (id, _, ct) -> add_class_type (`ClassType (parent, id)) ct env
+  | Include inc -> open_component_signature parent inc.Include.expansion_ env
+  | Open op -> open_component_signature parent op.Open.expansion env
+  | Comment c -> add_comment c env
+
 let open_unit : Odoc_model.Lang.Compilation_unit.t -> t -> t =
  fun unit env ->
   match unit.content with Module s -> open_signature s env | Pack _ -> env

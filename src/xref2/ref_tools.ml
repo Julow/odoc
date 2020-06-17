@@ -99,6 +99,10 @@ let env_lookup_by_name scope name env =
       Some hd
   | Error `Not_found -> None
 
+let sig_lookup_by_name ~parent scope sg name =
+  let env = Env.open_component_signature sg Env.empty in
+  env_lookup_by_name scope name env
+
 let module_lookup_to_signature_lookup :
     Env.t -> module_lookup_result -> signature_lookup_result option =
  fun env (ref, cp, m) ->
@@ -153,7 +157,7 @@ module M = struct
       : t option =
     let parent_cp = Tools.reresolve_parent env parent_cp in
     let sg = Tools.prefix_signature (parent_cp, sg) in
-    Find.module_in_sig sg (ModuleName.to_string name) >>= fun m ->
+    sig_lookup_by_name ~parent Env.s_module sg (ModuleName.to_string name) >>= fun m ->
     Some
       (of_component env m (`Module (parent_cp, name)) (`Module (parent, name)))
 
@@ -180,7 +184,7 @@ module MT = struct
   let in_signature env ((parent', parent_cp, sg) : signature_lookup_result) name
       : t option =
     let sg = Tools.prefix_signature (parent_cp, sg) in
-    Find.module_type_in_sig sg (ModuleTypeName.to_string name) >>= fun mt ->
+    sig_lookup_by_name Env.s_module_type sg (ModuleTypeName.to_string name) >>= fun mt ->
     Some
       (of_component env mt
          (`ModuleType (parent_cp, name))
@@ -241,7 +245,7 @@ module DT = struct
   let in_signature _env ((parent', parent_cp, sg) : signature_lookup_result)
       name : t option =
     let sg = Tools.prefix_signature (parent_cp, sg) in
-    Find.datatype_in_sig sg (TypeName.to_string name) >>= fun t ->
+    sig_lookup_by_name Env.s_datatype sg (TypeName.to_string name) >>= fun t ->
     Some (`Type (parent', name), t)
 end
 
@@ -260,7 +264,7 @@ module T = struct
   let in_signature _env ((parent', parent_cp, sg) : signature_lookup_result)
       name : type_lookup_result option =
     let sg = Tools.prefix_signature (parent_cp, sg) in
-    Find.type_in_sig sg name >>= function
+    sig_lookup_by_name Env.s_type sg name >>= function
     | `T t -> Some (`T (`Type (parent', TypeName.of_string name), t))
     | `C c -> Some (`C (`Class (parent', ClassName.of_string name), c))
     | `CT ct ->
@@ -286,7 +290,7 @@ module V = struct
 
   let in_signature _env ((parent', _, sg) : signature_lookup_result) name :
       t option =
-    Find.opt_value_in_sig sg (ValueName.to_string name) >>= fun _ ->
+    sig_lookup_by_name Env.s_opt_value sg (ValueName.to_string name) >>= fun _ ->
     Some (`Value (parent', name))
 end
 
@@ -311,7 +315,7 @@ module L = struct
       =
     match parent with
     | `S (p, _, sg) ->
-        Find.opt_label_in_sig sg (LabelName.to_string name) >>= fun _ ->
+        sig_lookup_by_name Env.s_opt_label sg (LabelName.to_string name) >>= fun _ ->
         Some (`Label ((p :> Resolved.LabelParent.t), name))
     | `T _ | `C _ | `CT _ -> None
     | `Page _ as page -> in_page env page (LabelName.to_string name)
@@ -332,7 +336,7 @@ module EC = struct
   let in_signature _env ((parent', parent_cp, sg) : signature_lookup_result)
       name : t option =
     let sg = Tools.prefix_signature (parent_cp, sg) in
-    Find.extension_in_sig sg (ExtensionName.to_string name) >>= fun _ ->
+    sig_lookup_by_name Env.s_extension sg (ExtensionName.to_string name) >>= fun _ ->
     Some (`Extension (parent', name))
 end
 
@@ -351,7 +355,7 @@ module EX = struct
   let in_signature _env ((parent', parent_cp, sg) : signature_lookup_result)
       name : t option =
     let sg = Tools.prefix_signature (parent_cp, sg) in
-    Find.exception_in_sig sg (ExceptionName.to_string name) >>= fun _ ->
+    sig_lookup_by_name Env.s_exception sg (ExceptionName.to_string name) >>= fun _ ->
     Some (`Exception (parent', name))
 end
 
@@ -455,7 +459,7 @@ module LP = struct
   let in_signature env ((parent', parent_cp, sg) : signature_lookup_result) name
       : t option =
     let sg = Tools.prefix_signature (parent_cp, sg) in
-    Find.label_parent_in_sig sg name >>= function
+    sig_lookup_by_name Env.s_label_parent sg name >>= function
     | `M m ->
         let name = ModuleName.of_string name in
         module_lookup_to_signature_lookup env
@@ -562,7 +566,7 @@ and resolve_signature_reference :
           >>= fun (parent, parent_cp, sg) ->
           let parent_cp = Tools.reresolve_parent env parent_cp in
           let sg = Tools.prefix_signature (parent_cp, sg) in
-          Find.signature_in_sig sg name >>= function
+          sig_lookup_by_name Env.s_signature sg name >>= function
           | `Module (_, _, m) ->
               let name = ModuleName.of_string name in
               module_lookup_to_signature_lookup env
@@ -623,7 +627,7 @@ and resolved2 (r, _) = resolved1 r
 let resolve_reference_dot_sg env ~parent_path ~parent_ref ~parent_sg name =
   let parent_path = Tools.reresolve_parent env parent_path in
   let parent_sg = Tools.prefix_signature (parent_path, parent_sg) in
-  Find.any_in_sig parent_sg name >>= function
+  sig_lookup_by_name Env.s_any parent_sg name >>= function
   | `Module (_, _, m) ->
       let name = ModuleName.of_string name in
       resolved3
