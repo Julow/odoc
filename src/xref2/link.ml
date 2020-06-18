@@ -753,7 +753,7 @@ and type_decl : Env.t -> Id.Signature.t -> TypeDecl.t -> TypeDecl.t =
           Component.Of_Lang.resolved_type_path Component.Of_Lang.empty p
         in
         match Tools.lookup_type env p' with
-        | Ok (Found (`T t')) ->
+        | Ok (`T t') ->
             {
               default with
               equation =
@@ -765,7 +765,7 @@ and type_decl : Env.t -> Id.Signature.t -> TypeDecl.t -> TypeDecl.t =
                       params
                   with _ -> default.equation );
             }
-        | _ -> default )
+        | Ok (`C _ | `CT _ | `T_removed _) | Error _ -> default )
     | None -> default
   in
   (* Format.fprintf Format.err_formatter "type_decl result: %a\n%!"
@@ -870,7 +870,7 @@ and type_expression : Env.t -> Id.Signature.t -> _ -> _ =
       else
         let cp = Component.Of_Lang.(type_path empty path') in
         match Tools.resolve_type env cp with
-        | Resolved (cp', Found (`T t)) ->
+        | Resolved (cp', `T t) ->
             let p = Cpath.resolved_type_path_of_cpath cp' in
             if List.mem p visited then raise Loop
             else if Cpath.is_resolved_type_hidden cp' then
@@ -901,10 +901,10 @@ and type_expression : Env.t -> Id.Signature.t -> _ -> _ =
                       Constr (`Resolved p, ts) )
               | _ -> Constr (`Resolved p, ts)
             else Constr (`Resolved p, ts)
-        | Resolved (cp', Found _) ->
+        | Resolved (cp', (`C _ | `CT _)) ->
             let p = Cpath.resolved_type_path_of_cpath cp' in
             Constr (`Resolved p, ts)
-        | Resolved (_cp, Replaced x) ->
+        | Resolved (_cp, `T_removed x) ->
             Lang_of.(type_expr empty (parent :> Id.Parent.t) x)
         | Unresolved p -> Constr (Cpath.type_path_of_cpath p, ts) )
   | Polymorphic_variant v ->

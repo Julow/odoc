@@ -65,7 +65,7 @@ val lookup_module_type :
 val lookup_type :
   Env.t ->
   Cpath.Resolved.type_ ->
-  ( (Find.type_, Component.TypeExpr.t) Find.found,
+  ( Find.careful_type,
     [ simple_type_lookup_error | parent_lookup_error ] )
   Result.result
 (** [lookup_type env p] takes a resolved type path and an environment and returns
@@ -97,9 +97,7 @@ val resolve_module_type :
 val resolve_type :
   Env.t ->
   Cpath.type_ ->
-  ( Cpath.Resolved.type_ * (Find.type_, Component.TypeExpr.t) Find.found,
-    Cpath.type_ )
-  ResolvedMonad.t
+  (Cpath.Resolved.type_ * Find.careful_type, Cpath.type_) ResolvedMonad.t
 (** [resolve_type env p] takes an unresolved
     type path and an environment and returns a tuple of the resolved type
     path alongside a representation of the type itself. As with {!val:lookup_type}
