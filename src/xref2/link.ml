@@ -753,7 +753,7 @@ and type_decl : Env.t -> Id.Signature.t -> TypeDecl.t -> TypeDecl.t =
           Component.Of_Lang.resolved_type_path Component.Of_Lang.empty p
         in
         match Tools.lookup_type env p' with
-        | Ok (Found (`T t')) ->
+        | Ok (`T t') ->
             {
               default with
               equation =

@@ -209,7 +209,7 @@ type resolve_module_type_result =
   ResolvedMonad.t
 
 type resolve_type_result =
-  ( Cpath.Resolved.type_ * (Find.type_, Component.TypeExpr.t) Find.found,
+  ( Cpath.Resolved.type_ * Find.type_,
     Cpath.type_ )
   ResolvedMonad.t
 
@@ -444,7 +444,7 @@ and handle_module_type_lookup env id p sg sub =
   Some (p'', Subst.module_type sub mt)
 
 and handle_type_lookup id p sg =
-  match Find.careful_type_in_sig sg id with
+  match Find.type_in_sig sg id with
   | Some mt -> Ok (`Type (p, Odoc_model.Names.TypeName.of_string id), mt)
   | None -> Error `Find_failure
 
@@ -561,8 +561,7 @@ and lookup_parent :
 and lookup_type :
     Env.t ->
     Cpath.Resolved.type_ ->
-    ( (Find.type_, Component.TypeExpr.t) Find.found,
-      [ simple_type_lookup_error | parent_lookup_error ] )
+    ( Find.type_, [ simple_type_lookup_error | parent_lookup_error ] )
     Result.result =
  fun env p ->
   let do_type p name =
@@ -573,10 +572,10 @@ and lookup_type :
     handle_type_lookup name p sg >>= fun (_, t') ->
     let t =
       match t' with
-      | Find.Found (`C c) -> Find.Found (`C (Subst.class_ sub c))
-      | Find.Found (`CT ct) -> Find.Found (`CT (Subst.class_type sub ct))
-      | Find.Found (`T t) -> Find.Found (`T (Subst.type_ sub t))
-      | Find.Replaced texpr -> Find.Replaced (Subst.type_expr sub texpr)
+      | `C c -> `C (Subst.class_ sub c)
+      | `CT ct -> `CT (Subst.class_type sub ct)
+      | `T t -> `T (Subst.type_ sub t)
+      | `T_removed texpr -> `T_removed (Subst.type_expr sub texpr)
     in
     Ok t
   in
@@ -586,17 +585,17 @@ and lookup_type :
     | `Identifier (`CoreType name) ->
         (* CoreTypes aren't put into the environment, so they can't be handled by the
               next clause. We just look them up here in the list of core types *)
-        Ok (Find.Found (`T (List.assoc (TypeName.to_string name) core_types)))
+        Ok (`T (List.assoc (TypeName.to_string name) core_types))
     | `Identifier (`Type _ as i) ->
         of_option ~error:(`Lookup_failureT i) (Env.(lookup_by_id s_type) i env)
-        >>= fun (`Type (_, t)) -> Ok (Find.Found (`T t))
+        >>= fun (`Type (_, t)) -> Ok (`T t)
     | `Identifier (`Class _ as i) ->
         of_option ~error:(`Lookup_failureT i) (Env.(lookup_by_id s_class) i env)
-        >>= fun (`Class (_, t)) -> Ok (Find.Found (`C t))
+        >>= fun (`Class (_, t)) -> Ok (`C t)
     | `Identifier (`ClassType _ as i) ->
         of_option ~error:(`Lookup_failureT i)
           (Env.(lookup_by_id s_class_type) i env)
-        >>= fun (`ClassType (_, t)) -> Ok (Find.Found (`CT t))
+        >>= fun (`ClassType (_, t)) -> Ok (`CT t)
     | `Substituted s -> lookup_type env s
     | `Type (p, id) -> do_type p (TypeName.to_string id)
     | `Class (p, id) -> do_type p (ClassName.to_string id)
@@ -718,10 +717,10 @@ and resolve_type : Env.t -> Cpath.type_ -> resolve_type_result =
         >>= fun (p', t') ->
         let t =
           match t' with
-          | Find.Found (`C c) -> Find.Found (`C (Subst.class_ sub c))
-          | Find.Found (`CT ct) -> Find.Found (`CT (Subst.class_type sub ct))
-          | Find.Found (`T t) -> Find.Found (`T (Subst.type_ sub t))
-          | Find.Replaced texpr -> Find.Replaced (Subst.type_expr sub texpr)
+          | `C c -> Find.Found (`C (Subst.class_ sub c))
+          | `CT ct -> Find.Found (`CT (Subst.class_type sub ct))
+          | `T t -> Find.Found (`T (Subst.type_ sub t))
+          | `T_removed texpr -> Find.Replaced (Subst.type_expr sub texpr)
         in
         (* let time3 = Unix.gettimeofday () in *)
         (* Format.fprintf Format.err_formatter "lookup: %f vs sig_of_mod: %f vs prefix_sub: %f vs rest: %f\n%!" (time1 -. start_time) (time1point5 -. time1) (time2 -. time1point5) (time3 -. time2); *)

@@ -245,8 +245,9 @@ module DT = struct
   let in_signature _env ((parent', parent_cp, sg) : signature_lookup_result)
       name : t option =
     let sg = Tools.prefix_signature (parent_cp, sg) in
-    Find.datatype_in_sig sg (TypeName.to_string name) >>= fun t ->
-    Some (`Type (parent', name), t)
+    Find.datatype_in_sig sg (TypeName.to_string name) >>= function
+    | `T t -> Some (`Type (parent', name), t)
+    | `T_removed _ -> None
 end
 
 module T = struct

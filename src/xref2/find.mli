@@ -1,33 +1,18 @@
 (* Find *)
 
-type module_ =
-  [ `M of Component.Module.t | `M_removed of Cpath.Resolved.module_ ]
+open Component
 
-type class_type = [ `C of Component.Class.t | `CT of Component.ClassType.t ]
+type module_ = [ `M of Module.t | `M_removed of Cpath.Resolved.module_ ]
 
-type type_ =
-  [ `C of Component.Class.t
-  | `CT of Component.ClassType.t
-  | `T of Component.TypeDecl.t ]
+type datatype = [ `T of TypeDecl.t | `T_removed of TypeExpr.t ]
 
-type value = [ `E of Component.External.t | `V of Component.Value.t ]
+type class_ = [ `C of Class.t | `CT of ClassType.t ]
 
-type ('a, 'b) found = Found of 'a | Replaced of 'b
+type type_ = [ datatype | class_ ]
 
-val careful_type_in_sig :
-  Component.Signature.t ->
-  string ->
-  ( [> `C of Component.Class.t
-    | `CT of Component.ClassType.t
-    | `T of Component.TypeDecl.t ],
-    Component.TypeExpr.t )
-  found
-  option
+type value = [ `E of External.t | `V of Value.t ]
 
 val typename_of_typeid : [< `LCoreType of 'a | `LType of 'a * 'b ] -> 'a
-
-val datatype_in_sig :
-  Component.Signature.t -> string -> Component.TypeDecl.t option
 
 val any_in_type :
   Component.TypeDecl.t ->
@@ -105,18 +90,9 @@ val opt_module_type_in_sig :
 
 val opt_value_in_sig : Component.Signature.t -> string -> value option
 
-val type_in_sig :
-  Component.Signature.t ->
-  string ->
-  [> `C of Component.Class.t
-  | `CT of Component.ClassType.t
-  | `T of Component.TypeDecl.t ]
-  option
+val type_in_sig : Component.Signature.t -> string -> type_ option
 
-val class_type_in_sig :
-  Component.Signature.t ->
-  string ->
-  [> `C of Component.Class.t | `CT of Component.ClassType.t ] option
+val datatype_in_sig : Component.Signature.t -> string -> datatype option
 
 val opt_label_in_sig : Component.Signature.t -> string -> Ident.label option
 

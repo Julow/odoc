@@ -3,13 +3,17 @@ open Component
 type module_ =
   [ `M of Component.Module.t | `M_removed of Cpath.Resolved.module_ ]
 
-type class_type = [ `C of Class.t | `CT of ClassType.t ]
+type datatype = [ `T of TypeDecl.t | `T_removed of TypeExpr.t ]
 
-type type_ = [ `T of TypeDecl.t | class_type ]
+type class_ = [ `C of Class.t | `CT of ClassType.t ]
+
+type type_ = [ datatype | class_ ]
 
 type value = [ `V of Value.t | `E of External.t ]
 
-type ('a, 'b) found = Found of 'a | Replaced of 'b
+type any_not_removed = [ `M of Module.t | `T of TypeDecl.t | class_ | value ]
+
+type any = [ module_ | type_ | value ]
 
 module N = Ident.Name
 
@@ -18,12 +22,49 @@ let rec find_map f = function
       match f hd with Some _ as found -> found | None -> find_map f tl )
   | [] -> None
 
+class ['a] module_' name =
+  object
+    constraint 'a = [> module_ ]
+
+    method module_ id m_delayed : 'a option =
+      if N.typed_module id = name then Some (`M (Delayed.get m_delayed))
+      else None
+
+    method removed_module id mp : 'a option =
+      if N.typed_module id = name then Some (`M_removed mp) else None
+  end
+
+class ['a] datatype' name =
+  object
+    constraint 'a = [> datatype ]
+
+    method type_ id t_delayed : 'a option =
+      if N.type_ id = name then Some (`T (Delayed.get t_delayed)) else None
+
+    method removed_type id p : 'a option =
+      if N.type_ id = name then Some (`T_removed p) else None
+  end
+
+class ['a] class_' name =
+  object
+    method class_ id c : 'a option = if N.class_ id = name then Some (`C c) else None
+
+    method class_type id ct : 'a option =
+      if N.class_type id = name then Some (`CT ct) else None
+  end
+
 class ['a] find_in_sig =
   object (self)
+    constraint 'a = [< any_not_removed ]
+
     (* Signature items *)
     method module_ _ _ = None
 
     method module_type _ _ = None
+
+    method type_ _ _ = None
+    method class_ _ _ = None
+    method class_type _ _ = None
 
     (* method type_ _ _ = None *)
     method include_ i = self#signature i.Include.expansion_
@@ -36,14 +77,14 @@ class ['a] find_in_sig =
       | Signature.Module (id, _, m_delayed) -> self#module_ id m_delayed
       (* | ModuleSubstitution of Ident.module_ * ModuleSubstitution.t *)
       | ModuleType (id, mt_delayed) -> self#module_type id mt_delayed
-      (* | Type of Ident.type_ * recursive * TypeDecl.t Delayed.t *)
+      | Type (id, _, t_delayed) -> self#type_ id t_delayed
       (* | TypeSubstitution of Ident.type_ * TypeDecl.t *)
       (* | Exception of Ident.exception_ * Exception.t *)
       (* | TypExt of Extension.t *)
       (* | Value of Ident.value * Value.t *)
       (* | External of Ident.value * External.t *)
-      (* | Class of Ident.class_ * recursive * Class.t *)
-      (* | ClassType of Ident.class_type * recursive * ClassType.t *)
+      | Class (id, _, c) -> self#class_ id c
+      | ClassType (id, _, ct) -> self#class_type id ct
       | Include inc -> self#include_ inc
       (* | Open of Open.t *)
       (* | Comment of CComment.docs_or_stop *)
@@ -52,6 +93,8 @@ class ['a] find_in_sig =
 
 class ['a] find_in_sig_maybe_removed =
   object (self)
+    constraint 'a = [< any ]
+
     inherit ['a] find_in_sig as super
 
     method removed_module _ _ = None
@@ -73,54 +116,41 @@ class ['a] module_in_sig name =
   object
     inherit ['a] find_in_sig_maybe_removed
 
-    method! module_ id m_delayed =
-      if N.typed_module id = name then Some (`M (Delayed.get m_delayed))
-      else None
+    inherit! ['a] module_' name
+  end
 
-    method! removed_module id mp =
-      if N.typed_module id = name then Some (`M_removed mp) else None
+class ['a] type_in_sig name =
+  object
+    inherit ['a] find_in_sig
+
+    inherit! ['a] datatype' name
+
+    inherit! ['a] class_' name
+  end
+
+class ['a] datatype_in_sig name =
+  object
+    inherit ['a] find_in_sig
+
+    inherit! ['a] datatype' name
+  end
+
+class ['a] class_in_sig name =
+  object
+    inherit ['a] find_in_sig
+
+    inherit! ['a] class_' name
   end
 
 let module_in_sig sg name = (new module_in_sig name)#signature sg
 
-let careful_type_in_sig (s : Signature.t) name =
-  let rec inner_removed = function
-    | Signature.RType (id, p) :: _ when Ident.Name.type_ id = name ->
-        Some (Replaced p)
-    | _ :: rest -> inner_removed rest
-    | [] -> None
-  in
-  let rec inner = function
-    | Signature.Type (id, _, m) :: _ when Ident.Name.type_ id = name ->
-        Some (Found (`T (Component.Delayed.get m)))
-    | Signature.Class (id, _, c) :: _ when Ident.Name.class_ id = name ->
-        Some (Found (`C c))
-    | Signature.ClassType (id, _, c) :: _ when Ident.Name.class_type id = name
-      ->
-        Some (Found (`CT c))
-    | Signature.Include i :: rest -> (
-        match inner i.Include.expansion_.items with
-        | Some _ as found -> found
-        | None -> inner rest )
-    | _ :: rest -> inner rest
-    | [] -> inner_removed s.removed
-  in
-  inner s.items
+let type_in_sig sg name = (new type_in_sig name)#signature sg
+
+let datatype_in_sig sg name = (new datatype_in_sig name)#signature sg
+
+let class_in_sig sg name = (new class_in_sig name)#signature sg
 
 let typename_of_typeid (`LType (n, _) | `LCoreType n) = n
-
-let datatype_in_sig (s : Signature.t) name =
-  let rec inner = function
-    | Signature.Type (id, _, m) :: _ when Ident.Name.type_ id = name ->
-        Some (Component.Delayed.get m)
-    | Signature.Include i :: tl -> (
-        match inner i.Include.expansion_.items with
-        | Some _ as found -> found
-        | None -> inner tl )
-    | _ :: tl -> inner tl
-    | [] -> None
-  in
-  inner s.items
 
 let any_in_type (typ : TypeDecl.t) name =
   let rec find_cons = function
@@ -266,27 +296,6 @@ let opt_value_in_sig s name : value option =
   in
 
   inner s.Signature.items
-
-let type_in_sig s name =
-  match careful_type_in_sig s name with
-  | Some (Found t) -> Some t
-  | Some (Replaced _) | None -> None
-
-let class_type_in_sig (s : Signature.t) name =
-  let rec inner = function
-    | Signature.Class (id, _, c) :: _ when Ident.Name.class_ id = name ->
-        Some (`C c)
-    | Signature.ClassType (id, _, c) :: _ when Ident.Name.class_type id = name
-      ->
-        Some (`CT c)
-    | Signature.Include i :: rest -> (
-        match inner i.Include.expansion_.items with
-        | Some _ as found -> found
-        | None -> inner rest )
-    | _ :: rest -> inner rest
-    | [] -> None
-  in
-  inner s.items
 
 let opt_label_in_sig s name =
   let rec inner = function
