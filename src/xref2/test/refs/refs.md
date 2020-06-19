@@ -503,7 +503,12 @@ let test_mli = {|
   type t = X
   val t : t
 
-  module X : sig end
+  module X : sig
+    type u = Y
+    val u : u
+
+    module Y : sig end
+  end
 
 |}
 let sg = Common.signature_of_mli_string test_mli
@@ -512,7 +517,7 @@ let env = Env.open_signature sg Env.empty
 let resolve_ref = resolve_ref' env
 ```
 
-Ambiguous:
+Ambiguous in env:
 
 ```ocaml
 # resolve_ref "t"
@@ -523,6 +528,19 @@ Reference to 't' is ambiguous. Please specify its kind: val-t, type-t.
 Exception: Odoc_model.Error.Conveyed_by_exception _.
 File "tests":
 Reference to 'X' is ambiguous. Please specify its kind: module-X, constructor-X.
+```
+
+Ambiguous in sig:
+
+```ocaml
+# resolve_ref "X.u"
+Exception: Odoc_model.Error.Conveyed_by_exception _.
+File "tests":
+Reference to 'u' is ambiguous. Please specify its kind: type-u, val-u.
+# resolve_ref "X.Y"
+Exception: Odoc_model.Error.Conveyed_by_exception _.
+File "tests":
+Reference to 'Y' is ambiguous. Please specify its kind: constructor-Y, module-Y.
 ```
 
 Unambiguous:
@@ -537,6 +555,14 @@ Unambiguous:
 `Identifier (`Constructor (`Type (`Root (Common.root, Root), t), X))
 # resolve_ref "module-X"
 - : ref = `Identifier (`Module (`Root (Common.root, Root), X))
+# resolve_ref "X.type-u"
+- : ref = `Type (`Identifier (`Module (`Root (Common.root, Root), X)), u)
+# resolve_ref "X.val-u"
+- : ref = `Value (`Identifier (`Module (`Root (Common.root, Root), X)), u)
+# resolve_ref "X.constructor-Y"
+Exception: Failure "resolve_reference".
+# resolve_ref "X.module-Y"
+- : ref = `Module (`Identifier (`Module (`Root (Common.root, Root), X)), Y)
 ```
 
 Unambiguous 2:
@@ -551,4 +577,12 @@ Unambiguous 2:
 `Identifier (`Constructor (`Type (`Root (Common.root, Root), t), X))
 # resolve_ref "module:X"
 - : ref = `Identifier (`Module (`Root (Common.root, Root), X))
+# resolve_ref "type:X.u"
+- : ref = `Type (`Identifier (`Module (`Root (Common.root, Root), X)), u)
+# resolve_ref "val:X.u"
+- : ref = `Value (`Identifier (`Module (`Root (Common.root, Root), X)), u)
+# resolve_ref "constructor:X.Y"
+Exception: Failure "resolve_reference".
+# resolve_ref "module:X.Y"
+- : ref = `Module (`Identifier (`Module (`Root (Common.root, Root), X)), Y)
 ```

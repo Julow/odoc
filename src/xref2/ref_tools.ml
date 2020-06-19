@@ -83,9 +83,24 @@ let ref_kind_of_element = function
   | `Extension _ -> "extension"
   | `Field _ -> "field"
 
+let ref_kind_of_find = function
+  | `M _ | `Msub _ -> "module"
+  | `MT _ -> "module-type"
+  | `T _ | `Tsub _ -> "type"
+  | `V _ | `E _ -> "val"
+  | `L _ -> "section"
+  | `C _ -> "class"
+  | `CT _ -> "class-type"
+  | `Cs _ | `In_type (_, _, `Cs _) -> "constructor"
+  | `Exn _ -> "exception"
+  | `Ext _ -> "extension"
+  | `Fd _ | `In_type (_, _, `Fd _) -> "field"
+  | `Mm _ -> "method"
+  | `Mv _ -> "instance-variable"
+
 let ambiguous_ref_warning name results =
   let pp_sep pp () = Format.fprintf pp ", "
-  and pp_kind pp r = Format.fprintf pp "%s-%s" (ref_kind_of_element r) name in
+  and pp_kind pp r = Format.fprintf pp "%s-%s" r name in
   Odoc_model.Error.implicit_warning
     "Reference to '%s' is ambiguous. Please specify its kind: %a." name
     (Format.pp_print_list ~pp_sep pp_kind)
@@ -95,9 +110,17 @@ let env_lookup_by_name scope name env =
   match Env.lookup_by_name scope name env with
   | Ok x -> Some x
   | Error (`Ambiguous (hd, tl)) ->
-      ambiguous_ref_warning name (hd :: tl);
+      ambiguous_ref_warning name (List.map ref_kind_of_element (hd :: tl));
       Some hd
   | Error `Not_found -> None
+
+let find_ambiguous find sg name : 'b option =
+  match find sg name with
+  | [ x ] -> Some x
+  | x :: _ as results ->
+      ambiguous_ref_warning name (List.map ref_kind_of_find results);
+      Some x
+  | [] -> None
 
 let module_lookup_to_signature_lookup :
     Env.t -> module_lookup_result -> signature_lookup_result option =
@@ -286,7 +309,7 @@ module V = struct
 
   let in_signature _env ((parent', _, sg) : signature_lookup_result) name :
       t option =
-    Find.value_in_sig sg (ValueName.to_string name) >>= fun _ ->
+    find_ambiguous Find.value_in_sig sg (ValueName.to_string name) >>= fun _ ->
     Some (`Value (parent', name))
 end
 
@@ -311,7 +334,7 @@ module L = struct
       =
     match parent with
     | `S (p, _, sg) ->
-        Find.label_in_sig sg (LabelName.to_string name) >>= fun _ ->
+        find_ambiguous Find.label_in_sig sg (LabelName.to_string name) >>= fun _ ->
         Some (`Label ((p :> Resolved.LabelParent.t), name))
     | `T _ | `C _ | `CT _ -> None
     | `Page _ as page -> in_page env page (LabelName.to_string name)
@@ -385,9 +408,9 @@ module F = struct
     match parent with
     | `S (parent', parent_cp, sg) -> (
         let sg = Tools.prefix_signature (parent_cp, sg) in
-        Find.any_in_type_in_sig sg (FieldName.to_string name) >>= function
-        | _, `Cs _ -> None
-        | typ_name, `Fd _ -> Some (`Field (`Type (parent', typ_name), name))
+        find_ambiguous Find.any_in_type_in_sig sg (FieldName.to_string name) >>= function
+        | `In_type (_, _, `Cs _) -> None
+        | `In_type (typ_name, _, `Fd _) -> Some (`Field (`Type (parent', typ_name), name))
         )
     | `T (parent', t) -> (
         Find.any_in_type t (FieldName.to_string name) >>= function
@@ -455,7 +478,7 @@ module LP = struct
   let in_signature env ((parent', parent_cp, sg) : signature_lookup_result) name
       : t option =
     let sg = Tools.prefix_signature (parent_cp, sg) in
-    Find.label_parent_in_sig sg name >>= function
+    find_ambiguous Find.label_parent_in_sig sg name >>= function
     | `M m ->
         let name = ModuleName.of_string name in
         module_lookup_to_signature_lookup env
@@ -562,7 +585,7 @@ and resolve_signature_reference :
           >>= fun (parent, parent_cp, sg) ->
           let parent_cp = Tools.reresolve_parent env parent_cp in
           let sg = Tools.prefix_signature (parent_cp, sg) in
-          Find.signature_in_sig sg name >>= function
+          find_ambiguous Find.signature_in_sig sg name >>= function
           | `M m ->
               let name = ModuleName.of_string name in
               module_lookup_to_signature_lookup env
@@ -623,7 +646,7 @@ and resolved2 (r, _) = resolved1 r
 let resolve_reference_dot_sg env ~parent_path ~parent_ref ~parent_sg name =
   let parent_path = Tools.reresolve_parent env parent_path in
   let parent_sg = Tools.prefix_signature (parent_path, parent_sg) in
-  Find.any_in_sig parent_sg name >>= function
+  find_ambiguous Find.any_in_sig parent_sg name >>= function
   | `M m ->
       let name = ModuleName.of_string name in
       resolved3
@@ -663,7 +686,7 @@ let resolve_reference_dot_type env ~parent_ref t name =
 
 let resolve_reference_dot_class env p name =
   type_lookup_to_class_signature_lookup env p >>= fun (parent_ref, cs) ->
-  Find.any_in_class_signature cs name >>= function
+  find_ambiguous Find.any_in_class_signature cs name >>= function
   | `Mm _ -> MM.of_component env parent_ref name >>= resolved1
   | `Mv _ -> MV.of_component env parent_ref name >>= resolved1
 
