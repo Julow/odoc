@@ -41,9 +41,14 @@ depends: [
   "conf-jq" {with-test}
 
   "bisect_ppx" {with-test & >= "2.5.0"}
+  "odocmkgen" {with-test}
 ]
 
 build: [
   ["dune" "subst"] {pinned}
   ["dune" "build" "-p" name "-j" jobs]
+]
+
+pin-depends: [
+  [ "odocmkgen.dev" "git+https://github.com/jonludlam/odocmkgen" ]
 ]
