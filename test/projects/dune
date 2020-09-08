@@ -1,0 +1,16 @@
+(rule
+ (targets basic.output)
+ (deps
+  (package odoc)
+  (source_tree basic))
+ (action
+  (chdir
+   basic
+   (run ocaml-mdx test -o %{targets} %{dep:basic/test.md}))))
+
+(alias
+ (name runtest)
+ (action
+  (diff basic/test.md basic.output)))
+
+(data_only_dirs basic)
