@@ -40,9 +40,14 @@ depends: [
 
   "mdx" {with-test & >= "1.7.0" & post}
   "bisect_ppx" {with-test & >= "1.3.0"}
+  "odocmkgen" {with-test}
 ]
 
 build: [
   ["dune" "subst"] {pinned}
   ["dune" "build" "-p" name "-j" jobs]
+]
+
+pin-depends: [
+  [ "odocmkgen.dev" "git+https://github.com/jonludlam/odocmkgen" ]
 ]
