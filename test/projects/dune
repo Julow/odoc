@@ -1,15 +1,19 @@
+(env
+ (_
+  (binaries (../odoc_print/odoc_print.exe as odoc_print))))
+
 (rule
  (targets basic.output)
  (deps
+  %{bin:odoc_print}
   (package odoc)
   (source_tree basic))
  (action
   (chdir
    basic
    (run ocaml-mdx test -o %{targets} %{dep:basic/test.md}))))
-
-(alias
- (name runtest)
+(rule
+ (alias runtest)
  (action
   (diff basic/test.md basic.output)))
 
