@@ -32,20 +32,32 @@ odocmkgen compile -w basic "out/lib"
 Warning, couldn't find dep CamlinternalFormatBasics of file basic/basic.cmti
 Warning, couldn't find dep Stdlib of file basic/basic.cmti
 time odoc compile --package basic out/lib/basic/basic.cmti  -o odocs/basic/basic.odoc
-0.00user 0.00system 0:00.00elapsed 50%CPU (0avgtext+0avgdata 12996maxresident)k
-0inputs+8outputs (0major+1261minor)pagefaults 0swaps
+0.00user 0.00system 0:00.00elapsed 66%CPU (0avgtext+0avgdata 12996maxresident)k
+0inputs+8outputs (0major+1258minor)pagefaults 0swaps
 time odoc link odocs/basic/basic.odoc -o odocls/basic/basic.odocl
 Starting link
-0.00user 0.00system 0:00.00elapsed 100%CPU (0avgtext+0avgdata 12920maxresident)k
-0inputs+8outputs (0major+1243minor)pagefaults 0swaps
+0.00user 0.00system 0:00.00elapsed 100%CPU (0avgtext+0avgdata 12988maxresident)k
+0inputs+8outputs (0major+1241minor)pagefaults 0swaps
 odocmkgen generate --package basic
 odoc html-generate odocls/basic/basic.odocl --output-dir html
 ```
 
 ```sh
+$ find odocs
+odocs
+odocs/basic
+odocs/basic/basic.odoc
+$ find odocls
+odocls
+odocls/basic
+odocls/basic/basic.odocl
 $ find html
 html
 html/basic
 html/basic/Basic
 html/basic/Basic/index.html
+```
+
+```sh
+$ odoc_print odocls/basic/basic.odocl
 ```
