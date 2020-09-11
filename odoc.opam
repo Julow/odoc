@@ -49,5 +49,5 @@ build: [
 ]
 
 pin-depends: [
-  [ "odocmkgen.dev" "git+https://github.com/jonludlam/odocmkgen" ]
+  [ "odocmkgen.dev" "git+https://github.com/jonludlam/odocmkgen#318534de70e38e732432257c4bc1c1e674f0878d" ]
 ]
