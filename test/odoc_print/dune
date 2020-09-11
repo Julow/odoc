@@ -1,3 +1,4 @@
 (executable
  (name odoc_print)
- (libraries odoc_odoc cmdliner))
+ (libraries odoc_odoc cmdliner)
+ (preprocess (staged_pps ppx_gen_rec ppx_import ppx_deriving.show)))

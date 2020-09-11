@@ -7,11 +7,8 @@ let pf = Format.fprintf
 
 (* Printing *)
 
-(* open Odoc_model *)
-
-let print_page fmt _ =
-  (* let open Page in *)
-  pf fmt "TODO\n"
+let print_page fmt page =
+  pf fmt "%s\n" (Pp_lang.Page.show page)
 
 (* CLI *)
 
