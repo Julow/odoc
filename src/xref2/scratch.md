@@ -71,69 +71,66 @@ end
 # let sg = Common.model_of_string test_data;;
 val sg :
   Odoc_model.Paths_types.Identifier.root_module * Odoc_model.Comment.docs *
-  Odoc_model.Lang.Signature.t =
+  Odoc_model.Lang_types.signature =
   (`Root (Common.root, Root), <<docs>>,
-   [Odoc_model.Lang.Signature.Module (Odoc_model.Lang.Signature.Ordinary,
-     {Odoc_model.Lang.Module.id = (root Root).M; doc = <<docs>>;
+   [Odoc_model.Lang_types.Module (Odoc_model.Lang_types.Ordinary,
+     {Odoc_model.Lang_types.id = (root Root).M; doc = <<docs>>;
       type_ =
-       Odoc_model.Lang.Module.ModuleType
-        (Odoc_model.Lang.ModuleType.Signature
-          [Odoc_model.Lang.Signature.Type
-            (Odoc_model.Lang.Signature.Ordinary,
-            {Odoc_model.Lang.TypeDecl.id = (root Root).M.t; doc = <<docs>>;
+       Odoc_model.Lang_types.ModuleType
+        (Odoc_model.Lang_types.Signature
+          [Odoc_model.Lang_types.Type (Odoc_model.Lang_types.Ordinary,
+            {Odoc_model.Lang_types.id = (root Root).M.t; doc = <<docs>>;
              equation =
-              {Odoc_model.Lang.TypeDecl.Equation.params = [];
-               private_ = false; manifest = None; constraints = []};
+              {Odoc_model.Lang_types.params = []; private_ = false;
+               manifest = None; constraints = []};
              representation = None});
-           Odoc_model.Lang.Signature.Value
-            {Odoc_model.Lang.Value.id =
+           Odoc_model.Lang_types.Value
+            {Odoc_model.Lang_types.id =
               `Value (`Module (`Root (Common.root, Root), M), id);
              doc = <<docs>>;
              type_ =
-              Odoc_model.Lang.TypeExpr.Arrow (None,
-               Odoc_model.Lang.TypeExpr.Constr
+              Odoc_model.Lang_types.Arrow (None,
+               Odoc_model.Lang_types.Constr
                 (`Identifier
                    (`Type (`Module (`Root (Common.root, Root), M), t), false),
                 []),
-               Odoc_model.Lang.TypeExpr.Constr
+               Odoc_model.Lang_types.Constr
                 (`Identifier
                    (`Type (`Module (`Root (Common.root, Root), M), t), false),
                 []))}]);
       canonical = None; hidden = false; display_type = None;
-      expansion = Some Odoc_model.Lang.Module.AlreadyASig});
-    Odoc_model.Lang.Signature.Module (Odoc_model.Lang.Signature.Ordinary,
-     {Odoc_model.Lang.Module.id = (root Root).Mextended; doc = <<docs>>;
+      expansion = Some Odoc_model.Lang_types.AlreadyASig});
+    Odoc_model.Lang_types.Module (Odoc_model.Lang_types.Ordinary,
+     {Odoc_model.Lang_types.id = (root Root).Mextended; doc = <<docs>>;
       type_ =
-       Odoc_model.Lang.Module.ModuleType
-        (Odoc_model.Lang.ModuleType.Signature
-          [Odoc_model.Lang.Signature.Include
-            {Odoc_model.Lang.Include.parent =
+       Odoc_model.Lang_types.ModuleType
+        (Odoc_model.Lang_types.Signature
+          [Odoc_model.Lang_types.Include
+            {Odoc_model.Lang_types.parent =
               `Module (`Root (Common.root, Root), Mextended);
              doc = <<docs>>;
              decl =
-              Odoc_model.Lang.Module.ModuleType
-               (Odoc_model.Lang.ModuleType.TypeOf
-                 (Odoc_model.Lang.ModuleType.Struct_include
+              Odoc_model.Lang_types.ModuleType
+               (Odoc_model.Lang_types.TypeOf
+                 (Odoc_model.Lang_types.Struct_include
                    (`Identifier
                       (`Module (`Root (Common.root, Root), M), false))));
              inline = false;
              expansion =
-              {Odoc_model.Lang.Include.resolved = false;
+              {Odoc_model.Lang_types.resolved = false;
                shadowed =
-                {Odoc_model.Lang.Include.s_modules = []; s_module_types = [];
+                {Odoc_model.Lang_types.s_modules = []; s_module_types = [];
                  s_types = [("t", (root Root).Mextended.$t$1)];
                  s_classes = []; s_class_types = []};
                content =
-                [Odoc_model.Lang.Signature.Type
-                  (Odoc_model.Lang.Signature.Ordinary,
-                  {Odoc_model.Lang.TypeDecl.id = (root Root).Mextended.$t$1;
+                [Odoc_model.Lang_types.Type (Odoc_model.Lang_types.Ordinary,
+                  {Odoc_model.Lang_types.id = (root Root).Mextended.$t$1;
                    doc = <<docs>>;
                    equation =
-                    {Odoc_model.Lang.TypeDecl.Equation.params = [];
-                     private_ = false;
+                    {Odoc_model.Lang_types.params = []; private_ = false;
                      manifest =
                       Some
-                       (Odoc_model.Lang.TypeExpr.Constr
+                       (Odoc_model.Lang_types.Constr
                          (`Dot
                             (`Identifier
                                (`Module (`Root (Common.root, Root), M),
@@ -142,114 +139,111 @@ val sg :
                          []));
                      constraints = []};
                    representation = None});
-                 Odoc_model.Lang.Signature.Value
-                  {Odoc_model.Lang.Value.id =
+                 Odoc_model.Lang_types.Value
+                  {Odoc_model.Lang_types.id =
                     `Value
                       (`Module (`Root (Common.root, Root), Mextended), id);
                    doc = <<docs>>;
                    type_ =
-                    Odoc_model.Lang.TypeExpr.Arrow (None,
-                     Odoc_model.Lang.TypeExpr.Constr
+                    Odoc_model.Lang_types.Arrow (None,
+                     Odoc_model.Lang_types.Constr
                       (`Identifier
                          (`Type
                             (`Module (`Root (Common.root, Root), Mextended),
                              $t$1),
                           false),
                       []),
-                     Odoc_model.Lang.TypeExpr.Constr
+                     Odoc_model.Lang_types.Constr
                       (`Identifier
                          (`Type
                             (`Module (`Root (Common.root, Root), Mextended),
                              $t$1),
                           false),
                       []))}]}};
-           Odoc_model.Lang.Signature.Type
-            (Odoc_model.Lang.Signature.Ordinary,
-            {Odoc_model.Lang.TypeDecl.id = (root Root).Mextended.t;
+           Odoc_model.Lang_types.Type (Odoc_model.Lang_types.Ordinary,
+            {Odoc_model.Lang_types.id = (root Root).Mextended.t;
              doc = <<docs>>;
              equation =
-              {Odoc_model.Lang.TypeDecl.Equation.params = [];
-               private_ = false; manifest = None; constraints = []};
+              {Odoc_model.Lang_types.params = []; private_ = false;
+               manifest = None; constraints = []};
              representation = None});
-           Odoc_model.Lang.Signature.Value
-            {Odoc_model.Lang.Value.id =
+           Odoc_model.Lang_types.Value
+            {Odoc_model.Lang_types.id =
               `Value (`Module (`Root (Common.root, Root), Mextended), ignore);
              doc = <<docs>>;
              type_ =
-              Odoc_model.Lang.TypeExpr.Arrow (None,
-               Odoc_model.Lang.TypeExpr.Constr
+              Odoc_model.Lang_types.Arrow (None,
+               Odoc_model.Lang_types.Constr
                 (`Identifier
                    (`Type (`Module (`Root (Common.root, Root), Mextended), t),
                     false),
                 []),
-               Odoc_model.Lang.TypeExpr.Constr
+               Odoc_model.Lang_types.Constr
                 (`Identifier (`CoreType unit, false), []))}]);
       canonical = None; hidden = false; display_type = None;
-      expansion = Some Odoc_model.Lang.Module.AlreadyASig})])
+      expansion = Some Odoc_model.Lang_types.AlreadyASig})])
 # sg;;
 - : Odoc_model.Paths_types.Identifier.root_module * Odoc_model.Comment.docs *
-    Odoc_model.Lang.Signature.t
+    Odoc_model.Lang_types.signature
 =
 (`Root (Common.root, Root), <<docs>>,
- [Odoc_model.Lang.Signature.Module (Odoc_model.Lang.Signature.Ordinary,
-   {Odoc_model.Lang.Module.id = (root Root).M; doc = <<docs>>;
+ [Odoc_model.Lang_types.Module (Odoc_model.Lang_types.Ordinary,
+   {Odoc_model.Lang_types.id = (root Root).M; doc = <<docs>>;
     type_ =
-     Odoc_model.Lang.Module.ModuleType
-      (Odoc_model.Lang.ModuleType.Signature
-        [Odoc_model.Lang.Signature.Type (Odoc_model.Lang.Signature.Ordinary,
-          {Odoc_model.Lang.TypeDecl.id = (root Root).M.t; doc = <<docs>>;
+     Odoc_model.Lang_types.ModuleType
+      (Odoc_model.Lang_types.Signature
+        [Odoc_model.Lang_types.Type (Odoc_model.Lang_types.Ordinary,
+          {Odoc_model.Lang_types.id = (root Root).M.t; doc = <<docs>>;
            equation =
-            {Odoc_model.Lang.TypeDecl.Equation.params = []; private_ = false;
+            {Odoc_model.Lang_types.params = []; private_ = false;
              manifest = None; constraints = []};
            representation = None});
-         Odoc_model.Lang.Signature.Value
-          {Odoc_model.Lang.Value.id =
+         Odoc_model.Lang_types.Value
+          {Odoc_model.Lang_types.id =
             `Value (`Module (`Root (Common.root, Root), M), id);
            doc = <<docs>>;
            type_ =
-            Odoc_model.Lang.TypeExpr.Arrow (None,
-             Odoc_model.Lang.TypeExpr.Constr
+            Odoc_model.Lang_types.Arrow (None,
+             Odoc_model.Lang_types.Constr
               (`Identifier
                  (`Type (`Module (`Root (Common.root, Root), M), t), false),
               []),
-             Odoc_model.Lang.TypeExpr.Constr
+             Odoc_model.Lang_types.Constr
               (`Identifier
                  (`Type (`Module (`Root (Common.root, Root), M), t), false),
               []))}]);
     canonical = None; hidden = false; display_type = None;
-    expansion = Some Odoc_model.Lang.Module.AlreadyASig});
-  Odoc_model.Lang.Signature.Module (Odoc_model.Lang.Signature.Ordinary,
-   {Odoc_model.Lang.Module.id = (root Root).Mextended; doc = <<docs>>;
+    expansion = Some Odoc_model.Lang_types.AlreadyASig});
+  Odoc_model.Lang_types.Module (Odoc_model.Lang_types.Ordinary,
+   {Odoc_model.Lang_types.id = (root Root).Mextended; doc = <<docs>>;
     type_ =
-     Odoc_model.Lang.Module.ModuleType
-      (Odoc_model.Lang.ModuleType.Signature
-        [Odoc_model.Lang.Signature.Include
-          {Odoc_model.Lang.Include.parent =
+     Odoc_model.Lang_types.ModuleType
+      (Odoc_model.Lang_types.Signature
+        [Odoc_model.Lang_types.Include
+          {Odoc_model.Lang_types.parent =
             `Module (`Root (Common.root, Root), Mextended);
            doc = <<docs>>;
            decl =
-            Odoc_model.Lang.Module.ModuleType
-             (Odoc_model.Lang.ModuleType.TypeOf
-               (Odoc_model.Lang.ModuleType.Struct_include
+            Odoc_model.Lang_types.ModuleType
+             (Odoc_model.Lang_types.TypeOf
+               (Odoc_model.Lang_types.Struct_include
                  (`Identifier (`Module (`Root (Common.root, Root), M), false))));
            inline = false;
            expansion =
-            {Odoc_model.Lang.Include.resolved = false;
+            {Odoc_model.Lang_types.resolved = false;
              shadowed =
-              {Odoc_model.Lang.Include.s_modules = []; s_module_types = [];
+              {Odoc_model.Lang_types.s_modules = []; s_module_types = [];
                s_types = [("t", (root Root).Mextended.$t$1)]; s_classes = [];
                s_class_types = []};
              content =
-              [Odoc_model.Lang.Signature.Type
-                (Odoc_model.Lang.Signature.Ordinary,
-                {Odoc_model.Lang.TypeDecl.id = (root Root).Mextended.$t$1;
+              [Odoc_model.Lang_types.Type (Odoc_model.Lang_types.Ordinary,
+                {Odoc_model.Lang_types.id = (root Root).Mextended.$t$1;
                  doc = <<docs>>;
                  equation =
-                  {Odoc_model.Lang.TypeDecl.Equation.params = [];
-                   private_ = false;
+                  {Odoc_model.Lang_types.params = []; private_ = false;
                    manifest =
                     Some
-                     (Odoc_model.Lang.TypeExpr.Constr
+                     (Odoc_model.Lang_types.Constr
                        (`Dot
                           (`Identifier
                              (`Module (`Root (Common.root, Root), M), false),
@@ -257,115 +251,113 @@ val sg :
                        []));
                    constraints = []};
                  representation = None});
-               Odoc_model.Lang.Signature.Value
-                {Odoc_model.Lang.Value.id =
+               Odoc_model.Lang_types.Value
+                {Odoc_model.Lang_types.id =
                   `Value (`Module (`Root (Common.root, Root), Mextended), id);
                  doc = <<docs>>;
                  type_ =
-                  Odoc_model.Lang.TypeExpr.Arrow (None,
-                   Odoc_model.Lang.TypeExpr.Constr
+                  Odoc_model.Lang_types.Arrow (None,
+                   Odoc_model.Lang_types.Constr
                     (`Identifier
                        (`Type
                           (`Module (`Root (Common.root, Root), Mextended),
                            $t$1),
                         false),
                     []),
-                   Odoc_model.Lang.TypeExpr.Constr
+                   Odoc_model.Lang_types.Constr
                     (`Identifier
                        (`Type
                           (`Module (`Root (Common.root, Root), Mextended),
                            $t$1),
                         false),
                     []))}]}};
-         Odoc_model.Lang.Signature.Type (Odoc_model.Lang.Signature.Ordinary,
-          {Odoc_model.Lang.TypeDecl.id = (root Root).Mextended.t;
+         Odoc_model.Lang_types.Type (Odoc_model.Lang_types.Ordinary,
+          {Odoc_model.Lang_types.id = (root Root).Mextended.t;
            doc = <<docs>>;
            equation =
-            {Odoc_model.Lang.TypeDecl.Equation.params = []; private_ = false;
+            {Odoc_model.Lang_types.params = []; private_ = false;
              manifest = None; constraints = []};
            representation = None});
-         Odoc_model.Lang.Signature.Value
-          {Odoc_model.Lang.Value.id =
+         Odoc_model.Lang_types.Value
+          {Odoc_model.Lang_types.id =
             `Value (`Module (`Root (Common.root, Root), Mextended), ignore);
            doc = <<docs>>;
            type_ =
-            Odoc_model.Lang.TypeExpr.Arrow (None,
-             Odoc_model.Lang.TypeExpr.Constr
+            Odoc_model.Lang_types.Arrow (None,
+             Odoc_model.Lang_types.Constr
               (`Identifier
                  (`Type (`Module (`Root (Common.root, Root), Mextended), t),
                   false),
               []),
-             Odoc_model.Lang.TypeExpr.Constr
+             Odoc_model.Lang_types.Constr
               (`Identifier (`CoreType unit, false), []))}]);
     canonical = None; hidden = false; display_type = None;
-    expansion = Some Odoc_model.Lang.Module.AlreadyASig})])
+    expansion = Some Odoc_model.Lang_types.AlreadyASig})])
 ```
 
 ```ocaml env=e1
 # sg;;
 - : Odoc_model.Paths_types.Identifier.root_module * Odoc_model.Comment.docs *
-    Odoc_model.Lang.Signature.t
+    Odoc_model.Lang_types.signature
 =
 (`Root (Common.root, Root), <<docs>>,
- [Odoc_model.Lang.Signature.Module (Odoc_model.Lang.Signature.Ordinary,
-   {Odoc_model.Lang.Module.id = (root Root).M; doc = <<docs>>;
+ [Odoc_model.Lang_types.Module (Odoc_model.Lang_types.Ordinary,
+   {Odoc_model.Lang_types.id = (root Root).M; doc = <<docs>>;
     type_ =
-     Odoc_model.Lang.Module.ModuleType
-      (Odoc_model.Lang.ModuleType.Signature
-        [Odoc_model.Lang.Signature.Type (Odoc_model.Lang.Signature.Ordinary,
-          {Odoc_model.Lang.TypeDecl.id = (root Root).M.t; doc = <<docs>>;
+     Odoc_model.Lang_types.ModuleType
+      (Odoc_model.Lang_types.Signature
+        [Odoc_model.Lang_types.Type (Odoc_model.Lang_types.Ordinary,
+          {Odoc_model.Lang_types.id = (root Root).M.t; doc = <<docs>>;
            equation =
-            {Odoc_model.Lang.TypeDecl.Equation.params = []; private_ = false;
+            {Odoc_model.Lang_types.params = []; private_ = false;
              manifest = None; constraints = []};
            representation = None});
-         Odoc_model.Lang.Signature.Value
-          {Odoc_model.Lang.Value.id =
+         Odoc_model.Lang_types.Value
+          {Odoc_model.Lang_types.id =
             `Value (`Module (`Root (Common.root, Root), M), id);
            doc = <<docs>>;
            type_ =
-            Odoc_model.Lang.TypeExpr.Arrow (None,
-             Odoc_model.Lang.TypeExpr.Constr
+            Odoc_model.Lang_types.Arrow (None,
+             Odoc_model.Lang_types.Constr
               (`Identifier
                  (`Type (`Module (`Root (Common.root, Root), M), t), false),
               []),
-             Odoc_model.Lang.TypeExpr.Constr
+             Odoc_model.Lang_types.Constr
               (`Identifier
                  (`Type (`Module (`Root (Common.root, Root), M), t), false),
               []))}]);
     canonical = None; hidden = false; display_type = None;
-    expansion = Some Odoc_model.Lang.Module.AlreadyASig});
-  Odoc_model.Lang.Signature.Module (Odoc_model.Lang.Signature.Ordinary,
-   {Odoc_model.Lang.Module.id = (root Root).Mextended; doc = <<docs>>;
+    expansion = Some Odoc_model.Lang_types.AlreadyASig});
+  Odoc_model.Lang_types.Module (Odoc_model.Lang_types.Ordinary,
+   {Odoc_model.Lang_types.id = (root Root).Mextended; doc = <<docs>>;
     type_ =
-     Odoc_model.Lang.Module.ModuleType
-      (Odoc_model.Lang.ModuleType.Signature
-        [Odoc_model.Lang.Signature.Include
-          {Odoc_model.Lang.Include.parent =
+     Odoc_model.Lang_types.ModuleType
+      (Odoc_model.Lang_types.Signature
+        [Odoc_model.Lang_types.Include
+          {Odoc_model.Lang_types.parent =
             `Module (`Root (Common.root, Root), Mextended);
            doc = <<docs>>;
            decl =
-            Odoc_model.Lang.Module.ModuleType
-             (Odoc_model.Lang.ModuleType.TypeOf
-               (Odoc_model.Lang.ModuleType.Struct_include
+            Odoc_model.Lang_types.ModuleType
+             (Odoc_model.Lang_types.TypeOf
+               (Odoc_model.Lang_types.Struct_include
                  (`Identifier (`Module (`Root (Common.root, Root), M), false))));
            inline = false;
            expansion =
-            {Odoc_model.Lang.Include.resolved = false;
+            {Odoc_model.Lang_types.resolved = false;
              shadowed =
-              {Odoc_model.Lang.Include.s_modules = []; s_module_types = [];
+              {Odoc_model.Lang_types.s_modules = []; s_module_types = [];
                s_types = [("t", (root Root).Mextended.$t$1)]; s_classes = [];
                s_class_types = []};
              content =
-              [Odoc_model.Lang.Signature.Type
-                (Odoc_model.Lang.Signature.Ordinary,
-                {Odoc_model.Lang.TypeDecl.id = (root Root).Mextended.$t$1;
+              [Odoc_model.Lang_types.Type (Odoc_model.Lang_types.Ordinary,
+                {Odoc_model.Lang_types.id = (root Root).Mextended.$t$1;
                  doc = <<docs>>;
                  equation =
-                  {Odoc_model.Lang.TypeDecl.Equation.params = [];
-                   private_ = false;
+                  {Odoc_model.Lang_types.params = []; private_ = false;
                    manifest =
                     Some
-                     (Odoc_model.Lang.TypeExpr.Constr
+                     (Odoc_model.Lang_types.Constr
                        (`Dot
                           (`Identifier
                              (`Module (`Root (Common.root, Root), M), false),
@@ -373,46 +365,46 @@ val sg :
                        []));
                    constraints = []};
                  representation = None});
-               Odoc_model.Lang.Signature.Value
-                {Odoc_model.Lang.Value.id =
+               Odoc_model.Lang_types.Value
+                {Odoc_model.Lang_types.id =
                   `Value (`Module (`Root (Common.root, Root), Mextended), id);
                  doc = <<docs>>;
                  type_ =
-                  Odoc_model.Lang.TypeExpr.Arrow (None,
-                   Odoc_model.Lang.TypeExpr.Constr
+                  Odoc_model.Lang_types.Arrow (None,
+                   Odoc_model.Lang_types.Constr
                     (`Identifier
                        (`Type
                           (`Module (`Root (Common.root, Root), Mextended),
                            $t$1),
                         false),
                     []),
-                   Odoc_model.Lang.TypeExpr.Constr
+                   Odoc_model.Lang_types.Constr
                     (`Identifier
                        (`Type
                           (`Module (`Root (Common.root, Root), Mextended),
                            $t$1),
                         false),
                     []))}]}};
-         Odoc_model.Lang.Signature.Type (Odoc_model.Lang.Signature.Ordinary,
-          {Odoc_model.Lang.TypeDecl.id = (root Root).Mextended.t;
+         Odoc_model.Lang_types.Type (Odoc_model.Lang_types.Ordinary,
+          {Odoc_model.Lang_types.id = (root Root).Mextended.t;
            doc = <<docs>>;
            equation =
-            {Odoc_model.Lang.TypeDecl.Equation.params = []; private_ = false;
+            {Odoc_model.Lang_types.params = []; private_ = false;
              manifest = None; constraints = []};
            representation = None});
-         Odoc_model.Lang.Signature.Value
-          {Odoc_model.Lang.Value.id =
+         Odoc_model.Lang_types.Value
+          {Odoc_model.Lang_types.id =
             `Value (`Module (`Root (Common.root, Root), Mextended), ignore);
            doc = <<docs>>;
            type_ =
-            Odoc_model.Lang.TypeExpr.Arrow (None,
-             Odoc_model.Lang.TypeExpr.Constr
+            Odoc_model.Lang_types.Arrow (None,
+             Odoc_model.Lang_types.Constr
               (`Identifier
                  (`Type (`Module (`Root (Common.root, Root), Mextended), t),
                   false),
               []),
-             Odoc_model.Lang.TypeExpr.Constr
+             Odoc_model.Lang_types.Constr
               (`Identifier (`CoreType unit, false), []))}]);
     canonical = None; hidden = false; display_type = None;
-    expansion = Some Odoc_model.Lang.Module.AlreadyASig})])
+    expansion = Some Odoc_model.Lang_types.AlreadyASig})])
 ```
