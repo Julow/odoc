@@ -9,4 +9,4 @@
    (./compile.exe as compile))))
 
 (cram
- (deps %{bin:odoc_print} %{bin:compile}))
+ (deps %{bin:odoc} %{bin:odoc_print} %{bin:compile}))
