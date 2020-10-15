@@ -44,7 +44,7 @@ scripts:
       - opam install -y mdx opam-depext
       - opam --version
       - ocaml -version
-      - opam pin add odoc .
+      - opam pin add -n odoc .
       - opam depext -y -t odoc
       - opam install -y --deps-only -t odoc
 
