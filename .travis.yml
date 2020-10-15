@@ -41,8 +41,8 @@ scripts:
       - eval `opam env`
       # The next command won't install it.
       # This installs the released version of Odoc.
-      - opam install -y mdx
-      - opam depext -ity .
+      - opam install -y mdx opam-depext
+      - opam depext -y -t .
       - opam install -y --deps-only -t .
       - opam --version
       - ocaml -version
