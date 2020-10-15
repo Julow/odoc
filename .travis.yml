@@ -42,10 +42,11 @@ scripts:
       # The next command won't install it.
       # This installs the released version of Odoc.
       - opam install -y mdx opam-depext
-      - opam depext -y -t .
-      - opam install -y --deps-only -t .
       - opam --version
       - ocaml -version
+      - opam pin add odoc .
+      - opam depext -y -t odoc
+      - opam install -y --deps-only -t odoc
 
     before_script:
       - rm -rf ./_build/default/test/html/_scratch
