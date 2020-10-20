@@ -7,6 +7,6 @@
  (action (run %{exe:test.exe}))
  (deps
   test.exe
-  %{workspace_root}/src/odoc/bin/main.exe
+  %{bin:odoc}
   (source_tree ../cases)
   (source_tree expect)))

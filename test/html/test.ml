@@ -25,7 +25,7 @@ end
 
 module Env = struct
   let package = "test_package"
-  let odoc = "../../src/odoc/bin/main.exe"
+  let odoc = "odoc"
 
   let path ?(from_root = false) = function
     | `scratch when from_root -> "_build/default/test/html/_scratch"
