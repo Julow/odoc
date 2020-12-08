@@ -89,7 +89,7 @@ jobs:
           node-version: '12'
 
       - name: Install esy
-        run: npm --global install ocaml@4.08.1 esy
+        run: npm --global install esy
 
       # Cache
       - name: Cache
@@ -99,6 +99,9 @@ jobs:
             ~/.npm
             ~/.esy
           key: ${{ matrix.os }}-esy
+
+      - name: -
+        run: esy add add ocaml@4.08.0
 
       - name: Install dependencies # Solve every time (fast)
         run: esy install --verbose

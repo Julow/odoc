@@ -38,12 +38,13 @@
     "@opam/fpath": "0.7.2",
     "@opam/lambdasoup": "0.7.1",
     "@opam/markup": "*",
+    "@opam/mdx": "1.7.0",
     "@opam/ocamlfind": "1.8.1",
+    "@opam/ocamlfind-secondary": "1.8.1",
     "@opam/result": "1.4",
     "@opam/sexplib0": "*",
     "@opam/tyxml": "4.3.0",
-    "@opam/mdx": "1.7.0",
-    "@opam/ocamlfind-secondary":"1.8.1",
+    "esy": "^0.6.7",
     "ocaml": "~4.2.0"
   },
   "resolutions": {
