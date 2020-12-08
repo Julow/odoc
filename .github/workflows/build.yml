@@ -89,7 +89,7 @@ jobs:
           node-version: '12'
 
       - name: Install esy
-        run: npm --global install esy
+        run: npm --global install ocaml@4.08.1 esy
 
       # Cache
       - name: Cache
