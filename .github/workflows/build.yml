@@ -100,8 +100,8 @@ jobs:
             ~/.esy
           key: ${{ matrix.os }}-esy
 
-      - name: -
-        run: esy add add ocaml@4.08.0
+      - name: Install more recent ocaml
+        run: esy add ocaml@4.08.0
 
       - name: Install dependencies # Solve every time (fast)
         run: esy install --verbose
