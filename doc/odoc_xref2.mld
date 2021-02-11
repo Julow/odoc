@@ -1,0 +1,13 @@
+{0 odoc_xref2}
+
+This is the library that is responsible for expansion and resolution.
+
+The important modules are:
+
+- {!module-Odoc_xref2.Component}: responsible for the internal representation of components
+- {!Odoc_xref2.Compile}: responsible for the compilation phase
+- {!Odoc_xref2.Tools}: Tools for manipulating components
+- {!Odoc_xref2.Expand_tools}: Tools focused on expansion of components
+
+Other modules may be found here:
+- {!childmodule-Odoc_xref2}
