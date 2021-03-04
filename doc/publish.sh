@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 
-dune build @docgen
+set -e
+
+
+dune build @doc
+
+cd _build/default/doc
+
+ocaml-mdx test driver.md
+
+cd ../../..
 
 git checkout origin/gh-pages
 
-rsync -av _build/default/doc/odoc/ .
+rsync -av _build/default/doc/html/odoc/ .
 

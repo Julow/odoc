@@ -148,12 +148,12 @@ let link file =
 
 let html_generate file =
     let open Cmd in
-    let cmd = odoc % "html-generate" % p file % "-o" % "." % "--indent" % "--theme-uri" % "odoc" % "--support-uri" % "odoc" in
+    let cmd = odoc % "html-generate" % p file % "-o" % "html" % "--indent" % "--theme-uri" % "odoc" % "--support-uri" % "odoc" in
     OS.Cmd.(run_out cmd ~err:err_null |> to_lines) |> Result.get_ok
 
 let support_files () =
     let open Cmd in
-    let cmd = odoc % "support-files" % "-o" % "odoc" in
+    let cmd = odoc % "support-files" % "-o" % "html/odoc" in
     OS.Cmd.(run_out cmd |> to_lines) |> Result.get_ok
 
 ```
