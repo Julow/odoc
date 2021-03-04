@@ -18,9 +18,9 @@ change.
 A regular [odoc] execution transforms [.cmt], [.cmti], and [.mld] files into
 [.odoc] files, and then turns those into [.html] files. Roughly like this:
 
-{[
+{v
 cmti_and_mld_files |> compile_to_odoc |> compile_to_html
-]}
+v}
 
 This means that an [intro.mld] file will be compiled to [page-intro.odoc] which
 in turn will become [intro.html].
@@ -110,7 +110,6 @@ odoc_odoc library.
 
 {!childpage-odoc_xref_test}
 {!childpage-print}
-{!childpage-odoc_compat}
 
 
 {1 Dependency libraries}

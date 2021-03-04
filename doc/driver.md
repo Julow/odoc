@@ -177,7 +177,7 @@ let dep_libraries = [
 let odoc_libraries = [
     "odoc_xref_test"; "print"; "odoc_xref2"; "odoc_parser"; "odoc_odoc";
     "odoc_model_desc"; "odoc_model"; "odoc_manpage"; "odoc_loader";
-    "odoc_latex"; "odoc_html"; "odoc_document"; "odoc_compat" ];;
+    "odoc_latex"; "odoc_html"; "odoc_document" ];;
 
 let all_libraries = dep_libraries @ odoc_libraries;;
 
