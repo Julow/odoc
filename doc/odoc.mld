@@ -65,8 +65,12 @@ odoc's main advantage over ocamldoc is an accurate cross-referencer, which handl
 
 {1 Using Odoc}
 
-Odoc is not intended to be invoked by users
+Odoc is not intended to be invoked by users directly. Please use `odig` or `dune`.
 
+{1 Contributing to Odoc}
+
+We'd love your help! We have a {{!page-contributing}contributors guide} with some useful
+pointers to help you get familiar with odoc's codebase. 
 
 {1 API reference}
 
