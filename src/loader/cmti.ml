@@ -691,7 +691,7 @@ and read_include env parent incl =
   | Some uexpr when not (contains_signature uexpr) ->
     let decl = Include.ModuleType uexpr in
     let expansion = { content; shadowed; } in
-    [Include {parent; doc; decl; expansion; inline=false }]
+    [Include {parent; doc; decl; expansion; }]
   | Some ModuleType.U.Signature { items; _ } when is_inlinable items ->
     items
   | _ ->

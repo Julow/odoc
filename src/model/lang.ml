@@ -170,7 +170,6 @@ and Include : sig
     parent : Identifier.Signature.t;
     doc : Comment.docs;
     decl : decl;
-    inline : bool;
     expansion : expansion;
   }
 end =

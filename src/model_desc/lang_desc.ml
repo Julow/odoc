@@ -251,7 +251,6 @@ and include_t =
       F ("parent", (fun t -> t.parent), identifier);
       F ("doc", (fun t -> t.doc), docs);
       F ("decl", (fun t -> t.decl), include_decl);
-      F ("inline", (fun t -> t.inline), bool);
       F ("expansion", (fun t -> t.expansion), include_expansion);
     ]
 

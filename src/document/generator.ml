@@ -1517,15 +1517,13 @@ module Make (Syntax : SYNTAX) = struct
         | ModuleType mty -> umty_hidden mty
       in
       let status =
-        let is_open_tag element =
-          element.Odoc_model.Location_.value = `Tag `Open
+        let has_tag tag = function
+          | { Odoc_model.Location_.value = `Tag t'; _ } -> t' = tag
+          | _ -> false
         in
-        let is_closed_tag element =
-          element.Odoc_model.Location_.value = `Tag `Closed
-        in
-        if t.inline || decl_hidden then `Inline
-        else if List.exists is_open_tag t.doc then `Open
-        else if List.exists is_closed_tag t.doc then `Closed
+        if List.exists (has_tag `Inline) t.doc || decl_hidden then `Inline
+        else if List.exists (has_tag `Open) t.doc then `Open
+        else if List.exists (has_tag `Closed) t.doc then `Closed
         else `Default
       in
 

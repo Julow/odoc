@@ -530,7 +530,7 @@ and read_include env parent incl =
   | Some m when not (contains_signature m) ->
     let decl = ModuleType m in
     let expansion = { content; shadowed; } in
-    [Include {parent; doc; decl; expansion; inline=false }]
+    [Include {parent; doc; decl; expansion; }]
   | Some (ModuleType.U.Signature { items; _ }) ->
     items
   | _ ->
