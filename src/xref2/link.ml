@@ -170,10 +170,12 @@ and comment_nestable_block_element env parent
       let refs =
         List.map
           (fun (r : Comment.module_reference) ->
-            match Ref_tools.resolve_module_reference env r.module_reference with
+            let { Location_.value = ref; location } = r.module_reference in
+            match Ref_tools.resolve_module_reference env ref with
             | Some (r, _, m) ->
-                let module_synopsis = synopsis_of_module env m in
-                { Comment.module_reference = `Resolved r; module_synopsis }
+                let module_reference = Location_.at location (`Resolved r)
+                and module_synopsis = synopsis_of_module env m in
+                { Comment.module_reference; module_synopsis }
             | None -> r)
           refs
       in

@@ -65,7 +65,7 @@ and link_content : general_link_content t =
 
 let module_reference =
   let simplify m =
-    ( (m.module_reference :> Paths.Reference.t),
+    ( (ignore_loc m.module_reference :> Paths.Reference.t),
       (m.module_synopsis :> general_link_content option) )
   in
   Indirect (simplify, Pair (reference, Option link_content))

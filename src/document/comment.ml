@@ -21,6 +21,8 @@ open Odoc_model.Names
 let source_of_code s =
   if s = "" then [] else [ Source.Elt [ inline @@ Inline.Text s ] ]
 
+let loc_val x = x.Odoc_model.Location_.value
+
 module Reference = struct
   open Odoc_model.Paths
 
@@ -210,7 +212,7 @@ let module_references ms =
   let module_reference (m : Comment.module_reference) =
     let reference =
       Reference.to_ir ~stop_before:false
-        (m.module_reference :> Odoc_model.Paths.Reference.t)
+        (loc_val m.module_reference :> Odoc_model.Paths.Reference.t)
     and synopsis =
       match m.module_synopsis with
       | Some synopsis ->

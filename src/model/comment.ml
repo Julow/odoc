@@ -32,7 +32,7 @@ type inline_element =
 type paragraph = inline_element with_location list
 
 type module_reference = {
-  module_reference : Reference.Module.t;
+  module_reference : Reference.Module.t with_location;
   module_synopsis : paragraph option;
 }
 (** The [{!modules: ...}] markup. [module_synopsis] is initially [None], it is
