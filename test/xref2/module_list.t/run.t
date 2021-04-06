@@ -1,6 +1,12 @@
 # Testing {!modules:...} lists
 
   $ compile external.mli starts_with_open.mli main.mli
+  File "external.mli", line 20, characters 4-36:
+  The synopsis from this module contains references that won't be resolved when included in this list.
+  File "main.mli", line 1, character 4 to line 3, character 47:
+  The synopsis from this module contains references that won't be resolved when included in this list.
+  File "main.mli", line 1, character 4 to line 3, character 47:
+  The synopsis from this module contains references that won't be resolved when included in this list.
 
 Everything should resolve:
 

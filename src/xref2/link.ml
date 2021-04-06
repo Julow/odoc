@@ -28,6 +28,19 @@ let synopsis_of_module env (m : Component.Module.t) =
       | Ok sg -> synopsis_from_comment (Component.extract_signature_doc sg)
       | Error _ -> None)
 
+let warn_if_contains_references ~location p =
+  let is_ref = function
+    | { Location_.value = `Reference _; _ } -> true
+    | _ -> false
+  in
+  match p with
+  | Some p when List.exists is_ref p ->
+      Lookup_failures.with_location location (fun () ->
+          Lookup_failures.report ~kind:`Warning
+            "The synopsis from this module contains references that won't be \
+             resolved when included in this list.")
+  | _ -> ()
+
 exception Loop
 
 let rec is_forward : Paths.Path.Module.t -> bool = function
@@ -175,6 +188,7 @@ and comment_nestable_block_element env parent
             | Some (r, _, m) ->
                 let module_reference = Location_.at location (`Resolved r)
                 and module_synopsis = synopsis_of_module env m in
+                warn_if_contains_references ~location module_synopsis;
                 { Comment.module_reference; module_synopsis }
             | None -> r)
           refs
