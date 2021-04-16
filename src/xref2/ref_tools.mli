@@ -1,3 +1,5 @@
+(** Doesn't generate any lookup failures. *)
+
 open Odoc_model.Paths.Reference
 
 type module_lookup_result =

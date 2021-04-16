@@ -1,6 +1,10 @@
 # References to pages and items in pages
 
-  $ compile p.mld good_references.mli bad_references.mli
+  $ compile p.mld good_references.mli bad_references.mli m.mli
+  File "bad_references.mli", line 4, characters 20-37:
+  Failed to resolve reference.
+  File "bad_references.mli", line 6, characters 42-69:
+  Failed to resolve reference.
 
 Every references in `Good_references` should resolve:
 
@@ -21,5 +25,5 @@ Every references in `Bad_references` should not:
 Every references in `P` should resolve:
 
   $ odoc_print page-p.odocl | jq_scan_references
-  {"`Root":["M","`TUnknown"]}
-  {"`Dot":[{"`Root":["M","`TUnknown"]},"t"]}
+  {"`Resolved":{"`Identifier":{"`Root":[{"`RootPage":"test"},"M"]}}}
+  {"`Resolved":{"`Type":[{"`Identifier":{"`Root":[{"`RootPage":"test"},"M"]}},"t"]}}

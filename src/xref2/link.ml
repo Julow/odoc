@@ -9,6 +9,8 @@ module Id = Paths.Identifier
 
 module Opt = struct
   let map f = function Some x -> Some (f x) | None -> None
+
+  let value ~default = function Some x -> x | None -> default
 end
 
 (** Equivalent to {!Comment.synopsis}. *)
@@ -144,26 +146,22 @@ let rec comment_inline_element :
   match x with
   | `Styled (s, ls) ->
       `Styled (s, List.map (with_location (comment_inline_element env)) ls)
-  | `Reference (r, []) -> (
-      (* Format.fprintf Format.err_formatter "XXXXXXXXXX about to resolve reference: %a\n%!" (Component.Fmt.model_reference) r; *)
-      match Ref_tools.resolve_reference env r with
-      | Some (`Identifier (#Id.Label.t as i) as r) ->
-          (* Format.fprintf Format.err_formatter "XXXXXXXXXX resolved reference: %a\n%!" (Component.Fmt.model_resolved_reference) r; *)
-          let content =
-            match Env.lookup_section_title i env with Some x -> x | None -> []
-          in
-          `Reference (`Resolved r, content)
-      | Some x ->
-          (* Format.fprintf Format.err_formatter "XXXXXXXXXX resolved reference: %a\n%!" (Component.Fmt.model_resolved_reference) x; *)
-          `Reference (`Resolved x, [])
-      | None ->
-          (* Format.fprintf Format.err_formatter "XXXXXXXXXX FAILED to resolve reference: %a\n%!" (Component.Fmt.model_reference) r; *)
-          `Reference (r, []))
   | `Reference (r, content) as orig -> (
-      (* Format.fprintf Format.err_formatter "XXXXXXXXXX about to resolve contentful reference: %a\n" (Component.Fmt.model_reference) r; *)
       match Ref_tools.resolve_reference env r with
-      | Some x -> `Reference (`Resolved x, content)
-      | None -> orig)
+      | Some x ->
+          let content =
+            match (content, x) with
+            | [], `Identifier (#Id.Label.t as id) ->
+                (* Fallback to section title if no content. *)
+                Env.lookup_section_title id env |> Opt.value ~default:[]
+            | _ -> content
+          in
+          `Reference (`Resolved x, content)
+      | None ->
+          (* TODO: Better report of errors in [Ref_tools].
+             [kind:`Root] to avoid generating fatal warnings for now. *)
+          Lookup_failures.report ~kind:`Root "Failed to resolve reference.";
+          orig)
   | y -> y
 
 and comment_nestable_block_element env parent
