@@ -2,22 +2,32 @@ let strict_mode = ref false
 
 type kind = [ `Root | `Internal | `Warning ]
 
-type loc = Odoc_model.Location_.span option
+type loc = Odoc_model.Location_.span
 
-type 'a with_failures = 'a * (kind * string * loc) list
+type context = loc * string * string option
+(** Location * message * suggestion *)
+
+type 'a with_failures = 'a * (kind * string * loc option * context option) list
 
 let failure_acc = ref []
 
 let loc_acc = ref None
 
-let add ~kind f = failure_acc := (kind, f, !loc_acc) :: !failure_acc
+let context_acc = ref None
+
+let add ~kind f =
+  failure_acc := (kind, f, !loc_acc, !context_acc) :: !failure_acc
+
+let with_var var x f =
+  let prev_x = !var in
+  var := x;
+  let r = f () in
+  let last_x = !var in
+  var := prev_x;
+  (r, last_x)
 
 let catch_failures f =
-  let prev = !failure_acc in
-  failure_acc := [];
-  let r = f () in
-  let failures = !failure_acc in
-  failure_acc := prev;
+  let r, failures = with_var failure_acc [] f in
   (r, List.rev failures)
 
 let kasprintf k fmt =
@@ -30,12 +40,10 @@ let report ?(kind = `Internal) fmt = kasprintf (add ~kind) fmt
 let report_important ?(kind = `Internal) exn fmt =
   if !strict_mode then raise exn else kasprintf (add ~kind) fmt
 
-let with_location loc f =
-  let prev_loc = !loc_acc in
-  loc_acc := Some loc;
-  let r = f () in
-  loc_acc := prev_loc;
-  r
+let with_location loc f = fst (with_var loc_acc (Some loc) f)
+
+let with_context ?suggestion loc msg f =
+  fst (with_var context_acc (Some (loc, msg, suggestion)) f)
 
 let handle_failures ~warn_error ~filename (r, failures) =
   let open Odoc_model in
@@ -44,10 +52,19 @@ let handle_failures ~warn_error ~filename (r, failures) =
     | Some loc -> Error.make "%s" msg loc
     | None -> Error.filename_only "%s" msg filename
   in
-  let handle_failure ~warnings = function
-    | `Internal, msg, loc -> Error.warning warnings (error ~loc msg)
-    | `Warning, msg, loc -> Error.warning warnings (error ~loc msg)
-    | `Root, msg, loc -> prerr_endline (Error.to_string (error ~loc msg))
+  let handle_failure ~warnings (kind, msg, loc, context) =
+    let e = error ~loc msg in
+    let e =
+      match context with
+      | None -> e
+      | Some (cloc, cmsg, suggestion) ->
+          Error.make ?suggestion "The following error occurred while %s:@\n%s"
+            cmsg (Error.to_string e) cloc
+    in
+    match kind with
+    | `Internal -> Error.warning warnings e
+    | `Warning -> Error.warning warnings e
+    | `Root -> prerr_endline (Error.to_string e)
   in
   Error.accumulate_warnings (fun warnings ->
       List.iter (handle_failure ~warnings) failures;

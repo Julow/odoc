@@ -23,6 +23,14 @@ val with_location : Odoc_model.Location_.span -> (unit -> 'a) -> 'a
 (** Failures reported indirectly by this function will have a location
     attached. *)
 
+val with_context :
+  ?suggestion:string ->
+  Odoc_model.Location_.span ->
+  string ->
+  (unit -> 'a) ->
+  'a
+(** Add context to every failures reported while executing [f]. *)
+
 val handle_failures :
   warn_error:bool ->
   filename:string ->

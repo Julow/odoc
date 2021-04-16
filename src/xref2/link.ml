@@ -30,19 +30,6 @@ let synopsis_of_module env (m : Component.Module.t) =
       | Ok sg -> synopsis_from_comment (Component.extract_signature_doc sg)
       | Error _ -> None)
 
-let warn_if_contains_references ~location p =
-  let is_ref = function
-    | { Location_.value = `Reference _; _ } -> true
-    | _ -> false
-  in
-  match p with
-  | Some p when List.exists is_ref p ->
-      Lookup_failures.with_location location (fun () ->
-          Lookup_failures.report ~kind:`Warning
-            "The synopsis from this module contains references that won't be \
-             resolved when included in this list.")
-  | _ -> ()
-
 exception Loop
 
 let rec is_forward : Paths.Path.Module.t -> bool = function
@@ -164,11 +151,20 @@ let rec comment_inline_element :
           orig)
   | y -> y
 
+and paragraph env elts =
+  List.map (with_location (comment_inline_element env)) elts
+
+and resolve_external_synopsis env ~location synopsis =
+  let env = Env.inherit_resolver env in
+  Lookup_failures.with_context
+    ~suggestion:
+      "Only fully-qualified references can be resolved in a synopsis."
+    location "resolving a module's synopsis" (fun () -> paragraph env synopsis)
+
 and comment_nestable_block_element env parent
     (x : Comment.nestable_block_element) =
   match x with
-  | `Paragraph elts ->
-      `Paragraph (List.map (with_location (comment_inline_element env)) elts)
+  | `Paragraph elts -> `Paragraph (paragraph env elts)
   | (`Code_block _ | `Verbatim _) as x -> x
   | `List (x, ys) ->
       `List
@@ -185,8 +181,11 @@ and comment_nestable_block_element env parent
             match Ref_tools.resolve_module_reference env ref with
             | Some (r, _, m) ->
                 let module_reference = Location_.at location (`Resolved r)
-                and module_synopsis = synopsis_of_module env m in
-                warn_if_contains_references ~location module_synopsis;
+                and module_synopsis =
+                  Opt.map
+                    (resolve_external_synopsis env ~location)
+                    (synopsis_of_module env m)
+                in
                 { Comment.module_reference; module_synopsis }
             | None -> r)
           refs

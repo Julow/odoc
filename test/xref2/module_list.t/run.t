@@ -2,11 +2,30 @@
 
   $ compile external.mli starts_with_open.mli main.mli
   File "external.mli", line 20, characters 4-36:
-  The synopsis from this module contains references that won't be resolved when included in this list.
+  The following error occurred while resolving a module's synopsis:
+  File "main.mli", line 63, characters 17-21:
+  Failed to resolve reference.
+  Suggestion: Only fully-qualified references can be resolved in a synopsis.
+  File "external.mli", line 20, characters 4-36:
+  The following error occurred while resolving a module's synopsis:
+  File "main.mli", line 63, characters 22-43:
+  Failed to resolve reference.
+  Suggestion: Only fully-qualified references can be resolved in a synopsis.
   File "main.mli", line 1, character 4 to line 3, character 47:
-  The synopsis from this module contains references that won't be resolved when included in this list.
+  The following error occurred while resolving a module's synopsis:
+  File "main.mli", line 63, characters 17-21:
+  Failed to resolve reference.
+  Suggestion: Only fully-qualified references can be resolved in a synopsis.
   File "main.mli", line 1, character 4 to line 3, character 47:
-  The synopsis from this module contains references that won't be resolved when included in this list.
+  The following error occurred while resolving a module's synopsis:
+  File "main.mli", line 63, characters 22-43:
+  Failed to resolve reference.
+  Suggestion: Only fully-qualified references can be resolved in a synopsis.
+  File "main.mli", line 1, character 4 to line 3, character 47:
+  The following error occurred while resolving a module's synopsis:
+  File "external.mli", line 9, characters 6-10:
+  Failed to resolve reference.
+  Suggestion: Only fully-qualified references can be resolved in a synopsis.
 
 Everything should resolve:
 
@@ -42,7 +61,7 @@ Everything should resolve:
   {"`Resolved":{"`Identifier":{"`Root":[{"`RootPage":"test"},"Starts_with_open"]}}}
   {"Some":[{"`Word":"Synopsis"},"`Space",{"`Word":"of"},"`Space",{"`Code_span":"Starts_with_open"},{"`Word":"."}]}
   {"`Resolved":{"`Identifier":{"`Module":[{"`Root":[{"`RootPage":"test"},"Main"]},"Resolve_synopsis"]}}}
-  {"Some":[{"`Reference":[{"`Root":["t","`TUnknown"]},[]]}]}
+  {"Some":[{"`Word":"This"},"`Space",{"`Word":"should"},"`Space",{"`Word":"be"},"`Space",{"`Word":"resolved"},"`Space",{"`Word":"when"},"`Space",{"`Word":"included:"},"`Space",{"`Reference":[{"`Resolved":{"`Type":[{"`Module":[{"`Identifier":{"`Root":[{"`RootPage":"test"},"Main"]}},"Resolve_synopsis"]},"t"]}},[]]},{"`Word":"."},"`Space",{"`Word":"These"},"`Space",{"`Word":"shouldn't:"},"`Space",{"`Reference":[{"`Root":["t","`TUnknown"]},[]]},"`Space",{"`Reference":[{"`Dot":[{"`Root":["Resolve_synopsis","`TUnknown"]},"t"]},[]]}]}
   {"`Resolved":{"`Module":[{"`Identifier":{"`Root":[{"`RootPage":"test"},"External"]}},"Resolve_synopsis"]}}
   {"Some":[{"`Reference":[{"`Root":["t","`TUnknown"]},[]]}]}
 
@@ -51,6 +70,6 @@ References in the synopses above should be resolved.
 
   $ odoc_print external.odocl | jq -c '.. | .["`Modules"]? | select(.) | .[] | .[]'
   {"`Resolved":{"`Module":[{"`Identifier":{"`Root":[{"`RootPage":"test"},"Main"]}},"Resolve_synopsis"]}}
-  {"Some":[{"`Reference":[{"`Root":["t","`TUnknown"]},[]]}]}
+  {"Some":[{"`Word":"This"},"`Space",{"`Word":"should"},"`Space",{"`Word":"be"},"`Space",{"`Word":"resolved"},"`Space",{"`Word":"when"},"`Space",{"`Word":"included:"},"`Space",{"`Reference":[{"`Resolved":{"`Type":[{"`Module":[{"`Identifier":{"`Root":[{"`RootPage":"test"},"Main"]}},"Resolve_synopsis"]},"t"]}},[]]},{"`Word":"."},"`Space",{"`Word":"These"},"`Space",{"`Word":"shouldn't:"},"`Space",{"`Reference":[{"`Root":["t","`TUnknown"]},[]]},"`Space",{"`Reference":[{"`Dot":[{"`Root":["Resolve_synopsis","`TUnknown"]},"t"]},[]]}]}
 
 'Type_of' and 'Alias' don't have a summary. `C1` and `C2` neither, we expect at least `C2` to have one.
