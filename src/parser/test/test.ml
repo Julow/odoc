@@ -3,14 +3,14 @@ open Octavius
 type sexp = Sexplib0.Sexp.t = Atom of string | List of sexp list
 
 module Location_to_sexp = struct
-  let point : Location.point -> sexp =
+  let point : Loc.point -> sexp =
    fun { line; column } ->
     List [ Atom (string_of_int line); Atom (string_of_int column) ]
 
-  let span : Location.span -> sexp =
+  let span : Loc.span -> sexp =
    fun { file; start; end_ } -> List [ Atom file; point start; point end_ ]
 
-  let at : ('a -> sexp) -> 'a Location.with_location -> sexp =
+  let at : ('a -> sexp) -> 'a Loc.with_location -> sexp =
    fun f { location; value } -> List [ span location; f value ]
 end
 
@@ -111,21 +111,21 @@ module Ast_to_sexp = struct
         List [ Atom level; label; List (List.map (at inline_element) es) ]
     | `Tag t -> tag t
 
-  let docs : Ast.docs -> sexp = fun f -> List (List.map (at block_element) f)
+  let docs : Ast.t -> sexp = fun f -> List (List.map (at block_element) f)
 end
 
-let error err = Atom (Octavius.Error.to_string err)
+let error err = Atom (Octavius.Warning.to_string err)
 
-let parser_output formatter { Octavius.Error.value; warnings } =
-  let value = Ast_to_sexp.docs value in
+let parser_output formatter { Octavius.ast; warnings } =
+  let ast = Ast_to_sexp.docs ast in
   let warnings = List (List.map error warnings) in
   let output =
-    List [ List [ Atom "output"; value ]; List [ Atom "warnings"; warnings ] ]
+    List [ List [ Atom "output"; ast ]; List [ Atom "warnings"; warnings ] ]
   in
   Sexplib0.Sexp.pp_hum formatter output;
   Format.pp_print_flush formatter ()
 
-let test ?(location = { Location.line = 1; column = 0 }) str =
+let test ?(location = { Loc.line = 1; column = 0 }) str =
   let dummy_filename = "f.ml" in
   let location =
     {
@@ -2524,7 +2524,17 @@ let%expect_test _ =
 
     let unterminated_code_block_with_meta =
       test "{@met";
-      [%expect]
+      [%expect{|
+        ((output
+          (((f.ml (1 0) (1 5))
+            (paragraph
+             (((f.ml (1 0) (1 1)) (word {)) ((f.ml (1 1) (1 5)) (word @met)))))))
+         (warnings
+          ( "File \"f.ml\", line 1, characters 0-1:\
+           \n'{': bad markup.\
+           \nSuggestion: escape the brace with '\\{'."
+            "File \"f.ml\", line 1, characters 1-5:\
+           \nUnknown tag '@met'."))) |}]
   end in
   ()
 
