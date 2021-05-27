@@ -166,11 +166,12 @@ to the hierarchy declared above.
 ```ocaml env=e1
 let dep_libraries = [
     "cmdliner";
-(*    "stdlib";*)    "astring";
+   "stdlib";
+    "astring";
     "fpath";
     "result";
     "yojson";
-(*)    "tyxml";*)
+    "tyxml";
 ];;
 
 let odoc_libraries = [
