@@ -4,8 +4,9 @@ set -e
 
 
 dune build @doc
+dune build @docgen
 
-cd _build/default/doc
+cd ../_build/default/doc
 
 ocaml-mdx test driver.md
 
