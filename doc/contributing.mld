@@ -145,7 +145,7 @@ As an example the parser tests in [test/parser] work in the following way:
   test fails.
 
 When one of these expect test fails, the string that the code emitted is saved, so that
-the human developer can choose to *replace* the now-incorrect expected string.
+the human developer can choose to {b replace} the now-incorrect expected string.
 For these custom expect tests, the results may look like:
 
 {[
@@ -200,4 +200,35 @@ The coverage is tested by our CI tests and the results are available on
 
 {1 CI tests}
 
-Odoc is tested by {{:https://ci.ocamllabs.io/}ocaml-ci} and by github 
+Odoc is tested by {{:https://ci.ocamllabs.io/}ocaml-ci} and by github workflows.
+One of these does a coverage build too, so we have up-to-date coverage stats
+on {{:https://coveralls.io/github/ocaml/odoc}Coveralls}.
+
+The tests cover esy and opam builds on Windows, MacOS and Linux, and the linux
+tests cover all supported versions of OCaml. We strive to retain compatibility
+back as far as we can -- currently 4.02 -- which is important for supporting
+docs.ocaml.org.
+
+{1 Project structure}
+
+odoc is divided into several sub-libraries, each of which is found under [src/].
+
+The directories are:
+
+- {{:https://github.com/ocaml/odoc/tree/master/src/odoc}odoc/} - The overall [odoc] command-line tool.
+- {{:https://github.com/ocaml/odoc/tree/master/src/parser}parser/} - The parser for ocamldoc syntax ({{!Odoc_parser}documentation})
+- {{:https://github.com/ocaml/odoc/tree/master/src/model}model/} - Representation of OCaml source ({{!Odoc_model}documentation})
+- {{:https://github.com/ocaml/odoc/tree/master/src/model_desc}model_desc/} - Used for pretty-printing of {!Odoc_model} types ({{!Odoc_model_desc}documentation})
+- {{:https://github.com/ocaml/odoc/tree/master/src/loader}loader/} - Responsible for loading cmti, cmt and cmi files ({{!Odoc_loader}documentation})
+- {{:https://github.com/ocaml/odoc/tree/master/src/xref2}xref2/} - Resolution and expansion ({{!Odoc_xref2}documentation})
+- {{:https://github.com/ocaml/odoc/tree/master/src/document}document/} - Translates from {!Odoc_model} types into {{!Odoc_document.Types.Page.t}generic documentation IR} ({{!Odoc_document}documentation})
+- {{:https://github.com/ocaml/odoc/tree/master/src/vendor}vendor/} - Third-party software (highlight.js)
+and there are 3 directories for the different output formats:
+
+- {{:https://github.com/ocaml/odoc/tree/master/src/html/}html/} - The HTML renderer ({{!Odoc_html}documentation})
+- {{:https://github.com/ocaml/odoc/tree/master/src/latex/}latex/} - The LaTeX renderer ({{!Odoc_latex}documentation})
+- {{:https://github.com/ocaml/odoc/tree/master/src/manpage/}manpage/} - The man-page renderer ({{!Odoc_manpage}documentation})
+
+The source for the main CLI binary is {{:https://github.com/ocaml/odoc/blob/master/src/odoc/bin/main.ml}src/odoc/bin/main.ml}
+
+
