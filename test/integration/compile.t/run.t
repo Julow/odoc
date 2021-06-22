@@ -66,6 +66,9 @@ Various tests for the 'compile' command.
   Unknown tag '@Class'.
   File "ast.mli", line 74, characters 6-13:
   Unknown tag '@Method'.
+  File "ast.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
 Test different parsing errors.
 
@@ -114,6 +117,9 @@ Test different parsing errors.
   File "parser_errors.mli", line 56, characters 4-18:
   '{x bad markup}': bad markup.
   Suggestion: did you mean '{!x bad markup}' or '[x bad markup]'?
+  File "parser_errors.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
 With warn-error enabled.
 
@@ -161,6 +167,9 @@ With warn-error enabled.
   File "parser_errors.mli", line 56, characters 4-18:
   '{x bad markup}': bad markup.
   Suggestion: did you mean '{!x bad markup}' or '[x bad markup]'?
+  File "parser_errors.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
   ERROR: Warnings have been generated.
   [1]
 
@@ -168,3 +177,6 @@ Compiling a '.cmt' file.
 
   $ ocamlc -bin-annot -c impl_only.ml
   $ odoc compile --package foo impl_only.cmt
+  File "impl_only.cmt":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib

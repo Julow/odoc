@@ -220,16 +220,16 @@ type what =
   | `Module_type_u_expr of Component.ModuleType.U.expr
   | `Child of Reference.t ]
 
-let report ~(what : what) ?tools_error action =
-  let kind =
-    match tools_error with
-    | Some e -> kind_of_error (e :> Tools_error.any)
-    | None -> (
-        match what with
-        | `Include (Component.Include.Alias cp) -> kind_of_module_cpath cp
-        | `Module (`Root _) -> Some `Root
-        | _ -> None)
-  in
+let kind_of_error ~what err =
+  match err with
+  | Some e -> kind_of_error (e :> Tools_error.any)
+  | None -> (
+      match what with
+      | `Include (Component.Include.Alias cp) -> kind_of_module_cpath cp
+      | `Module (`Root _) -> Some `Root
+      | _ -> None)
+
+let report ~what ?tools_error action =
   let action =
     match action with
     | `Lookup -> "lookup"
@@ -242,9 +242,12 @@ let report ~(what : what) ?tools_error action =
     | Some e -> Format.fprintf fmt " %a" Tools_error.pp (e :> Tools_error.any)
     | None -> ()
   in
-  let r ?(kind = kind) subject pp_a a =
-    Lookup_failures.report ?kind "Failed to %s %s %a%a" action subject pp_a a
-      pp_tools_error tools_error
+  let r subject pp_a a =
+    match kind_of_error ~what tools_error with
+    | Some `Root -> ()
+    | None ->
+        Lookup_failures.report "Failed to %s %s %a%a" action subject pp_a a
+          pp_tools_error tools_error
   in
   let open Component.Fmt in
   let fmt_id fmt id = model_identifier fmt (id :> Paths.Identifier.t) in

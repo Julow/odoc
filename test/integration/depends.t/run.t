@@ -10,8 +10,17 @@ Testing the depends command.
   Lib_b
 
   $ odoc compile --pkg lib -I . lib.cmti
+  File "lib.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Lib_a Lib_b Stdlib
   $ odoc compile --pkg lib -I . lib_a.cmti
+  File "lib_a.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
   $ odoc compile --pkg lib -I . lib_b.cmti
+  File "lib_b.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
   $ odoc link-deps . | cut -d ' ' -f 1-2 | sort
   lib Lib

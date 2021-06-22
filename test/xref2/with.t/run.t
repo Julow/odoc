@@ -21,6 +21,9 @@ be able to link anywhere because we don't render the inner signature anywhere.
   
 
   $ ./compile.sh
+  File "test.cmt":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
 Let's check which module type `.content.Module.items[0].ModuleType` refers to:
 

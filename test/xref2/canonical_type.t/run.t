@@ -50,9 +50,21 @@ And finally the module we expose everything underneath.
 Now we can run odoc
 
   $ odoc compile --package x -I . foo__.cmt
+  File "foo__.cmt":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Foo__type Foo__type0 Stdlib
   $ odoc compile --package x -I . foo__type0.cmt
+  File "foo__type0.cmt":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
   $ odoc compile --package x -I . foo__type.cmt
+  File "foo__type.cmt":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
   $ odoc compile --package x -I . foo.cmt
+  File "foo.cmt":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
 We only need to link `foo` as all the others are hidden
 

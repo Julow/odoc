@@ -62,16 +62,51 @@ let parent resolver parent_cli_spec =
   | CliPackage package -> Ok (Package (`RootPage (PageName.make_std package)))
   | CliNoparent -> Ok Noparent
 
-let resolve_imports resolver imports =
+(** This function does two things:
+
+    - Resolve unresolved imports, used by [odoc compile-deps].
+    - Warn about dependencies that couldn't be found. This won't be reported
+      again while compiling. Raise a warning. *)
+let resolve_imports ~filename resolver imports =
+  let resolve_unit name =
+    (* Lookup by name then fetch the root. Implemented outside of [Resolver]
+       because we dont' want to fetch the whole file. *)
+    Resolver.lookup_path resolver name
+    |> List.find_map (fun path ->
+           match Odoc_file.load_root path with
+           | Ok ({ Odoc_model.Root.file = Compilation_unit _; _ } as root) ->
+               Some root
+           | Ok _ | Error _ -> None)
+  in
   let open Odoc_model in
-  List.map
-    (function
-      | Lang.Compilation_unit.Import.Resolved _ as resolved -> resolved
-      | Unresolved (name, _) as unresolved -> (
-          match Resolver.resolve_import resolver name with
-          | Some root -> Resolved (root, Names.ModuleName.make_std name)
-          | None -> unresolved))
-    imports
+  let resolve_import = function
+    | Lang.Compilation_unit.Import.Resolved (_, name) as resolved -> (
+        let name = Names.ModuleName.to_string name in
+        match resolve_unit name with
+        | Some _ -> Ok resolved
+        | None -> Error name)
+    | Unresolved (name, _) -> (
+        match resolve_unit name with
+        | Some root -> Ok (Resolved (root, Names.ModuleName.make_std name))
+        | None -> Error name)
+  in
+  let imports, failed =
+    List.fold_right
+      (fun import (acc, failed) ->
+        match resolve_import import with
+        | Ok r -> (r :: acc, failed)
+        | Error e -> (import :: acc, e :: failed))
+      imports ([], [])
+  in
+  (match failed with
+  | [] -> ()
+  | _ :: _ ->
+      Error.raise_warning ~non_fatal:true
+        (Error.filename_only
+           "Couldn't find some external dependencies:@;<1 2>@[%a@]"
+           Format.(pp_print_list ~pp_sep:pp_print_space pp_print_string)
+           failed filename));
+  imports
 
 (** Raises warnings and errors. *)
 let resolve_and_substitute ~resolver parent input_file read_file =
@@ -85,7 +120,9 @@ let resolve_and_substitute ~resolver parent input_file read_file =
       else
         Printf.sprintf " Using %S while you should use the .cmti file" filename);
   (* Resolve imports, used by the [link-deps] command. *)
-  let unit = { unit with imports = resolve_imports resolver unit.imports } in
+  let unit =
+    { unit with imports = resolve_imports ~filename resolver unit.imports }
+  in
   let env = Resolver.build_env_for_unit resolver unit in
   let compiled =
     Odoc_xref2.Compile.compile ~filename env unit

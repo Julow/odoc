@@ -1,5 +1,8 @@
 
   $ compile test.mli
+  File "test.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
 Labels:
 Some are not in order because the 'doc' field appears after the rest in the output.

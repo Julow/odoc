@@ -10,35 +10,46 @@ A contains both parsing errors and a reference to B that isn't compiled yet:
   End of text is not allowed in '{!...}' (cross-reference).
   File "a.mli", line 8, characters 22-23:
   Identifier in reference should not be empty.
+  File "a.cmti":
+  Couldn't find some external dependencies:
+    B CamlinternalFormatBasics Stdlib
   ERROR: Warnings have been generated.
   [1]
 
   $ odoc compile --package test b.cmti
+  File "b.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
   $ odoc compile --package test a.cmti
   File "a.mli", line 8, characters 23-23:
   End of text is not allowed in '{!...}' (cross-reference).
   File "a.mli", line 8, characters 22-23:
   Identifier in reference should not be empty.
+  File "a.cmti":
+  Couldn't find some external dependencies:
+    B CamlinternalFormatBasics Stdlib
 
   $ odoc errors a.odoc
   File "a.mli", line 8, characters 23-23:
   End of text is not allowed in '{!...}' (cross-reference).
   File "a.mli", line 8, characters 22-23:
   Identifier in reference should not be empty.
+  File "a.cmti":
+  Couldn't find some external dependencies:
+    B CamlinternalFormatBasics Stdlib
 
 A contains linking errors:
 
-  $ odoc link a.odoc
-  File "a.odoc":
-  Failed to lookup type unresolvedroot(B).t Parent_module: Lookup failure (root module): B
+  $ odoc link -I . a.odoc
 
   $ odoc errors a.odocl
   File "a.mli", line 8, characters 23-23:
   End of text is not allowed in '{!...}' (cross-reference).
   File "a.mli", line 8, characters 22-23:
   Identifier in reference should not be empty.
-  File "a.odoc":
-  Failed to lookup type unresolvedroot(B).t Parent_module: Lookup failure (root module): B
+  File "a.cmti":
+  Couldn't find some external dependencies:
+    B CamlinternalFormatBasics Stdlib
 
 It is possible to hide the warnings too:
 

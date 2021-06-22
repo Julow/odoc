@@ -1,6 +1,6 @@
 open Odoc_model
 
-type kind = [ `Root | `Internal | `Warning ]
+type kind = [ `Internal | `Warning ]
 
 let loc_acc = ref None
 
@@ -11,17 +11,14 @@ let with_location' loc f =
   loc_acc := prev_loc;
   r
 
-let add ~kind msg =
+let add msg =
   let w =
     match !loc_acc with
     | Some (`Filename_only filename) -> Error.filename_only "%s" msg filename
     | Some (`Full_loc loc) -> Error.make "%s" msg loc
     | None -> failwith "Lookup_failures: Uncaught failure."
   in
-  let non_fatal =
-    match kind with `Internal | `Warning -> false | `Root -> true
-  in
-  Error.raise_warning ~non_fatal w
+  Error.raise_warning w
 
 let catch_failures ~filename f =
   with_location' (`Filename_only filename) (fun () -> Error.catch_warnings f)
@@ -33,6 +30,7 @@ let kasprintf k fmt =
 let report ?(kind = `Internal) fmt =
   (* Render the message into a string first because [Error.kmake] is not
      exposed. *)
-  kasprintf (add ~kind) fmt
+  ignore kind;
+  kasprintf add fmt
 
 let with_location loc f = with_location' (`Full_loc loc) f

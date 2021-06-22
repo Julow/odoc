@@ -1,6 +1,15 @@
 # Testing the scope of references
 
   $ compile a.mli shadowed.mli shadowed_through_open.mli
+  File "a.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
+  File "shadowed.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
+  File "shadowed_through_open.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
   $ jq_scan_references() { jq -c '.. | .["`Reference"]? | select(.)'; }
 

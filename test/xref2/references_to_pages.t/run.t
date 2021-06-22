@@ -1,6 +1,12 @@
 # References to pages and items in pages
 
   $ compile p.mld good_references.mli bad_references.mli
+  File "good_references.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
+  File "bad_references.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
 Every references in `Good_references` should resolve:
 

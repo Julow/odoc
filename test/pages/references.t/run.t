@@ -5,9 +5,21 @@
 
   $ odoc compile page.mld --child bar --child module-baz --child Foo --child module-Moo
   $ odoc compile Bar.cmti -I . --parent page
+  File "Bar.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
   $ odoc compile Baz.cmti -I . --parent page-page
+  File "Baz.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
   $ odoc compile foo.cmti -I . --parent page
+  File "foo.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
   $ odoc compile moo.cmti -I . --parent page-page
+  File "moo.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
   $ odoc link page-page.odoc -I .
   $ odoc link Bar.odoc -I .

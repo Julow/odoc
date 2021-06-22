@@ -12,9 +12,15 @@ and that "hidden" modules (eg. `A__b`, rendered to `html/A__b`) are not rendered
   $ ocamlc -bin-annot -a -o a.cma a.cmo a__b.cmo
 
   $ odoc compile --pkg test -o a__b.odoc -I . a__b.cmti
+  File "a__b.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
   $ odoc compile --pkg test -o a.odoc -I . a.cmti
   File "a.mli", line 4, characters 4-17:
   Canonical paths must contain a dot, eg. X.Y.
+  File "a.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
   $ odoc link -I . a__b.odoc
   $ odoc link -I . a.odoc

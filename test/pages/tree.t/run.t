@@ -46,8 +46,17 @@ Now compile the pages:
   $ odoc compile sub2.mld -I . --parent top2 --child m2
   $ odoc compile sub3.mld -I . --parent sub1 --child m3
   $ odoc compile m1.cmti -I . --parent sub1
+  File "m1.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
   $ odoc compile m2.cmti -I . --parent sub2
+  File "m2.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
   $ odoc compile m3.cmti -I . --parent sub3
+  File "m3.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
 Now link everything:
   $ for i in *.odoc; do odoc link -I . $i; done

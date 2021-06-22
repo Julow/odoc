@@ -1,6 +1,15 @@
 # Testing {!modules:...} lists
 
   $ compile external.mli starts_with_open.mli main.mli
+  File "external.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
+  File "starts_with_open.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics External Stdlib
+  File "main.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics External Stdlib
 
 Everything should resolve:
 

@@ -8,6 +8,12 @@ Two modules that reference each other:
   (** {!A} *)
 
   $ compile a.mli b.mli
+  File "a.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
+  File "b.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
 Check that references are resolved:
 

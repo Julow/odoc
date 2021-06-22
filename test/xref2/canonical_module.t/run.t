@@ -4,6 +4,15 @@ top-comment.
 The module Test_x is expected to be referenced as Test.X.
 
   $ compile test_x.mli test_y.ml test.ml
+  File "test_x.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
+  File "test_y.cmt":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
+  File "test.cmt":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib Test_x Test_y
 
 Test_x and Test_y have a 'canonical' field:
 

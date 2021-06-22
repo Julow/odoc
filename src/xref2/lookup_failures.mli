@@ -5,12 +5,11 @@
     to {!catch_failures}.
 
     Each failure has a [kind] which specify whether it's a lookup failure
-    ([`Root] or [`Internal]) or a warning. [`Root] failures are never turned
-    into fatal warnings. *)
+    or a warning. *)
 
 open Odoc_model
 
-type kind = [ `Root | `Internal | `Warning ]
+type kind = [ `Internal | `Warning ]
 (** [`Root] failures won't be turned into fatal warnings. [`Internal] is for
     lookup failures other than root modules and [`Warning] for messages to the
     users. They may be turned into fatal warnings depending on [~warn_error]. *)

@@ -222,15 +222,4 @@ let build_env_for_page t p =
 
 let lookup_page t target_name = lookup_page t.ap target_name
 
-let resolve_import t target_name =
-  let rec loop = function
-    | [] -> None
-    | path :: tl -> (
-        match Odoc_file.load_root path with
-        | Error _ -> loop tl
-        | Ok root -> (
-            match root.Odoc_model.Root.file with
-            | Compilation_unit _ -> Some root
-            | Page _ -> loop tl))
-  in
-  loop (Accessible_paths.find t.ap target_name)
+let lookup_path t name = Accessible_paths.find t.ap name

@@ -26,6 +26,9 @@ _not_ been strengthened.
 
   $ ocamlc -bin-annot -c test.mli
   $ odoc compile --package x test.cmti
+  File "test.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
   $ odoc link test.odoc
   $ odoc html-generate test.odocl -o html
   $ find html/x/Test/ZZ

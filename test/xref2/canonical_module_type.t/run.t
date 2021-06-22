@@ -23,6 +23,9 @@ constructor where the second element of the tuple is Resolved.
 
   $ ocamlc -c -bin-annot test.mli
   $ odoc compile --package x test.cmti
+  File "test.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
   $ odoc link test.odoc
 
 Every module type aliases and the path they link to:

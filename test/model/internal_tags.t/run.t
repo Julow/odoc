@@ -3,6 +3,9 @@ We expect no warning for "good.mli". The code already ensures that either tags
 are handled of a warning is emitted.
 
   $ compile good.mli
+  File "good.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
 We expect warnings to be emitted for each bad tags:
 
@@ -17,3 +20,6 @@ We expect warnings to be emitted for each bad tags:
   Unexpected tag '@canonical' at this location.
   File "bad.mli", line 21, characters 4-11:
   Unexpected tag '@inline' at this location.
+  File "bad.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib

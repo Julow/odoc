@@ -34,6 +34,9 @@ Compile
 -------
 
   $ compile m.mli
+  File "m.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 
 Tests
 -----

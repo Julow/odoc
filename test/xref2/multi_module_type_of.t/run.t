@@ -21,4 +21,7 @@ warnings raised when we compile the module.
 
   $ ocamlc -c -bin-annot test.mli
   $ odoc compile --package test test.cmti
+  File "test.cmti":
+  Couldn't find some external dependencies:
+    CamlinternalFormatBasics Stdlib
 

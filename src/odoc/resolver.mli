@@ -34,6 +34,9 @@ val create :
 
 val lookup_page : t -> string -> Odoc_model.Lang.Page.t option
 
+val lookup_path : t -> string -> Fpath.t list
+(** Returns the paths to files that match a unit name. *)
+
 (* val lookup_module *)
 
 val build_env_for_unit :
@@ -42,8 +45,3 @@ val build_env_for_unit :
 
 val build_env_for_page : t -> Odoc_model.Lang.Page.t -> Odoc_xref2.Env.t
 (** Initialize the environment for the given page. *)
-
-val resolve_import : t -> string -> Odoc_model.Root.t option
-(** Similar to {!Odoc_xref2.Env.lookup_root_module} but save work by loading
-    only the root. Only used when resolving imports, which are needed for the
-    [link-deps] command. *)
