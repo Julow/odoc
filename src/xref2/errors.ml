@@ -97,7 +97,7 @@ module Tools_error = struct
   let rec pp : Format.formatter -> any -> unit =
    fun fmt err ->
     match err with
-    | `OpaqueModule -> Format.fprintf fmt "OpaqueModule"
+    | `OpaqueModule -> Format.fprintf fmt "Opaque module"
     | `UnresolvedForwardPath -> Format.fprintf fmt "Unresolved forward path"
     | `UnresolvedPath (`Module (p, e)) ->
         Format.fprintf fmt "Unresolved module path %a (%a)"
@@ -169,43 +169,43 @@ let is_unexpanded_module_type_of =
   in
   inner
 
-let rec kind_of_module_cpath = function
+let rec cpath_is_root = function
   | `Root name -> Some (`Root name)
-  | `Substituted p' | `Dot (p', _) -> kind_of_module_cpath p'
+  | `Substituted p' | `Dot (p', _) -> cpath_is_root p'
   | `Apply (a, b) -> (
-      match kind_of_module_cpath a with
+      match cpath_is_root a with
       | Some _ as a -> a
-      | None -> kind_of_module_cpath b)
+      | None -> cpath_is_root b)
   | _ -> None
 
-let rec kind_of_module_type_cpath = function
-  | `Substituted p' -> kind_of_module_type_cpath p'
-  | `Dot (p', _) -> kind_of_module_cpath p'
+let rec mt_cpath_is_root = function
+  | `Substituted p' -> mt_cpath_is_root p'
+  | `Dot (p', _) -> cpath_is_root p'
   | _ -> None
 
 (** [Some (`Root _)] for errors during lookup of root modules or [None] for
     other errors. *)
-let rec kind_of_error = function
-  | `UnresolvedPath (`Module (cp, _)) -> kind_of_module_cpath cp
-  | `UnresolvedPath (`ModuleType (cp, _)) -> kind_of_module_type_cpath cp
+let rec is_root_error = function
+  | `UnresolvedPath (`Module (cp, _)) -> cpath_is_root cp
+  | `UnresolvedPath (`ModuleType (cp, _)) -> mt_cpath_is_root cp
   | `Lookup_failure (`Root (_, name)) ->
       Some (`Root (Names.ModuleName.to_string name))
   | `Lookup_failure_root name -> Some (`Root name)
-  | `Parent (`Parent_sig e) -> kind_of_error (e :> Tools_error.any)
-  | `Parent (`Parent_module_type e) -> kind_of_error (e :> Tools_error.any)
-  | `Parent (`Parent_expr e) -> kind_of_error (e :> Tools_error.any)
-  | `Parent (`Parent_module e) -> kind_of_error (e :> Tools_error.any)
-  | `Parent (`Parent _ as e) -> kind_of_error (e :> Tools_error.any)
+  | `Parent (`Parent_sig e) -> is_root_error (e :> Tools_error.any)
+  | `Parent (`Parent_module_type e) -> is_root_error (e :> Tools_error.any)
+  | `Parent (`Parent_expr e) -> is_root_error (e :> Tools_error.any)
+  | `Parent (`Parent_module e) -> is_root_error (e :> Tools_error.any)
+  | `Parent (`Parent _ as e) -> is_root_error (e :> Tools_error.any)
   | `OpaqueModule ->
       (* Don't turn OpaqueModule warnings into errors *)
       Some `OpaqueModule
   | _ -> None
 
-let kind_of_error ~what = function
-  | Some e -> kind_of_error (e :> Tools_error.any)
+let is_root_error ~what = function
+  | Some e -> is_root_error (e :> Tools_error.any)
   | None -> (
       match what with
-      | `Include (Component.Include.Alias cp) -> kind_of_module_cpath cp
+      | `Include (Component.Include.Alias cp) -> cpath_is_root cp
       | `Module (`Root (_, name)) ->
           Some (`Root (Names.ModuleName.to_string name))
       | _ -> None)
@@ -236,14 +236,12 @@ type what =
 let report ~(what : what) ?tools_error action =
   let action =
     match action with
-    | `Lookup -> "lookup"
     | `Expand -> "compile expansion for"
     | `Resolve_module_type -> "resolve type of"
     | `Resolve -> "resolve"
-    | `Compile -> "compile"
   in
   let pp_tools_error fmt = function
-    | Some e -> Format.fprintf fmt " %a" Tools_error.pp (e :> Tools_error.any)
+    | Some e -> Format.fprintf fmt " (%a)" Tools_error.pp (e :> Tools_error.any)
     | None -> ()
   in
   let open Component.Fmt in
@@ -278,7 +276,7 @@ let report ~(what : what) ?tools_error action =
         r "module type u expression" u_module_type_expr cexpr
     | `Child rf -> r "child reference" model_reference rf
   in
-  match kind_of_error ~what tools_error with
+  match is_root_error ~what tools_error with
   | Some (`Root name) -> Lookup_failures.report_root ~name
   | Some `OpaqueModule -> report_internal_error ()
   | None -> report_internal_error ()

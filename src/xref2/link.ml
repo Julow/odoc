@@ -84,7 +84,7 @@ let type_path : Env.t -> Paths.Path.Type.t -> Paths.Path.Type.t =
             let result = Tools.reresolve_type env p' in
             `Resolved (Cpath.resolved_type_path_of_cpath result)
         | Error e ->
-            Errors.report ~what:(`Type_path cp) ~tools_error:e `Lookup;
+            Errors.report ~what:(`Type_path cp) ~tools_error:e `Resolve;
             Cpath.type_path_of_cpath cp)
 
 and module_type_path :

@@ -70,7 +70,7 @@ and value_ env parent t =
   let container = (parent :> Id.Parent.t) in
   try { t with type_ = type_expression env container t.type_ }
   with _ ->
-    Errors.report ~what:(`Value t.id) `Compile;
+    Errors.report ~what:(`Value t.id) `Resolve;
     t
 
 and exception_ env parent e =
@@ -425,7 +425,7 @@ and module_type_expr_sub id ~fragment_root (sg_res, env, subs) lsub =
                       (Lang_of.Path.resolved_type_fragment lang_of_map cfrag')
                   )
               | None ->
-                  Errors.report ~what:(`With_type cfrag) `Compile;
+                  Errors.report ~what:(`With_type cfrag) `Resolve;
                   (cfrag, frag)
             in
             let eqn' = type_decl_equation env (id :> Id.Parent.t) eqn in
@@ -468,7 +468,7 @@ and module_type_expr_sub id ~fragment_root (sg_res, env, subs) lsub =
                     `Resolved
                       (Lang_of.Path.resolved_type_fragment lang_of_map cfrag) )
               | None ->
-                  Errors.report ~what:(`With_type cfrag) `Compile;
+                  Errors.report ~what:(`With_type cfrag) `Resolve;
                   (cfrag, frag)
             in
             let eqn' = type_decl_equation env (id :> Id.Parent.t) eqn in
@@ -550,7 +550,8 @@ and module_type_map_subs env id cexpr subs =
         Tools.signature_of_u_module_type_expr ~mark_substituted:true env cexpr
       with
       | Error e ->
-          Errors.report ~what:(`Module_type id) ~tools_error:e `Lookup;
+          Errors.report ~what:(`Module_type id) ~tools_error:e
+            `Resolve_module_type;
           None
       | Ok sg ->
           let fragment_root =
@@ -746,7 +747,7 @@ and type_expression_package env parent p =
   | Ok (path, mt) -> (
       match Tools.signature_of_module_type env mt with
       | Error e ->
-          Errors.report ~what:(`Package cp) ~tools_error:e `Lookup;
+          Errors.report ~what:(`Package cp) ~tools_error:e `Resolve_module_type;
           p
       | Ok sg ->
           let substitution (frag, t) =
@@ -758,7 +759,7 @@ and type_expression_package env parent p =
               | Some cfrag' ->
                   `Resolved (Lang_of.(Path.resolved_type_fragment empty) cfrag')
               | None ->
-                  Errors.report ~what:(`Type cfrag) `Compile;
+                  Errors.report ~what:(`Type cfrag) `Resolve;
                   frag
             in
             (frag', type_expression env parent t)
