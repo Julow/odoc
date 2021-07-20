@@ -162,15 +162,6 @@ val reresolve_type : Env.t -> Cpath.Resolved.type_ -> Cpath.Resolved.type_
 
 val reresolve_parent : Env.t -> Cpath.Resolved.parent -> Cpath.Resolved.parent
 
-val handle_module_type_lookup :
-  Env.t ->
-  add_canonical:bool ->
-  string ->
-  Cpath.Resolved.parent ->
-  Component.Signature.t ->
-  Component.Substitution.t ->
-  (Cpath.Resolved.module_type * Component.ModuleType.t) option
-
 type module_modifiers =
   [ `Aliased of Cpath.Resolved.module_ | `SubstMT of Cpath.Resolved.module_type ]
 
@@ -205,20 +196,6 @@ val class_signature_of_class :
   Env.t -> Component.Class.t -> Component.ClassSignature.t option
 
 (** {2 Fragment resolution} *)
-
-val signature_of_module_type_expr :
-  mark_substituted:bool ->
-  Env.t ->
-  Component.ModuleType.expr ->
-  (Component.Signature.t, tools_error) Result.result
-(** The following functions are use for the resolution of {{!type:Odoc_model.Paths.Fragment.t}Fragments}
-    Whilst resolving fragments it is necessary to process them in order, applying
-    the 'with' expression of module or type equality or substitution, before resolving
-    the next fragment. The function [signature_of_module_type_expr] is used to supply
-    the signature for the first fragment. For this purpose, [mark_substituted] should
-    be [true]. As for the path resolution functions above, the resolve functions may
-    be called during compile or link, whereas the reresolve functions should only be called
-    during the link phase. *)
 
 val signature_of_u_module_type_expr :
   mark_substituted:bool ->
