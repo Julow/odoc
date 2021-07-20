@@ -167,23 +167,19 @@ open Errors.Tools_error
 
 type resolve_module_result =
   ( Cpath.Resolved.module_ * Component.Module.t Component.Delayed.t,
-    simple_module_lookup_error )
+    tools_error )
   Result.result
 
 type resolve_module_type_result =
   ( Cpath.Resolved.module_type * Component.ModuleType.t,
-    simple_module_type_lookup_error )
+    tools_error )
   Result.result
 
 type resolve_type_result =
-  ( Cpath.Resolved.type_ * Find.careful_type,
-    simple_type_lookup_error )
-  Result.result
+  (Cpath.Resolved.type_ * Find.careful_type, tools_error) Result.result
 
 type resolve_class_type_result =
-  ( Cpath.Resolved.class_type * Find.careful_class,
-    simple_type_lookup_error )
-  Result.result
+  (Cpath.Resolved.class_type * Find.careful_class, tools_error) Result.result
 
 type ('a, 'b, 'c) sig_map = { type_ : 'a; module_ : 'b; module_type : 'c }
 
@@ -250,9 +246,7 @@ module LookupModuleMemo = MakeMemo (struct
   type t = bool * Cpath.Resolved.module_
 
   type result =
-    ( Component.Module.t Component.Delayed.t,
-      simple_module_lookup_error )
-    Result.result
+    (Component.Module.t Component.Delayed.t, tools_error) Result.result
 
   let equal = ( = )
 
@@ -264,7 +258,7 @@ module LookupParentMemo = MakeMemo (struct
 
   type result =
     ( Component.Signature.t * Component.Substitution.t,
-      [ `Parent of parent_lookup_error ] )
+      tools_error )
     Result.result
 
   let equal = ( = )
@@ -285,7 +279,7 @@ end)
 module SignatureOfModuleMemo = MakeMemo (struct
   type t = Cpath.Resolved.module_
 
-  type result = (Component.Signature.t, signature_of_module_error) Result.result
+  type result = (Component.Signature.t, tools_error) Result.result
 
   let equal = ( = )
 
@@ -537,9 +531,7 @@ and lookup_module :
     mark_substituted:bool ->
     Env.t ->
     Cpath.Resolved.module_ ->
-    ( Component.Module.t Component.Delayed.t,
-      simple_module_lookup_error )
-    Result.result =
+    (Component.Module.t Component.Delayed.t, tools_error) Result.result =
  fun ~mark_substituted:m env' path' ->
   let lookup env (mark_substituted, (path : SignatureOfModuleMemo.M.key)) =
     match path with
@@ -554,7 +546,7 @@ and lookup_module :
         let functor_module = Component.Delayed.get functor_module in
         handle_apply ~mark_substituted env functor_path argument_path
           functor_module
-        |> map_error (fun e -> `Parent (`Parent_expr e))
+        |> map_error (fun e -> `Parent e)
         >>= fun (_, m) -> Ok (Component.Delayed.put_val m)
     | `Module (parent, name) ->
         let find_in_sg sg sub =
@@ -564,9 +556,8 @@ and lookup_module :
               Ok (Component.Delayed.put_val (Subst.module_ sub m))
           | Some (`FModule_removed p) -> lookup_module ~mark_substituted env p
         in
-        lookup_parent ~mark_substituted env parent
-        |> map_error (fun e -> (e :> simple_module_lookup_error))
-        >>= fun (sg, sub) -> find_in_sg sg sub
+        lookup_parent ~mark_substituted env parent >>= fun (sg, sub) ->
+        find_in_sg sg sub
     | `Alias (_, p) -> lookup_module ~mark_substituted env p
     | `Subst (_, p) -> lookup_module ~mark_substituted env p
     | `Hidden p -> lookup_module ~mark_substituted env p
@@ -579,7 +570,7 @@ and lookup_module_type :
     mark_substituted:bool ->
     Env.t ->
     Cpath.Resolved.module_type ->
-    (Component.ModuleType.t, simple_module_type_lookup_error) Result.result =
+    (Component.ModuleType.t, tools_error) Result.result =
  fun ~mark_substituted env path ->
   let lookup env =
     match path with
@@ -596,9 +587,8 @@ and lookup_module_type :
           | None -> Error `Find_failure
           | Some (`FModuleType (_, mt)) -> Ok (Subst.module_type sub mt)
         in
-        lookup_parent ~mark_substituted:true env parent
-        |> map_error (fun e -> (e :> simple_module_type_lookup_error))
-        >>= fun (sg, sub) -> find_in_sg sg sub
+        lookup_parent ~mark_substituted:true env parent >>= fun (sg, sub) ->
+        find_in_sg sg sub
     | `AliasModuleType (_, mt) -> lookup_module_type ~mark_substituted env mt
     | `OpaqueModuleType m -> lookup_module_type ~mark_substituted env m
   in
@@ -609,25 +599,22 @@ and lookup_parent :
     Env.t ->
     Cpath.Resolved.parent ->
     ( Component.Signature.t * Component.Substitution.t,
-      [ `Parent of parent_lookup_error ] )
+      tools_error )
     Result.result =
  fun ~mark_substituted:m env' parent' ->
   let lookup env (mark_substituted, parent) =
     match parent with
     | `Module p ->
-        lookup_module ~mark_substituted env p
-        |> map_error (fun e -> `Parent (`Parent_module e))
+        lookup_module ~mark_substituted env p |> map_error (fun e -> `Parent e)
         >>= fun m ->
         let m = Component.Delayed.get m in
-        signature_of_module env m
-        |> map_error (fun e -> `Parent (`Parent_sig e))
+        signature_of_module env m |> map_error (fun e -> `Parent e)
         >>= fun sg -> Ok (sg, prefix_substitution parent sg)
     | `ModuleType p ->
         lookup_module_type ~mark_substituted env p
-        |> map_error (fun e -> `Parent (`Parent_module_type e))
+        |> map_error (fun e -> `Parent e)
         >>= fun mt ->
-        signature_of_module_type env mt
-        |> map_error (fun e -> `Parent (`Parent_sig e))
+        signature_of_module_type env mt |> map_error (fun e -> `Parent e)
         >>= fun sg -> Ok (sg, prefix_substitution parent sg)
     | `FragmentRoot ->
         Env.lookup_fragment_root env
@@ -639,12 +626,10 @@ and lookup_parent :
 and lookup_type :
     Env.t ->
     Cpath.Resolved.type_ ->
-    (Find.careful_type, simple_type_lookup_error) Result.result =
+    (Find.careful_type, tools_error) Result.result =
  fun env p ->
   let do_type p name =
-    lookup_parent ~mark_substituted:true env p
-    |> map_error (fun e -> (e :> simple_type_lookup_error))
-    >>= fun (sg, sub) ->
+    lookup_parent ~mark_substituted:true env p >>= fun (sg, sub) ->
     handle_type_lookup env name p sg >>= fun (_, t') ->
     let t =
       match t' with
@@ -686,12 +671,10 @@ and lookup_type :
 and lookup_class_type :
     Env.t ->
     Cpath.Resolved.class_type ->
-    (Find.careful_class, simple_type_lookup_error) Result.result =
+    (Find.careful_class, tools_error) Result.result =
  fun env p ->
   let do_type p name =
-    lookup_parent ~mark_substituted:true env p
-    |> map_error (fun e -> (e :> simple_type_lookup_error))
-    >>= fun (sg, sub) ->
+    lookup_parent ~mark_substituted:true env p >>= fun (sg, sub) ->
     handle_class_type_lookup name p sg >>= fun (_, t') ->
     let t =
       match t' with
@@ -733,18 +716,15 @@ and resolve_module :
     match p with
     | `Dot (parent, id) ->
         resolve_module ~mark_substituted ~add_canonical env parent
-        |> map_error (fun e' -> `Parent (`Parent_module e'))
+        |> map_error (fun e' -> `Parent e')
         >>= fun (p, m) ->
         let m = Component.Delayed.get m in
-        signature_of_module_cached env p m
-        |> map_error (fun e -> `Parent (`Parent_sig e))
+        signature_of_module_cached env p m |> map_error (fun e -> `Parent e)
         >>= fun parent_sig ->
         let sub = prefix_substitution (`Module p) parent_sig in
         handle_module_lookup env ~add_canonical id (`Module p) parent_sig sub
     | `Module (parent, id) ->
-        lookup_parent ~mark_substituted env parent
-        |> map_error (fun e -> (e :> simple_module_lookup_error))
-        >>= fun (parent_sig, sub) ->
+        lookup_parent ~mark_substituted env parent >>= fun (parent_sig, sub) ->
         handle_module_lookup env ~add_canonical (ModuleName.to_string id) parent
           parent_sig sub
     | `Apply (m1, m2) -> (
@@ -755,7 +735,7 @@ and resolve_module :
             let m = Component.Delayed.get m in
             match handle_apply ~mark_substituted env func_path' arg_path' m with
             | Ok (p, m) -> Ok (p, Component.Delayed.put_val m)
-            | Error e -> Error (`Parent (`Parent_expr e)))
+            | Error e -> Error (`Parent e))
         | _ -> Error `Unresolved_apply)
     | `Identifier (i, hidden) ->
         of_option ~error:(`Lookup_failure i) (Env.(lookup_by_id s_module) i env)
@@ -770,7 +750,7 @@ and resolve_module :
     | `Resolved r -> lookup_module ~mark_substituted env r >>= fun m -> Ok (r, m)
     | `Substituted s ->
         resolve_module ~mark_substituted ~add_canonical env s
-        |> map_error (fun e -> `Parent (`Parent_module e))
+        |> map_error (fun e -> `Parent e)
         >>= fun (p, m) -> Ok (`Substituted p, m)
     | `Root r -> (
         (* Format.fprintf Format.err_formatter "Looking up module %s by name...%!" r; *)
@@ -781,14 +761,13 @@ and resolve_module :
             in
             let p = process_module_path env ~add_canonical m p in
             Ok (p, Component.Delayed.put_val m)
-        | Some Env.Forward ->
-            Error (`Parent (`Parent_sig `UnresolvedForwardPath))
+        | Some Env.Forward -> Error (`Parent `UnresolvedForwardPath)
         | None ->
             (* Format.fprintf Format.err_formatter "Unresolved!\n%!"; *)
             Error (`Lookup_failure_root r))
     | `Forward f ->
         resolve_module ~mark_substituted ~add_canonical env (`Root f)
-        |> map_error (fun e -> `Parent (`Parent_module e))
+        |> map_error (fun e -> `Parent e)
   in
   LookupAndResolveMemo.memoize resolve env' id
 
@@ -803,11 +782,10 @@ and resolve_module_type :
   match p with
   | `Dot (parent, id) ->
       resolve_module ~mark_substituted ~add_canonical:true env parent
-      |> map_error (fun e -> `Parent (`Parent_module e))
+      |> map_error (fun e -> `Parent e)
       >>= fun (p, m) ->
       let m = Component.Delayed.get m in
-      signature_of_module_cached env p m
-      |> map_error (fun e -> `Parent (`Parent_sig e))
+      signature_of_module_cached env p m |> map_error (fun e -> `Parent e)
       >>= fun parent_sg ->
       let sub = prefix_substitution (`Module p) parent_sg in
       of_option ~error:`Find_failure
@@ -815,9 +793,7 @@ and resolve_module_type :
            sub)
       >>= fun (p', mt) -> Ok (p', mt)
   | `ModuleType (parent, id) ->
-      lookup_parent ~mark_substituted env parent
-      |> map_error (fun e -> (e :> simple_module_type_lookup_error))
-      >>= fun (parent_sig, sub) ->
+      lookup_parent ~mark_substituted env parent >>= fun (parent_sig, sub) ->
       handle_module_type_lookup env ~add_canonical
         (ModuleTypeName.to_string id)
         parent parent_sig sub
@@ -834,7 +810,7 @@ and resolve_module_type :
       lookup_module_type ~mark_substituted env r >>= fun m -> Ok (r, m)
   | `Substituted s ->
       resolve_module_type ~mark_substituted ~add_canonical env s
-      |> map_error (fun e -> `Parent (`Parent_module_type e))
+      |> map_error (fun e -> `Parent e)
       >>= fun (p, m) -> Ok (`Substituted p, m)
 
 and resolve_type :
@@ -845,12 +821,11 @@ and resolve_type :
     | `Dot (parent, id) ->
         (* let start_time = Unix.gettimeofday () in *)
         resolve_module ~mark_substituted:true ~add_canonical:true env parent
-        |> map_error (fun e -> `Parent (`Parent_module e))
+        |> map_error (fun e -> `Parent e)
         >>= fun (p, m) ->
         let m = Component.Delayed.get m in
         (* let time1 = Unix.gettimeofday () in *)
-        signature_of_module_cached env p m
-        |> map_error (fun e -> `Parent (`Parent_sig e))
+        signature_of_module_cached env p m |> map_error (fun e -> `Parent e)
         >>= fun sg ->
         (* let time1point5 = Unix.gettimeofday () in *)
         let sub = prefix_substitution (`Module p) sg in
@@ -869,7 +844,6 @@ and resolve_type :
         Ok (p', t)
     | `Type (parent, id) ->
         lookup_parent ~mark_substituted:true env parent
-        |> map_error (fun e -> (e :> simple_type_lookup_error))
         >>= fun (parent_sig, sub) ->
         let result =
           match Find.datatype_in_sig parent_sig (TypeName.to_string id) with
@@ -880,7 +854,6 @@ and resolve_type :
         of_option ~error:`Find_failure result
     | `Class (parent, id) ->
         lookup_parent ~mark_substituted:true env parent
-        |> map_error (fun e -> (e :> simple_type_lookup_error))
         >>= fun (parent_sig, sub) ->
         let t =
           match Find.type_in_sig parent_sig (ClassName.to_string id) with
@@ -892,7 +865,6 @@ and resolve_type :
         of_option ~error:`Find_failure t
     | `ClassType (parent, id) ->
         lookup_parent ~mark_substituted:true env parent
-        |> map_error (fun e -> (e :> simple_type_lookup_error))
         >>= fun (parent_sg, sub) ->
         handle_type_lookup env (ClassTypeName.to_string id) parent parent_sg
         >>= fun (p', t') ->
@@ -926,12 +898,11 @@ and resolve_class_type : Env.t -> Cpath.class_type -> resolve_class_type_result
   | `Dot (parent, id) ->
       (* let start_time = Unix.gettimeofday () in *)
       resolve_module ~mark_substituted:true ~add_canonical:true env parent
-      |> map_error (fun e -> `Parent (`Parent_module e))
+      |> map_error (fun e -> `Parent e)
       >>= fun (p, m) ->
       let m = Component.Delayed.get m in
       (* let time1 = Unix.gettimeofday () in *)
-      signature_of_module_cached env p m
-      |> map_error (fun e -> `Parent (`Parent_sig e))
+      signature_of_module_cached env p m |> map_error (fun e -> `Parent e)
       >>= fun sg ->
       (* let time1point5 = Unix.gettimeofday () in *)
       let sub = prefix_substitution (`Module p) sg in
@@ -955,7 +926,6 @@ and resolve_class_type : Env.t -> Cpath.class_type -> resolve_class_type_result
       resolve_class_type env s >>= fun (p, m) -> Ok (`Substituted p, m)
   | `Class (parent, id) ->
       lookup_parent ~mark_substituted:true env parent
-      |> map_error (fun e -> (e :> simple_type_lookup_error))
       >>= fun (parent_sig, sub) ->
       let t =
         match Find.type_in_sig parent_sig (ClassName.to_string id) with
@@ -967,7 +937,6 @@ and resolve_class_type : Env.t -> Cpath.class_type -> resolve_class_type_result
       of_option ~error:`Find_failure t
   | `ClassType (parent, id) ->
       lookup_parent ~mark_substituted:true env parent
-      |> map_error (fun e -> (e :> simple_type_lookup_error))
       >>= fun (parent_sg, sub) ->
       handle_class_type_lookup (ClassTypeName.to_string id) parent parent_sg
       >>= fun (p', t') ->
@@ -1131,14 +1100,12 @@ and reresolve_parent : Env.t -> Cpath.Resolved.parent -> Cpath.Resolved.parent =
 and module_type_expr_of_module_decl :
     Env.t ->
     Component.Module.decl ->
-    ( Component.ModuleType.expr,
-      simple_module_type_expr_of_module_error )
-    Result.result =
+    (Component.ModuleType.expr, tools_error) Result.result =
  fun env decl ->
   match decl with
   | Component.Module.Alias (`Resolved r, _) ->
       lookup_module ~mark_substituted:false env r
-      |> map_error (fun e -> `Parent (`Parent_module e))
+      |> map_error (fun e -> `Parent e)
       >>= fun m ->
       let m = Component.Delayed.get m in
       module_type_expr_of_module_decl env m.type_
@@ -1157,16 +1124,14 @@ and module_type_expr_of_module_decl :
 and module_type_expr_of_module :
     Env.t ->
     Component.Module.t ->
-    ( Component.ModuleType.expr,
-      simple_module_type_expr_of_module_error )
-    Result.result =
+    (Component.ModuleType.expr, tools_error) Result.result =
  fun env m -> module_type_expr_of_module_decl env m.type_
 
 and signature_of_module_path :
     Env.t ->
     strengthen:bool ->
     Cpath.module_ ->
-    (Component.Signature.t, signature_of_module_error) Result.result =
+    (Component.Signature.t, tools_error) Result.result =
  fun env ~strengthen path ->
   match resolve_module ~mark_substituted:true ~add_canonical:true env path with
   | Ok (p', m) ->
@@ -1186,7 +1151,7 @@ and handle_signature_with_subs :
     Env.t ->
     Component.Signature.t ->
     Component.ModuleType.substitution list ->
-    (Component.Signature.t, signature_of_module_error) Result.result =
+    (Component.Signature.t, tools_error) Result.result =
  fun ~mark_substituted env sg subs ->
   let open ResultMonad in
   List.fold_left
@@ -1198,7 +1163,7 @@ and signature_of_u_module_type_expr :
     mark_substituted:bool ->
     Env.t ->
     Component.ModuleType.U.expr ->
-    (Component.Signature.t, signature_of_module_error) Result.result =
+    (Component.Signature.t, tools_error) Result.result =
  fun ~mark_substituted env m ->
   match m with
   | Component.ModuleType.U.Path p -> (
@@ -1221,7 +1186,7 @@ and signature_of_module_type_expr :
     mark_substituted:bool ->
     Env.t ->
     Component.ModuleType.expr ->
-    (Component.Signature.t, signature_of_module_error) Result.result =
+    (Component.Signature.t, tools_error) Result.result =
  fun ~mark_substituted env m ->
   match m with
   | Component.ModuleType.Path { p_expansion = Some e; _ } ->
@@ -1251,7 +1216,7 @@ and signature_of_module_type_expr :
 and signature_of_module_type :
     Env.t ->
     Component.ModuleType.t ->
-    (Component.Signature.t, signature_of_module_error) Result.result =
+    (Component.Signature.t, tools_error) Result.result =
  fun env m ->
   match m.expr with
   | None -> Error `OpaqueModule
@@ -1260,7 +1225,7 @@ and signature_of_module_type :
 and signature_of_module_decl :
     Env.t ->
     Component.Module.decl ->
-    (Component.Signature.t, signature_of_module_error) Result.result =
+    (Component.Signature.t, tools_error) Result.result =
  fun env decl ->
   match decl with
   | Component.Module.Alias (_, Some e) -> Ok (signature_of_simple_expansion e)
@@ -1272,14 +1237,14 @@ and signature_of_module_decl :
 and signature_of_module :
     Env.t ->
     Component.Module.t ->
-    (Component.Signature.t, signature_of_module_error) Result.result =
+    (Component.Signature.t, tools_error) Result.result =
  fun env m -> signature_of_module_decl env m.type_
 
 and signature_of_module_cached :
     Env.t ->
     Cpath.Resolved.module_ ->
     Component.Module.t ->
-    (Component.Signature.t, signature_of_module_error) Result.result =
+    (Component.Signature.t, tools_error) Result.result =
  fun env' path m ->
   let id = path in
   let run env _id = signature_of_module env m in
@@ -1298,7 +1263,7 @@ and fragmap :
     Env.t ->
     Component.ModuleType.substitution ->
     Component.Signature.t ->
-    (Component.Signature.t, signature_of_module_error) Result.result =
+    (Component.Signature.t, tools_error) Result.result =
  fun ~mark_substituted env sub sg ->
   (* Used when we haven't finished the substitution. For example, if the
      substitution is `M.t = u`, this function is used to map the declaration
@@ -1666,9 +1631,7 @@ and find_module_with_replacement :
     Env.t ->
     Component.Signature.t ->
     string ->
-    ( Component.Module.t Component.Delayed.t,
-      simple_module_lookup_error )
-    Result.result =
+    (Component.Module.t Component.Delayed.t, tools_error) Result.result =
  fun env sg name ->
   match Find.careful_module_in_sig sg name with
   | Some (`FModule (_, m)) -> Ok (Component.Delayed.put_val m)
@@ -1680,9 +1643,7 @@ and find_module_type_with_replacement :
     Env.t ->
     Component.Signature.t ->
     string ->
-    ( Component.ModuleType.t Component.Delayed.t,
-      simple_module_type_lookup_error )
-    Result.result =
+    (Component.ModuleType.t Component.Delayed.t, tools_error) Result.result =
  fun _env sg name ->
   match Find.careful_module_type_in_sig sg name with
   | Some (`FModuleType (_, m)) -> Ok (Component.Delayed.put_val m)
@@ -1757,6 +1718,7 @@ and resolve_module_fragment :
         | Error `OpaqueModule -> `OpaqueModule f'
         | Error (`UnresolvedForwardPath | `UnresolvedPath _) -> f'
         | Error (`UnexpandedTypeOf _) -> f'
+        | Error _ -> f'
       in
       Some (fixup_module_cfrag f'')
 
@@ -1783,6 +1745,7 @@ and resolve_module_type_fragment :
             ( `UnresolvedForwardPath | `UnresolvedPath _ | `OpaqueModule
             | `UnexpandedTypeOf _ ) ->
             f'
+        | Error _ -> f'
       in
       Some (fixup_module_type_cfrag f'')
 
@@ -1875,7 +1838,8 @@ let resolve_module_path env p =
       | Ok _ -> Ok p
       | Error `OpaqueModule -> Ok (`OpaqueModule p)
       | Error (`UnresolvedForwardPath | `UnresolvedPath _) -> Ok p
-      | Error (`UnexpandedTypeOf _) -> Ok p)
+      | Error (`UnexpandedTypeOf _) -> Ok p
+      | Error _ as e -> e)
 
 let resolve_module_type_path env p =
   resolve_module_type ~mark_substituted:true ~add_canonical:true env p
@@ -1886,6 +1850,7 @@ let resolve_module_type_path env p =
   | Error (`UnresolvedForwardPath | `UnresolvedPath _)
   | Error (`UnexpandedTypeOf _) ->
       Ok p
+  | Error _ as e -> e
 
 let resolve_type_path env p =
   resolve_type env ~add_canonical:true p >>= fun (p, _) -> Ok p

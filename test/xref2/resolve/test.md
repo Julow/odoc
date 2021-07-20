@@ -859,9 +859,9 @@ Ensure a substitution is taken into account during resolution:
   type t = C.N.t
     |}
 File "<test>":
-Failed to compile expansion for module type expression identifier((root Root).A.M, false).S OpaqueModule
+Failed to compile expansion for module type expression identifier((root Root).A.M, false).S (Opaque module)
 File "<test>":
-Failed to compile expansion for module type expression identifier((root Root).A.M, false).S OpaqueModule
+Failed to compile expansion for module type expression identifier((root Root).A.M, false).S (Opaque module)
 - : Odoc_model.Lang.Compilation_unit.t =
 {Odoc_model.Lang.Compilation_unit.id =
   `Root (Some (`Page (None, None)), Root);
@@ -996,9 +996,9 @@ Ensure a destructive substitution is taken into account during resolution:
   type t = C.N.t
     |}
 File "<test>":
-Failed to compile expansion for module type expression identifier((root Root).A.M, false).S OpaqueModule
+Failed to compile expansion for module type expression identifier((root Root).A.M, false).S (Opaque module)
 File "<test>":
-Failed to compile expansion for module type expression identifier((root Root).A.M, false).S OpaqueModule
+Failed to compile expansion for module type expression identifier((root Root).A.M, false).S (Opaque module)
 - : Odoc_model.Lang.Compilation_unit.t =
 {Odoc_model.Lang.Compilation_unit.id =
   `Root (Some (`Page (None, None)), Root);
@@ -1638,13 +1638,13 @@ Functor app nightmare:
   *)
     |}
 File "<test>":
-Failed to compile expansion for module type expression identifier((param (root Root).Foo T), false).T OpaqueModule
+Failed to compile expansion for module type expression identifier((param (root Root).Foo T), false).T (Opaque module)
 File "<test>":
-Failed to compile expansion for module type expression identifier((param (root Root).Foo T), false).T OpaqueModule
+Failed to compile expansion for module type expression identifier((param (root Root).Foo T), false).T (Opaque module)
 File "<test>":
-Failed to compile expansion for module type expression identifier((param (root Root).App.result F), false)(identifier((param (root Root).App T), false)).T OpaqueModule
+Failed to compile expansion for module type expression identifier((param (root Root).App.result F), false)(identifier((param (root Root).App T), false)).T (Opaque module)
 File "<test>":
-Failed to compile expansion for module type expression identifier((param (root Root).App.result F), false)(identifier((param (root Root).App T), false)).T OpaqueModule
+Failed to compile expansion for module type expression identifier((param (root Root).App.result F), false)(identifier((param (root Root).App T), false)).T (Opaque module)
 - : Odoc_model.Lang.Compilation_unit.t =
 {Odoc_model.Lang.Compilation_unit.id =
   `Root (Some (`Page (None, None)), Root);

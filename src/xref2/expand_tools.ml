@@ -31,7 +31,7 @@ let rec aux_expansion_of_module :
     Env.t ->
     strengthen:bool ->
     Component.Module.t ->
-    (expansion, signature_of_module_error) Result.result =
+    (expansion, tools_error) Result.result =
   let open Component.Module in
   fun env ~strengthen m -> aux_expansion_of_module_decl env ~strengthen m.type_
 
@@ -95,7 +95,7 @@ and unresolve_subs subs =
     subs
 
 and aux_expansion_of_module_type_type_of_desc env t :
-    (expansion, signature_of_module_error) Result.result =
+    (expansion, tools_error) Result.result =
   match t with
   | Component.ModuleType.ModPath p ->
       aux_expansion_of_module_alias env ~strengthen:false p
@@ -104,7 +104,7 @@ and aux_expansion_of_module_type_type_of_desc env t :
 and assert_not_functor = function Signature sg -> Ok sg | _ -> assert false
 
 and aux_expansion_of_u_module_type_expr env expr :
-    (Component.Signature.t, signature_of_module_error) Result.result =
+    (Component.Signature.t, tools_error) Result.result =
   let open Utils.ResultMonad in
   match expr with
   | Component.ModuleType.U.Path p ->
@@ -122,7 +122,7 @@ and aux_expansion_of_u_module_type_expr env expr :
   | TypeOf { t_desc; _ } -> Error (`UnexpandedTypeOf t_desc)
 
 and aux_expansion_of_module_type_expr env expr :
-    (expansion, signature_of_module_error) Result.result =
+    (expansion, tools_error) Result.result =
   match expr with
   | Path { p_path; _ } ->
       Tools.resolve_module_type ~mark_substituted:false ~add_canonical:true env

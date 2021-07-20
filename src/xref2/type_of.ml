@@ -71,9 +71,7 @@ and module_type_expr env (id : Id.Signature.t) expr =
       | Ok e ->
           let se = Lang_of.(simple_expansion empty id e) in
           TypeOf { t with t_expansion = Some (simple_expansion env se) }
-      | Error e
-        when Errors.is_unexpanded_module_type_of (e :> Errors.Tools_error.any)
-        ->
+      | Error e when Errors.is_unexpanded_module_type_of e ->
           again := true;
           expr
       | Error _e -> expr)
@@ -88,9 +86,7 @@ and u_module_type_expr env id expr =
       | Ok e ->
           let se = Lang_of.(simple_expansion empty id e) in
           TypeOf { t with t_expansion = Some (simple_expansion env se) }
-      | Error e
-        when Errors.is_unexpanded_module_type_of (e :> Errors.Tools_error.any)
-        ->
+      | Error e when Errors.is_unexpanded_module_type_of e ->
           again := true;
           expr
       | Error _e -> expr)

@@ -4,109 +4,57 @@ module Tools_error = struct
   open Paths
   (** Errors raised by Tools *)
 
-  type handle_subs_error =
-    [ `UnresolvedPath of
-      [ `Module of Cpath.module_ ]
-      (* Failed to resolve a module path when applying a fragment item *) ]
-
-  type signature_of_module_error =
-    [ `OpaqueModule (* The module does not have an expansion *)
-    | `UnresolvedForwardPath
-      (* The module signature depends upon a forward path *)
-    | `UnresolvedPath of
-      [ `Module of Cpath.module_ * simple_module_lookup_error
-      | `ModuleType of Cpath.module_type * simple_module_type_lookup_error ]
-      (* The path to the module or module type could not be resolved *)
-    | `UnexpandedTypeOf of
-      Component.ModuleType.type_of_desc
-      (* The `module type of` expression could not be expanded *) ]
-
-  and simple_module_lookup_error =
+  type tools_error =
     [ `Local of
       Env.t * Ident.path_module
       (* Internal error: Found local path during lookup *)
-    | `Unresolved_apply (* [`Apply] argument is not [`Resolved] *)
-    | `Find_failure
-    | (* Internal error: the module was not found in the parent signature *)
-      `Lookup_failure of
-      Identifier.Path.Module.t
-      (* Could not find the module in the environment *)
-    | `Lookup_failure_root of string (* Could not find the root module *)
-    | `Parent of parent_lookup_error ]
-
-  and simple_module_type_expr_of_module_error =
-    [ `ApplyNotFunctor
-      (* Internal error: attempt made to apply a module that's not a functor *)
-    | `OpaqueModule (* The module does not have an expansion *)
-    | `UnresolvedForwardPath
-      (* The module signature depends upon a forward path *)
-    | `UnresolvedPath of
-      [ `Module of Cpath.module_ * simple_module_lookup_error
-      | `ModuleType of Cpath.module_type * simple_module_type_lookup_error ]
-    | `Parent of parent_lookup_error ]
-
-  and simple_module_type_lookup_error =
-    [ `LocalMT of
+    | `LocalMT of
       Env.t * Ident.module_type
       (* Internal error: Found local path during lookup *)
-    | `Find_failure
-      (* Internal error: the module was not found in the parent signature *)
+    | `LocalType of
+      Env.t * Ident.path_type
+      (* Internal error: Found local path during lookup *)
+    | `Lookup_failure of
+      Identifier.Path.Module.t
+      (* Could not find the module in the environment *)
     | `Lookup_failureMT of
       Identifier.ModuleType.t
       (* Could not find the module in the environment *)
-    | `Parent of parent_lookup_error ]
-
-  and simple_type_lookup_error =
-    [ `LocalType of
-      Env.t * Ident.path_type
-      (* Internal error: Found local path during lookup *)
-    | `Class_replaced
-      (* Class was replaced with a destructive substitution and we're not sure
-          what to do now *)
-    | `Find_failure
-      (* Internal error: the type was not found in the parent signature *)
     | `Lookup_failureT of
       Identifier.Path.Type.t
       (* Could not find the module in the environment *)
-    | `Parent of parent_lookup_error ]
+    | `Lookup_failure_root of string (* Could not find the root module *)
+    | `Unresolved_apply (* [`Apply] argument is not [`Resolved] *)
+    | `Find_failure
+      (* Internal error: the module was not found in the parent signature *)
+    | `ApplyNotFunctor
+      (* Internal error: attempt made to apply a module that's not a functor *)
+    | `OpaqueModule (* The module does not have an expansion *)
+    | `Class_replaced
+      (* Class was replaced with a destructive substitution and we're not sure
+          what to do now *)
+    | `Fragment_root
+    | `UnresolvedForwardPath
+    | `UnresolvedPath of
+      [ `Module of Cpath.module_ * tools_error
+      | `ModuleType of Cpath.module_type * tools_error ]
+      (* Failed to resolve a module path when applying a fragment item *)
+    | `UnexpandedTypeOf of
+      Component.ModuleType.type_of_desc
+      (* The `module type of` expression could not be expanded *)
+    | `Parent of tools_error ]
 
-  and parent_lookup_error =
-    [ `Parent_sig of
-      signature_of_module_error
-      (* Error found while calculating the parent signature *)
-    | `Parent_module_type of
-      simple_module_type_lookup_error
-      (* Error found while looking up parent module type *)
-    | `Parent_expr of
-      simple_module_type_expr_of_module_error
-      (* Error found while evaluating parent module expression *)
-    | `Parent_module of
-      simple_module_lookup_error
-      (* Error found while looking up parent module *)
-    | `Fragment_root (* Encountered unexpected fragment root *)
-    | `Parent of parent_lookup_error ]
-
-  type any =
-    [ simple_type_lookup_error
-    | simple_module_type_lookup_error
-    | simple_module_type_expr_of_module_error
-    | simple_module_lookup_error
-    | signature_of_module_error
-    | parent_lookup_error ]
-
-  let rec pp : Format.formatter -> any -> unit =
+  let rec pp : Format.formatter -> tools_error -> unit =
    fun fmt err ->
     match err with
     | `OpaqueModule -> Format.fprintf fmt "Opaque module"
     | `UnresolvedForwardPath -> Format.fprintf fmt "Unresolved forward path"
     | `UnresolvedPath (`Module (p, e)) ->
         Format.fprintf fmt "Unresolved module path %a (%a)"
-          Component.Fmt.module_path p pp
-          (e :> any)
+          Component.Fmt.module_path p pp e
     | `UnresolvedPath (`ModuleType (p, e)) ->
         Format.fprintf fmt "Unresolved module type path %a (%a)"
-          Component.Fmt.module_type_path p pp
-          (e :> any)
+          Component.Fmt.module_type_path p pp e
     | `LocalMT (_, id) -> Format.fprintf fmt "Local id found: %a" Ident.fmt id
     | `Local (_, id) -> Format.fprintf fmt "Local id found: %a" Ident.fmt id
     | `LocalType (_, id) -> Format.fprintf fmt "Local id found: %a" Ident.fmt id
@@ -128,32 +76,23 @@ module Tools_error = struct
           (m :> Odoc_model.Paths.Identifier.t)
     | `ApplyNotFunctor -> Format.fprintf fmt "Apply module is not a functor"
     | `Class_replaced -> Format.fprintf fmt "Class replaced"
-    | `Parent p -> pp fmt (p :> any)
     | `UnexpandedTypeOf t ->
         Format.fprintf fmt "Unexpanded `module type of` expression: %a"
           Component.Fmt.module_type_type_of_desc t
-    | `Parent_sig e -> Format.fprintf fmt "Parent_sig: %a" pp (e :> any)
-    | `Parent_module_type e ->
-        Format.fprintf fmt "Parent_module_type: %a" pp (e :> any)
-    | `Parent_expr e -> Format.fprintf fmt "Parent_expr: %a" pp (e :> any)
-    | `Parent_module e -> Format.fprintf fmt "Parent_module: %a" pp (e :> any)
-    | `Fragment_root -> Format.fprintf fmt "Fragment root"
+    | `Parent e -> Format.fprintf fmt "Parent: %a" pp e
+    | `Fragment_root -> Format.fprintf fmt "Fragment_root"
 end
 
 (* Ugh. we need to determine whether this was down to an unexpanded module type error. This is horrendous. *)
 let is_unexpanded_module_type_of =
   let open Tools_error in
-  let rec inner : any -> bool = function
+  let rec inner : tools_error -> bool = function
     | `Local _ -> false
     | `Find_failure -> false
     | `Lookup_failure _ -> false
     | `Unresolved_apply -> false
     | `Lookup_failure_root _ -> false
-    | `Parent p -> inner (p :> any)
-    | `Parent_sig p -> inner (p :> any)
-    | `Parent_module_type p -> inner (p :> any)
-    | `Parent_expr p -> inner (p :> any)
-    | `Parent_module p -> inner (p :> any)
+    | `Parent p -> inner p
     | `Fragment_root -> false
     | `OpaqueModule -> false
     | `UnresolvedForwardPath -> false
@@ -161,8 +100,8 @@ let is_unexpanded_module_type_of =
     | `LocalMT _ -> false
     | `Lookup_failureMT _ -> false
     | `ApplyNotFunctor -> false
-    | `UnresolvedPath (`Module (_, e)) -> inner (e :> any)
-    | `UnresolvedPath (`ModuleType (_, e)) -> inner (e :> any)
+    | `UnresolvedPath (`Module (_, e)) -> inner e
+    | `UnresolvedPath (`ModuleType (_, e)) -> inner e
     | `Lookup_failureT _ -> false
     | `LocalType _ -> false
     | `Class_replaced -> false
@@ -173,9 +112,7 @@ let rec cpath_is_root = function
   | `Root name -> Some (`Root name)
   | `Substituted p' | `Dot (p', _) -> cpath_is_root p'
   | `Apply (a, b) -> (
-      match cpath_is_root a with
-      | Some _ as a -> a
-      | None -> cpath_is_root b)
+      match cpath_is_root a with Some _ as a -> a | None -> cpath_is_root b)
   | _ -> None
 
 let rec mt_cpath_is_root = function
@@ -191,18 +128,14 @@ let rec is_root_error = function
   | `Lookup_failure (`Root (_, name)) ->
       Some (`Root (Names.ModuleName.to_string name))
   | `Lookup_failure_root name -> Some (`Root name)
-  | `Parent (`Parent_sig e) -> is_root_error (e :> Tools_error.any)
-  | `Parent (`Parent_module_type e) -> is_root_error (e :> Tools_error.any)
-  | `Parent (`Parent_expr e) -> is_root_error (e :> Tools_error.any)
-  | `Parent (`Parent_module e) -> is_root_error (e :> Tools_error.any)
-  | `Parent (`Parent _ as e) -> is_root_error (e :> Tools_error.any)
+  | `Parent e -> is_root_error e
   | `OpaqueModule ->
       (* Don't turn OpaqueModule warnings into errors *)
       Some `OpaqueModule
   | _ -> None
 
 let is_root_error ~what = function
-  | Some e -> is_root_error (e :> Tools_error.any)
+  | Some e -> is_root_error e
   | None -> (
       match what with
       | `Include (Component.Include.Alias cp) -> cpath_is_root cp
@@ -241,7 +174,7 @@ let report ~(what : what) ?tools_error action =
     | `Resolve -> "resolve"
   in
   let pp_tools_error fmt = function
-    | Some e -> Format.fprintf fmt " (%a)" Tools_error.pp (e :> Tools_error.any)
+    | Some e -> Format.fprintf fmt " (%a)" Tools_error.pp e
     | None -> ()
   in
   let open Component.Fmt in
