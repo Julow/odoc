@@ -5,8 +5,6 @@ module ResultMonad = struct
 
   let map_error f = function Ok _ as ok -> ok | Error e -> Error (f e)
 
-  let of_option ~error = function Some x -> Ok x | None -> Error error
-
   let bind m f = match m with Ok x -> f x | Error _ as e -> e
 
   let ( >>= ) = bind
@@ -36,8 +34,4 @@ module EitherMonad = struct
   let bind_left m f = match m with Left x -> f x | Right y -> Right y
 
   let ( >>= ) = bind
-
-  let of_option ~left = function Some x -> Right x | None -> Left left
-
-  let of_result = function Result.Ok x -> Right x | Error y -> Left y
 end

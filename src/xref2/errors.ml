@@ -1,5 +1,7 @@
 open Odoc_model
 
+type 'e t = { error : 'e; caused : 'e list }
+
 module Tools_error = struct
   open Paths
   (** Errors raised by Tools *)
@@ -36,25 +38,34 @@ module Tools_error = struct
     | `Fragment_root
     | `UnresolvedForwardPath
     | `UnresolvedPath of
-      [ `Module of Cpath.module_ * tools_error
-      | `ModuleType of Cpath.module_type * tools_error ]
+      [ `Module of Cpath.module_ | `ModuleType of Cpath.module_type ]
       (* Failed to resolve a module path when applying a fragment item *)
     | `UnexpandedTypeOf of
       Component.ModuleType.type_of_desc
-      (* The `module type of` expression could not be expanded *)
-    | `Parent of tools_error ]
+      (* The `module type of` expression could not be expanded *) ]
 
-  let rec pp : Format.formatter -> tools_error -> unit =
+  type 'a tools_result = ('a, tools_error t) Result.result
+
+  let make_error error : 'a tools_result = Error { error; caused = [] }
+
+  let add_cause causes = function
+    | Ok _ as x -> x
+    | Error e -> Error { e with caused = causes :: e.caused }
+
+  let pp : Format.formatter -> tools_error -> unit =
    fun fmt err ->
     match err with
     | `OpaqueModule -> Format.fprintf fmt "Opaque module"
     | `UnresolvedForwardPath -> Format.fprintf fmt "Unresolved forward path"
-    | `UnresolvedPath (`Module (p, e)) ->
-        Format.fprintf fmt "Unresolved module path %a (%a)"
-          Component.Fmt.module_path p pp e
-    | `UnresolvedPath (`ModuleType (p, e)) ->
-        Format.fprintf fmt "Unresolved module type path %a (%a)"
-          Component.Fmt.module_type_path p pp e
+    | `UnresolvedPath (`Module p) when Cpath.is_module_forward p ->
+        Format.fprintf fmt "Unresolved forward module path %a"
+          Component.Fmt.module_path p
+    | `UnresolvedPath (`Module p) ->
+        Format.fprintf fmt "Unresolved module path %a" Component.Fmt.module_path
+          p
+    | `UnresolvedPath (`ModuleType p) ->
+        Format.fprintf fmt "Unresolved module type path %a"
+          Component.Fmt.module_type_path p
     | `LocalMT (_, id) -> Format.fprintf fmt "Local id found: %a" Ident.fmt id
     | `Local (_, id) -> Format.fprintf fmt "Local id found: %a" Ident.fmt id
     | `LocalType (_, id) -> Format.fprintf fmt "Local id found: %a" Ident.fmt id
@@ -79,34 +90,13 @@ module Tools_error = struct
     | `UnexpandedTypeOf t ->
         Format.fprintf fmt "Unexpanded `module type of` expression: %a"
           Component.Fmt.module_type_type_of_desc t
-    | `Parent e -> Format.fprintf fmt "Parent: %a" pp e
-    | `Fragment_root -> Format.fprintf fmt "Fragment_root"
+    | `Fragment_root -> Format.fprintf fmt "Fragment root"
 end
 
 (* Ugh. we need to determine whether this was down to an unexpanded module type error. This is horrendous. *)
-let is_unexpanded_module_type_of =
-  let open Tools_error in
-  let rec inner : tools_error -> bool = function
-    | `Local _ -> false
-    | `Find_failure -> false
-    | `Lookup_failure _ -> false
-    | `Unresolved_apply -> false
-    | `Lookup_failure_root _ -> false
-    | `Parent p -> inner p
-    | `Fragment_root -> false
-    | `OpaqueModule -> false
-    | `UnresolvedForwardPath -> false
-    | `UnexpandedTypeOf _ -> true (* woo *)
-    | `LocalMT _ -> false
-    | `Lookup_failureMT _ -> false
-    | `ApplyNotFunctor -> false
-    | `UnresolvedPath (`Module (_, e)) -> inner e
-    | `UnresolvedPath (`ModuleType (_, e)) -> inner e
-    | `Lookup_failureT _ -> false
-    | `LocalType _ -> false
-    | `Class_replaced -> false
-  in
-  inner
+let is_unexpanded_module_type_of = function
+  | `UnexpandedTypeOf _ -> true
+  | _ -> false
 
 let rec cpath_is_root = function
   | `Root name -> Some (`Root name)
@@ -122,20 +112,19 @@ let rec mt_cpath_is_root = function
 
 (** [Some (`Root _)] for errors during lookup of root modules or [None] for
     other errors. *)
-let rec is_root_error = function
-  | `UnresolvedPath (`Module (cp, _)) -> cpath_is_root cp
-  | `UnresolvedPath (`ModuleType (cp, _)) -> mt_cpath_is_root cp
+let is_root_error = function
+  | `UnresolvedPath (`Module cp) -> cpath_is_root cp
+  | `UnresolvedPath (`ModuleType cp) -> mt_cpath_is_root cp
   | `Lookup_failure (`Root (_, name)) ->
       Some (`Root (Names.ModuleName.to_string name))
   | `Lookup_failure_root name -> Some (`Root name)
-  | `Parent e -> is_root_error e
   | `OpaqueModule ->
       (* Don't turn OpaqueModule warnings into errors *)
       Some `OpaqueModule
   | _ -> None
 
 let is_root_error ~what = function
-  | Some e -> is_root_error e
+  | Some e -> is_root_error e.error
   | None -> (
       match what with
       | `Include (Component.Include.Alias cp) -> cpath_is_root cp
@@ -166,7 +155,7 @@ type what =
   | `Module_type_u_expr of Component.ModuleType.U.expr
   | `Child of Reference.t ]
 
-let report ~(what : what) ?tools_error action =
+let report ~(what : what) ?(tools_error : _ t option) action =
   let action =
     match action with
     | `Expand -> "compile expansion for"
@@ -174,7 +163,7 @@ let report ~(what : what) ?tools_error action =
     | `Resolve -> "resolve"
   in
   let pp_tools_error fmt = function
-    | Some e -> Format.fprintf fmt " (%a)" Tools_error.pp e
+    | Some e -> Format.fprintf fmt " (%a)" Tools_error.pp e.error
     | None -> ()
   in
   let open Component.Fmt in
