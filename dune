@@ -8,3 +8,6 @@
  (release
   (flags
    (:standard -g -w -18-53))))
+
+(mdx (packages odoc))
+
