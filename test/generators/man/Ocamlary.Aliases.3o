@@ -40,13 +40,13 @@ Let's imitate jst's layout\.
 Just for giggle, let's see what happens when we include \f[CI]Foo\fR\.
 .nf 
 .sp 
-\f[CB]module\fR A = Foo\.A
+\f[CB]module\fR A = Ocamlary\.Aliases\.Foo\.A
 .sp 
-\f[CB]module\fR B = Foo\.B
+\f[CB]module\fR B = Ocamlary\.Aliases\.Foo\.B
 .sp 
-\f[CB]module\fR C = Foo\.C
+\f[CB]module\fR C = Ocamlary\.Aliases\.Foo\.C
 .sp 
-\f[CB]module\fR D = Foo\.D
+\f[CB]module\fR D = Ocamlary\.Aliases\.Foo\.D
 .sp 
 \f[CB]module\fR E : \f[CB]sig\fR \.\.\. \f[CB]end\fR
 .sp 
@@ -60,7 +60,7 @@ And also, let's refer to \f[CI]A\.t\fR and \f[CI]Foo\.B\.id\fR
 .sp 
 \f[CB]module\fR P2 : \f[CB]sig\fR \.\.\. \f[CB]end\fR
 .sp 
-\f[CB]module\fR X1 = P2\.Z
+\f[CB]module\fR X1 = Ocamlary\.Aliases\.P2\.Z
 .sp 
 \f[CB]module\fR X2 = P2\.Z
 .sp 

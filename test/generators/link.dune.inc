@@ -3315,7 +3315,6 @@
    Ocamlary-Aliases-Foo-D.html.gen
    Ocamlary-Aliases-Foo-E.html.gen
    Ocamlary-Aliases-Std.html.gen
-   Ocamlary-Aliases-E.html.gen
    Ocamlary-Aliases-P1.html.gen
    Ocamlary-Aliases-P1-Y.html.gen
    Ocamlary-Aliases-P2.html.gen
@@ -4584,12 +4583,6 @@
  (rule
   (alias runtest)
   (action
-   (diff Ocamlary-Aliases-E.html Ocamlary-Aliases-E.html.gen))
-  (enabled_if
-   (>= %{ocaml_version} 4.07)))
- (rule
-  (alias runtest)
-  (action
    (diff Ocamlary-Aliases-P1.html Ocamlary-Aliases-P1.html.gen))
   (enabled_if
    (>= %{ocaml_version} 4.07)))
@@ -4923,7 +4916,6 @@
    Ocamlary.Aliases.Foo.D.3o.gen
    Ocamlary.Aliases.Foo.E.3o.gen
    Ocamlary.Aliases.Std.3o.gen
-   Ocamlary.Aliases.E.3o.gen
    Ocamlary.Aliases.P1.3o.gen
    Ocamlary.Aliases.P1.Y.3o.gen
    Ocamlary.Aliases.P2.3o.gen
@@ -5393,12 +5385,6 @@
   (alias runtest)
   (action
    (diff Ocamlary.Aliases.Std.3o Ocamlary.Aliases.Std.3o.gen))
-  (enabled_if
-   (>= %{ocaml_version} 4.07)))
- (rule
-  (alias runtest)
-  (action
-   (diff Ocamlary.Aliases.E.3o Ocamlary.Aliases.E.3o.gen))
   (enabled_if
    (>= %{ocaml_version} 4.07)))
  (rule

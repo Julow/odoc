@@ -465,10 +465,13 @@ and include_ : Env.t -> Include.t -> Include.t =
  fun env i ->
   let open Include in
   let decl = include_decl env i.parent i.decl in
-  (* Format.eprintf "include_: %a\n%!" Component.Fmt.module_decl
-        (Component.Of_Lang.(module_decl empty i.decl)); *)
   let doc = comment_docs env i.parent i.doc in
   let expansion =
+    (* Resolve the expansion with an empty environment.
+       The included signature is already opened in [env], so [doc] and [decl]
+       above had it in scope.
+       Avoid adding each item to the env twice. *)
+    let env = Env.inherit_resolver env in
     let content = signature env i.parent i.expansion.content in
     { i.expansion with content }
   in

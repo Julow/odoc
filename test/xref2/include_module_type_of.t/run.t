@@ -38,4 +38,10 @@ error. If it doesn't here, that particular issue is fixed!
   $ ocamlc -c -bin-annot uwt_base.mli
   $ odoc compile uwt_base.cmti
   $ odoc link uwt_base.odoc
+  File "uwt_base.mli", line 9, characters 16-40:
+  Failed to resolve reference unresolvedroot(Fs_functions).openfile Couldn't find "Fs_functions"
+  File "uwt_base.odoc":
+  Failed to lookup type identifier((root Uwt_base).Base, false).Fs_types.uv_open_flag Parent_module: Parent_module: Lookup failure (module): (root Uwt_base).Base
+  File "uwt_base.mli", line 9, characters 16-40:
+  Failed to resolve reference unresolvedroot(Fs_functions).openfile Couldn't find "Fs_functions"
 
