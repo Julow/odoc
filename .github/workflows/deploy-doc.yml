@@ -1,0 +1,16 @@
+name: "Deploy documentation"
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: smorimoto/ocaml-actions@3dbd187386def02f8d0debc5dd83079a41506b2c
+        with:
+          ocaml-compiler: 4.12.x
