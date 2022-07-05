@@ -41,20 +41,20 @@ The [odoc] model for achieving this is that we have {e pages} ([.mld] files) tha
 
 In the example below, there will be a file [odoc.mld] that corresponds with the top-level directory [odoc/]. It will be compiled as follows:
 
-{[
+{@sh skip[
 odoc compile odoc.mld --child page-odoc_model --child deps ...
 ]}
 
 The file [deps.mld] which corresponds with the sub-directory [odoc/deps/], will be compiled as follows:
 
-{[
-odoc compile deps.mld -I . --parent `odoc` --child page-stdlib --child page-astring ...
+{@sh skip[
+odoc compile deps.mld -I . --parent odoc --child page-stdlib --child page-astring ...
 ]}
 
 The file [odoc_model.mld] will have a child module [Odoc_model]. It will be compiled as follows:
 
-{[
-odoc compile odoc_model.mld -I . --parent `odoc` --child module-Odoc_model
+{@sh skip[
+odoc compile odoc_model.mld -I . --parent odoc --child module-Odoc_model
 ]}
 
 When compiling any [.mld] file, the parent and all children must be specified. Parents can only be pages from other [.mld] files, and children may be pages (from [.mld] files) or modules (from [.cmti]/[.cmt] or [.cmi] files).
@@ -70,8 +70,8 @@ This takes the output from the compiler in the form of [.cmti], [.cmt], or [.cmi
 
 As an example we can run [odoc compile-deps] on the file [../src/xref2/.odoc_xref2.objs/byte/odoc_xref2__Compile.cmti]:
 
-{[
-$ `odoc` compile-deps ../src/xref2/.odoc_xref2.objs/byte/odoc_xref2__Compile.cmti | tail -n 5
+{@sh non-deterministic=output[
+$ odoc compile-deps ../src/xref2/.odoc_xref2.objs/byte/odoc_xref2__Compile.cmti | tail -n 5
 Stdlib__result 2ba42445465981713146b97d5e185dd5
 Stdlib__seq d6a8de25c9eecf5ae9420a9f3f8b2e88
 Stdlib__set 5d365647a10f75c22f2b045a867b4d3e
@@ -159,7 +159,8 @@ let link ?(ignore_output = false) file =
   let open Cmd in
   let cmd = odoc % "link" % p file % "-I" % "." in
   let cmd = if Fpath.to_string file = "stdlib.odoc" then cmd % "--open=\"\"" else cmd in
-  Format.printf "%a" pp cmd;let lines = OS.Cmd.(run_out ~err:err_run_out cmd |> to_lines) |> get_ok in
+  Format.printf "%a" pp cmd;
+  let lines = OS.Cmd.(run_out ~err:err_run_out cmd |> to_lines) |> get_ok in
   if not ignore_output then
     add_prefixed_output cmd link_output (Fpath.to_string file) lines
 
@@ -241,7 +242,6 @@ let extra_docs =
     "driver";
     "parent_child_spec";
     "features";
-    "dune_wrapping";
     "interface";
     "odoc_for_authors";
     "dune";
@@ -293,7 +293,8 @@ let find_units p =
         not @@ Astring.String.is_infix ~affix:"ocamldoc" (Fpath.to_string f))
       l
   in
-  List.fold_right Fpath.Set.add l Fpath.Set.empty]}
+  List.fold_right Fpath.Set.add l Fpath.Set.empty
+]}
 
 Since the units returned by this function have their extension stripped, we need
 function to find the best file to use with this basename.
@@ -391,7 +392,7 @@ let compile_mlds () =
               else None)
             all_units
         in
-        ignore (compile (mkmld library) ~parent children);
+        ignore (compile (mkmld ("library_mlds/"^library)) ~parent children);
         "page-" ^ library ^ ".odoc")
       all_libraries
   in
