@@ -133,6 +133,9 @@ and inline ~config ?(emph_level = 0) ~resolve (l : Inline.t) :
     | Source c -> source (inline ~config ~emph_level ~resolve) ~a c
     | Math s -> [ inline_math s ]
     | Raw_markup r -> raw_markup r
+    | Nested c ->
+        let content = inline ~config ~emph_level ~resolve c in
+        if a = [] then content else [ Html.span ~a content ]
   in
   Utils.list_concat_map ~f:one l
 
@@ -155,6 +158,9 @@ and inline_nolink ?(emph_level = 0) (l : Inline.t) :
     | Source c -> source (inline_nolink ~emph_level) ~a c
     | Math s -> [ inline_math s ]
     | Raw_markup r -> raw_markup r
+    | Nested c ->
+        let content = inline_nolink ~emph_level c in
+        if a = [] then content else [ Html.span ~a content ]
   in
   Utils.list_concat_map ~f:one l
 

@@ -243,6 +243,9 @@ let strip l =
             loop acc t
         | Source code ->
             let acc = loop_source acc code in
+            loop acc t
+        | Nested content ->
+            let acc = loop acc content in
             loop acc t)
   and loop_source acc = function
     | [] -> acc
@@ -300,7 +303,8 @@ and inline (l : Inline.t) =
           font "CI" (inline @@ strip content) ++ inline rest
       | Source content -> source_code content ++ inline rest
       | Math s -> math s ++ inline rest
-      | Raw_markup t -> raw_markup t ++ inline rest)
+      | Raw_markup t -> raw_markup t ++ inline rest
+      | Nested content -> inline content)
 
 let rec block (l : Block.t) =
   match l with

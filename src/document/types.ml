@@ -52,6 +52,7 @@ and Inline : sig
     | Source of Source.t
     | Math of Math.t
     | Raw_markup of Raw_markup.t
+    | Nested of t
 end =
   Inline
 

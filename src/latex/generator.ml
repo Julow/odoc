@@ -255,6 +255,7 @@ and inline ~in_source ~verbatim (l : Inline.t) =
     | Math s -> [ Raw (Format.asprintf "%a" Raw.math s) ]
     | Raw_markup r -> raw_markup r
     | Entity s -> [ entity ~in_source ~verbatim s ]
+    | Nested c -> inline ~verbatim ~in_source c
   in
 
   let take_text (l : Inline.t) =
