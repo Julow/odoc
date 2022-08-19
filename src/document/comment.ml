@@ -272,15 +272,15 @@ and nestable_block_element_list elements =
 let tag : Comment.tag -> Description.one =
  fun t ->
   let sp = inline (Text " ") in
-  let item0 ?value ~tag definition =
+  let item ?value ~tag definition =
     let tag_name = inline ~attr:[ "at-tag" ] (Text tag) in
-    let tag_value = match value with None -> [] | Some t -> sp :: t in
+    let tag_value =
+      match value with
+      | None -> []
+      | Some t -> [ sp; inline ~attr:[ "value" ] t ]
+    in
     let key = tag_name :: tag_value in
     { Description.attr = [ tag ]; key; definition }
-  in
-  let item ?value ~tag definition =
-    let value = Option.map (fun t -> [ inline ~attr:[ "value" ] t ]) value in
-    item0 ?value ~tag definition
   in
   let text_def s = [ block (Block.Inline [ inline @@ Text s ]) ] in
   let content_to_inline ?(prefix = []) content =
@@ -296,8 +296,10 @@ let tag : Comment.tag -> Description.one =
       let value = Inline.Text name in
       item ~tag:"parameter" ~value (nestable_block_element_list content)
   | `Raise (kind, content) ->
-      let value = inline_element (kind :> Comment.inline_element) in
-      item0 ~tag:"raises" ~value (nestable_block_element_list content)
+      let value =
+        Inline.Nested (inline_element (kind :> Comment.inline_element))
+      in
+      item ~tag:"raises" ~value (nestable_block_element_list content)
   | `Return content -> item ~tag:"returns" (nestable_block_element_list content)
   | `See (kind, target, content) ->
       let value =
