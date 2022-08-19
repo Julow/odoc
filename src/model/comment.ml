@@ -54,8 +54,9 @@ type tag =
   | `Deprecated of nestable_block_element with_location list
   | `Param of string * nestable_block_element with_location list
   | `Raise of
-    [ `Reference of Reference.t | `Code_span of string ]
+    [ `Code_span of string | `Reference of Reference.t * link_content ]
     * nestable_block_element with_location list
+    (* [`Reference] content list is always empty *)
   | `Return of nestable_block_element with_location list
   | `See of
     [ `Url | `File | `Document ]

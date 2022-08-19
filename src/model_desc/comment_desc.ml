@@ -34,7 +34,9 @@ and general_tag =
   | `Deprecated of general_docs
   | `Param of string * general_docs
   | `Raise of
-    [ `Reference of Paths.Reference.t | `Code_span of string ] * general_docs
+    [ `Code_span of string
+    | `Reference of Paths.Reference.t * general_link_content ]
+    * general_docs (* [`Reference] content list is always empty *)
   | `Return of general_docs
   | `See of [ `Url | `File | `Document ] * string * general_docs
   | `Since of string
@@ -121,10 +123,12 @@ and tag : general_tag t =
       | `Url -> C0 "`Url" | `File -> C0 "`File" | `Document -> C0 "`Document")
   in
   let raise_kind =
+    (* TODO: any way to avoid duplication of inline_element? variance on GADT doesn't work *)
     Variant
       (function
-      | `Reference x -> C ("`Reference", x, reference)
-      | `Code_span x -> C ("`Code_span", x, string))
+      | `Code_span x -> C ("`Code_span", x, string)
+      | `Reference (x1, x2) ->
+          C ("`Reference", (x1, x2), Pair (reference, link_content)))
   in
   Variant
     (function

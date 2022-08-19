@@ -276,7 +276,8 @@ let tag :
       (* TODO: location for just name *)
       | Result.Ok target ->
           ok
-            (`Raise (`Reference target, nestable_block_elements status content))
+            (`Raise
+              (`Reference (target, []), nestable_block_elements status content))
       | Result.Error error ->
           Error.raise_warning error;
           let placeholder = `Code_span name in

@@ -278,11 +278,12 @@ and comment_tag env parent ~loc:_ (x : Comment.tag) =
       `Deprecated (comment_nestable_block_element_list env parent content)
   | `Param (name, content) ->
       `Param (name, comment_nestable_block_element_list env parent content)
-  | `Raise ((`Reference r as orig), content) -> (
+  | `Raise ((`Reference (r, reference_content) as orig), content) -> (
+      assert (reference_content = []);
       match Ref_tools.resolve_reference env r |> Error.raise_warnings with
       | Ok x ->
           `Raise
-            ( `Reference (`Resolved x),
+            ( `Reference (`Resolved x, []),
               comment_nestable_block_element_list env parent content )
       | Error e ->
           Errors.report ~what:(`Reference r) ~tools_error:(`Reference e)

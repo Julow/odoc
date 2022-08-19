@@ -295,12 +295,9 @@ let tag : Comment.tag -> Description.one =
   | `Param (name, content) ->
       let value = Inline.Text name in
       item ~tag:"parameter" ~value (nestable_block_element_list content)
-  | `Raise (`Reference path, content) ->
-      let value = Reference.to_ir ~stop_before:false path in
+  | `Raise (kind, content) ->
+      let value = inline_element (kind :> Comment.inline_element) in
       item0 ~tag:"raises" ~value (nestable_block_element_list content)
-  | `Raise (`Code_span name, content) ->
-      let value = Inline.Source (source_of_code name) in
-      item ~tag:"raises" ~value (nestable_block_element_list content)
   | `Return content -> item ~tag:"returns" (nestable_block_element_list content)
   | `See (kind, target, content) ->
       let value =
