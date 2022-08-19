@@ -271,8 +271,17 @@ let tag :
       ok (`Deprecated (nestable_block_elements status content))
   | `Param (name, content) ->
       ok (`Param (name, nestable_block_elements status content))
-  | `Raise (name, content) ->
-      ok (`Raise (name, nestable_block_elements status content))
+  | `Raise (name, content) -> (
+      match Error.raise_warnings (Reference.parse location name) with
+      (* TODO: location for just name *)
+      | Result.Ok target ->
+          ok
+            (`Raise (`Reference target, nestable_block_elements status content))
+      | Result.Error error ->
+          Error.raise_warning error;
+          (* let placeholder = `Plain name in (* TODO: `Code_span in `Raise *)
+             ok (`Raise (placeholder, nestable_block_elements status content))) *)
+          failwith "TODO")
   | `Return content -> ok (`Return (nestable_block_elements status content))
   | `See (kind, target, content) ->
       ok (`See (kind, target, nestable_block_elements status content))
