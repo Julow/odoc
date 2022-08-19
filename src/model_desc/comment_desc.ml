@@ -33,7 +33,8 @@ and general_tag =
   [ `Author of string
   | `Deprecated of general_docs
   | `Param of string * general_docs
-  | `Raise of [ `Reference of Paths.Reference.t ] * general_docs
+  | `Raise of
+    [ `Reference of Paths.Reference.t | `Code_span of string ] * general_docs
   | `Return of general_docs
   | `See of [ `Url | `File | `Document ] * string * general_docs
   | `Since of string
@@ -120,7 +121,10 @@ and tag : general_tag t =
       | `Url -> C0 "`Url" | `File -> C0 "`File" | `Document -> C0 "`Document")
   in
   let raise_kind =
-    Variant (function `Reference x -> C ("`Reference", x, reference))
+    Variant
+      (function
+      | `Reference x -> C ("`Reference", x, reference)
+      | `Code_span x -> C ("`Code_span", x, string))
   in
   Variant
     (function

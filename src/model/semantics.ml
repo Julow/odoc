@@ -279,9 +279,8 @@ let tag :
             (`Raise (`Reference target, nestable_block_elements status content))
       | Result.Error error ->
           Error.raise_warning error;
-          (* let placeholder = `Plain name in (* TODO: `Code_span in `Raise *)
-             ok (`Raise (placeholder, nestable_block_elements status content))) *)
-          failwith "TODO")
+          let placeholder = `Code_span name in
+          ok (`Raise (placeholder, nestable_block_elements status content)))
   | `Return content -> ok (`Return (nestable_block_elements status content))
   | `See (kind, target, content) ->
       ok (`See (kind, target, nestable_block_elements status content))
