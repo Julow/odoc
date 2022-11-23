@@ -45,7 +45,7 @@ and module_t =
   Record
     [
       F ("id", (fun t -> t.id), identifier);
-      F ("locs", (fun t -> t.locs), locations);
+      F ("locs", (fun t -> t.locs), Option locations);
       F ("doc", (fun t -> t.doc), docs);
       F ("type_", (fun t -> t.type_), module_decl);
       F
@@ -179,7 +179,7 @@ and moduletype_t =
   Record
     [
       F ("id", (fun t -> t.id), identifier);
-      F ("locs", (fun t -> t.locs), locations);
+      F ("locs", (fun t -> t.locs), Option locations);
       F ("doc", (fun t -> t.doc), docs);
       F
         ( "canonical",

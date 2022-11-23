@@ -60,13 +60,21 @@ end
 
 *)
 
+module Locations : sig
+  type t = {
+    source_parent : Cpath.module_;
+    impl : Odoc_model.Location_.span option;
+    intf : Odoc_model.Location_.span option;
+  }
+end
+
 module rec Module : sig
   type decl =
     | Alias of Cpath.module_ * ModuleType.simple_expansion option
     | ModuleType of ModuleType.expr
 
   type t = {
-    locs : Odoc_model.Lang.Locations.t;
+    locs : Locations.t option;
     doc : CComment.docs;
     type_ : decl;
     canonical : Odoc_model.Paths.Path.Module.t option;
@@ -134,7 +142,7 @@ and Extension : sig
   module Constructor : sig
     type t = {
       name : string;
-      locs : Odoc_model.Lang.Locations.t;
+      locs : Locations.t;
       doc : CComment.docs;
       args : TypeDecl.Constructor.argument;
       res : TypeExpr.t option;
@@ -152,7 +160,7 @@ end
 
 and Exception : sig
   type t = {
-    locs : Odoc_model.Lang.Locations.t;
+    locs : Locations.t;
     doc : CComment.docs;
     args : TypeDecl.Constructor.argument;
     res : TypeExpr.t option;
@@ -214,7 +222,7 @@ and ModuleType : sig
     | TypeOf of typeof_t
 
   type t = {
-    locs : Odoc_model.Lang.Locations.t;
+    locs : Locations.t option;
     doc : CComment.docs;
     canonical : Odoc_model.Paths.Path.ModuleType.t option;
     expr : expr option;
@@ -261,7 +269,7 @@ and TypeDecl : sig
   end
 
   type t = {
-    locs : Odoc_model.Lang.Locations.t;
+    locs : Locations.t;
     doc : CComment.docs;
     canonical : Odoc_model.Paths.Path.Type.t option;
     equation : Equation.t;
@@ -326,7 +334,7 @@ and Value : sig
   type value = Odoc_model.Lang.Value.value
 
   type t = {
-    locs : Odoc_model.Lang.Locations.t;
+    locs : Locations.t;
     doc : CComment.docs;
     type_ : TypeExpr.t;
     value : value;
@@ -339,7 +347,7 @@ and Class : sig
     | Arrow of TypeExpr.label option * TypeExpr.t * decl
 
   type t = {
-    locs : Odoc_model.Lang.Locations.t;
+    locs : Locations.t;
     doc : CComment.docs;
     virtual_ : bool;
     params : TypeDecl.param list;
@@ -354,7 +362,7 @@ and ClassType : sig
     | Signature of ClassSignature.t
 
   type t = {
-    locs : Odoc_model.Lang.Locations.t;
+    locs : Locations.t;
     doc : CComment.docs;
     virtual_ : bool;
     params : TypeDecl.param list;
