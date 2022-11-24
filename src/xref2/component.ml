@@ -72,7 +72,7 @@ end
 
 module Locations = struct
   type t = {
-    source_parent : Cpath.module_;
+    source_parent : Ident.module_;
     impl : Odoc_model.Location_.span option;
     intf : Odoc_model.Location_.span option;
   }
@@ -80,7 +80,7 @@ end
 
 module rec Module : sig
   type decl =
-    | Alias of Cpath.module_ * ModuleType.simple_expansion option
+    | Alias of Cpath.module_ * ModuleType.named_expansion option
     | ModuleType of ModuleType.expr
 
   type t = {
@@ -206,6 +206,8 @@ and ModuleType : sig
   type simple_expansion =
     | Signature of Signature.t
     | Functor of FunctorParameter.t * simple_expansion
+
+  type named_expansion = { id : Ident.module_; content : simple_expansion }
 
   type typeof_t = {
     t_desc : type_of_desc;
@@ -1877,7 +1879,9 @@ module Of_Lang = struct
 
   let locations ident_map locs =
     let open Odoc_model.Lang.Locations in
-    let source_parent = resolved_module_path ident_map locs.source_parent in
+    let source_parent =
+      (Maps.Module.find locs.source_parent ident_map.modules :> Ident.module_)
+    in
     { Locations.source_parent; intf = locs.intf; impl = locs.impl }
 
   let rec type_decl ident_map ty =
@@ -2011,7 +2015,7 @@ module Of_Lang = struct
     match m with
     | Odoc_model.Lang.Module.Alias (p, e) ->
         Module.Alias
-          (module_path ident_map p, option simple_expansion ident_map e)
+          (module_path ident_map p, option (named_expansion m.id) ident_map e)
     | Odoc_model.Lang.Module.ModuleType s ->
         Module.ModuleType (module_type_expr ident_map s)
 
@@ -2044,6 +2048,10 @@ module Of_Lang = struct
             Functor (FunctorParameter.Named arg', simple_expansion ident_map' sg)
         | Unit -> Functor (FunctorParameter.Unit, simple_expansion ident_map sg)
         )
+
+  and named_expansion identifier ident_map (e : Odoc_model.Lang.ModuleType.simple_expansion) =
+    let id = Ident.Of_Identifier.module_ identifier in
+    { id; content = simple_expansion ident_map e }
 
   and module_ ident_map m =
     let type_ = module_decl ident_map m.Odoc_model.Lang.Module.type_ in
@@ -2448,7 +2456,6 @@ module Of_Lang = struct
 end
 
 let module_of_functor_argument (arg : FunctorParameter.parameter) =
-  (* TODO: [source_parent] is wrong. *)
   {
     Module.locs = None;
     doc = [];

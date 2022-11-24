@@ -3,8 +3,8 @@ open Odoc_model
 
 let handle_expansion env id expansion =
   let handle_argument parent arg_opt expr env =
-    (* If there's an argument, extend the environment with the argument, then
-       do the substitution on the signature to replace the local identifier with
+    (* If there's an argument, extend the environment with the argument, then do
+       the substitution on the signature to replace the local identifier with
        the global one *)
     match arg_opt with
     | Component.FunctorParameter.Unit -> (env, expr)
@@ -29,7 +29,7 @@ let handle_expansion env id expansion =
         in
         (env', Subst.module_type_expr subst expr)
   in
-  let rec expand id env expansion :
+  let rec simple_expansion id env expansion :
       (Env.t * Component.ModuleType.simple_expansion, _) Result.result =
     match expansion with
     | Tools.Signature sg ->
@@ -41,13 +41,14 @@ let handle_expansion env id expansion =
         let env', expr' = handle_argument id arg expr env in
         Tools.expansion_of_module_type_expr ~mark_substituted:false env' expr'
         >>= fun res ->
-        expand (Paths.Identifier.Mk.result id) env res >>= fun (env, res) ->
+        simple_expansion (Paths.Identifier.Mk.result id) env res
+        >>= fun (env, res) ->
         Ok
           ( env,
             (Component.ModuleType.Functor (arg, res)
               : Component.ModuleType.simple_expansion) )
   in
-  expand id env expansion
+  { id = expansion.id; content = simple_expansion id env expansion.content }
 
 exception Clash
 

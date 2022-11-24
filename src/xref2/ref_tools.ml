@@ -139,7 +139,8 @@ let find find sg name =
   | None -> Error (`Find_by_name (`Any, name))
 
 let module_lookup_to_signature_lookup env (ref, cp, m) =
-  let rec handle_expansion : Tools.expansion -> _ = function
+  let rec handle_expansion (e : Tools.simple_expansion) =
+    match e.content with
     | Functor (_, expr) -> (
         match
           Tools.expansion_of_module_type_expr ~mark_substituted:true env expr
@@ -149,7 +150,7 @@ let module_lookup_to_signature_lookup env (ref, cp, m) =
     | Signature sg -> Ok ((ref :> Resolved.Signature.t), `Module cp, sg)
   in
   Tools.expansion_of_module env m
-  >>= handle_expansion
+  >>= (fun e -> handle_expansion e.Tools.content)
   |> map_error (fun e -> `Parent (`Parent_sig e))
 
 let module_type_lookup_to_signature_lookup env (ref, cp, m) =

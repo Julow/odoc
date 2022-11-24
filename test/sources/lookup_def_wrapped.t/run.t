@@ -28,6 +28,245 @@ Look if all the source files are generated:
   html/Main/Main.ml.html
   html/Main/index.html
 
+  $ odoc_print main.odocl
+  {
+    "id": { "`Root": [ "None", "Main" ] },
+    "root": "<root>",
+    "digest": "<digest>",
+    "imports": [
+      { "Unresolved": [ "CamlinternalFormatBasics", { "Some": "<digest>" } ] },
+      { "Resolved": [ "<root>", "Main__A" ] },
+      { "Resolved": [ "<root>", "Main__B" ] },
+      { "Unresolved": [ "Stdlib", { "Some": "<digest>" } ] }
+    ],
+    "source": {
+      "Some": {
+        "file": "main.ml",
+        "build_dir": "$TESTCASE_ROOT",
+        "digest": "<digest>"
+      }
+    },
+    "interface": "true",
+    "hidden": "false",
+    "content": {
+      "Module": {
+        "items": [
+          {
+            "Module": [
+              "Ordinary",
+              {
+                "id": { "`Module": [ { "`Root": [ "None", "Main" ] }, "A" ] },
+                "locs": {
+                  "impl": "None",
+                  "intf": {
+                    "Some": "File \"main.ml\", line 1, characters 0-18"
+                  }
+                },
+                "doc": [],
+                "type_": {
+                  "Alias": [
+                    {
+                      "`Resolved": {
+                        "`Hidden": {
+                          "`Identifier": { "`Root": [ "None", "Main__A" ] }
+                        }
+                      }
+                    },
+                    {
+                      "Some": {
+                        "Signature": {
+                          "items": [
+                            {
+                              "Type": [
+                                "Ordinary",
+                                {
+                                  "id": {
+                                    "`Type": [
+                                      {
+                                        "`Module": [
+                                          { "`Root": [ "None", "Main" ] },
+                                          "A"
+                                        ]
+                                      },
+                                      "t"
+                                    ]
+                                  },
+                                  "locs": {
+                                    "impl": {
+                                      "Some":
+                                        "File \"a.ml\", line 1, characters 0-6"
+                                    },
+                                    "intf": {
+                                      "Some":
+                                        "File \"a.ml\", line 1, characters 0-6"
+                                    }
+                                  },
+                                  "doc": [],
+                                  "equation": {
+                                    "params": [],
+                                    "private_": "false",
+                                    "manifest": "None",
+                                    "constraints": []
+                                  },
+                                  "representation": "None"
+                                }
+                              ]
+                            },
+                            {
+                              "Value": {
+                                "id": {
+                                  "`Value": [
+                                    {
+                                      "`Module": [
+                                        { "`Root": [ "None", "Main" ] },
+                                        "A"
+                                      ]
+                                    },
+                                    "x"
+                                  ]
+                                },
+                                "locs": {
+                                  "impl": {
+                                    "Some":
+                                      "File \"a.ml\", line 3, characters 4-5"
+                                  },
+                                  "intf": {
+                                    "Some":
+                                      "File \"a.ml\", line 3, characters 4-5"
+                                  }
+                                },
+                                "doc": [],
+                                "type_": {
+                                  "Constr": [
+                                    {
+                                      "`Resolved": {
+                                        "`Identifier": { "`CoreType": "int" }
+                                      }
+                                    },
+                                    []
+                                  ]
+                                },
+                                "value": "Abstract"
+                              }
+                            }
+                          ],
+                          "compiled": "true",
+                          "doc": []
+                        }
+                      }
+                    }
+                  ]
+                },
+                "canonical": {
+                  "Some": { "`Dot": [ { "`Root": "Main" }, "A" ] }
+                },
+                "hidden": "false"
+              }
+            ]
+          },
+          {
+            "Module": [
+              "Ordinary",
+              {
+                "id": { "`Module": [ { "`Root": [ "None", "Main" ] }, "B" ] },
+                "locs": {
+                  "impl": "None",
+                  "intf": {
+                    "Some": "File \"main.ml\", line 4, characters 0-18"
+                  }
+                },
+                "doc": [],
+                "type_": {
+                  "Alias": [
+                    {
+                      "`Resolved": {
+                        "`Hidden": {
+                          "`Identifier": { "`Root": [ "None", "Main__B" ] }
+                        }
+                      }
+                    },
+                    {
+                      "Some": {
+                        "Signature": {
+                          "items": [
+                            {
+                              "Value": {
+                                "id": {
+                                  "`Value": [
+                                    {
+                                      "`Module": [
+                                        { "`Root": [ "None", "Main" ] },
+                                        "B"
+                                      ]
+                                    },
+                                    "x"
+                                  ]
+                                },
+                                "locs": {
+                                  "impl": {
+                                    "Some":
+                                      "File \"b.ml\", line 1, characters 4-5"
+                                  },
+                                  "intf": {
+                                    "Some":
+                                      "File \"b.ml\", line 1, characters 4-5"
+                                  }
+                                },
+                                "doc": [],
+                                "type_": {
+                                  "Constr": [
+                                    {
+                                      "`Resolved": {
+                                        "`Identifier": { "`CoreType": "int" }
+                                      }
+                                    },
+                                    []
+                                  ]
+                                },
+                                "value": "Abstract"
+                              }
+                            }
+                          ],
+                          "compiled": "true",
+                          "doc": []
+                        }
+                      }
+                    }
+                  ]
+                },
+                "canonical": {
+                  "Some": { "`Dot": [ { "`Root": "Main" }, "B" ] }
+                },
+                "hidden": "false"
+              }
+            ]
+          }
+        ],
+        "compiled": "true",
+        "doc": []
+      }
+    },
+    "expansion": "None",
+    "canonical": "None",
+    "sources": [
+      {
+        "parent": { "`Root": [ "None", "Main" ] },
+        "intf_source": "<source code>",
+        "impl_source": "<source code>"
+      },
+      {
+        "parent": { "`Module": [ { "`Root": [ "None", "Main" ] }, "B" ] },
+        "intf_source": "<source code>",
+        "impl_source": "<source code>"
+      },
+      {
+        "parent": { "`Module": [ { "`Root": [ "None", "Main" ] }, "A" ] },
+        "intf_source": "<source code>",
+        "impl_source": "<source code>"
+      }
+    ]
+  }
+
   $ cat html/Main/A/index.html
   <!DOCTYPE html>
   <html xmlns="http://www.w3.org/1999/xhtml">
@@ -47,9 +286,16 @@ Look if all the source files are generated:
     </header>
     <div class="odoc-content">
      <div class="odoc-spec">
+      <div class="spec type anchored" id="type-t">
+       <a href="#type-t" class="anchor"></a>
+       <a href="../Main.ml.html#L1" class="source_link"></a>
+       <code><span><span class="keyword">type</span> t</span></code>
+      </div>
+     </div>
+     <div class="odoc-spec">
       <div class="spec value anchored" id="val-x">
        <a href="#val-x" class="anchor"></a>
-       <a href="../Main.ml.html#L1" class="source_link"></a>
+       <a href="../Main.ml.html#L3" class="source_link"></a>
        <code><span><span class="keyword">val</span> x : int</span></code>
       </div>
      </div>

@@ -62,7 +62,7 @@ end
 
 module Locations : sig
   type t = {
-    source_parent : Cpath.module_;
+    source_parent : Ident.module_;
     impl : Odoc_model.Location_.span option;
     intf : Odoc_model.Location_.span option;
   }
@@ -189,6 +189,8 @@ and ModuleType : sig
   type simple_expansion =
     | Signature of Signature.t
     | Functor of FunctorParameter.t * simple_expansion
+
+  type named_expansion = { id : Ident.module_; content : simple_expansion }
 
   type typeof_t = {
     t_desc : type_of_desc;

@@ -4,9 +4,11 @@ open Odoc_model.Names
 open Utils
 open ResultMonad
 
-type expansion =
+type simple_expansion =
   | Signature of Component.Signature.t
   | Functor of Component.FunctorParameter.t * Component.ModuleType.expr
+
+type expansion = { id : Ident.module_; content : simple_expansion }
 
 type ('a, 'b) either = Left of 'a | Right of 'b
 

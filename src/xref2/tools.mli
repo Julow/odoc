@@ -7,9 +7,11 @@
 
 open Errors.Tools_error
 
-type expansion =
+type simple_expansion =
   | Signature of Component.Signature.t
   | Functor of Component.FunctorParameter.t * Component.ModuleType.expr
+
+type expansion = { id : Ident.module_; content : simple_expansion }
 
 (** {2 Lookup and resolve functions} *)
 

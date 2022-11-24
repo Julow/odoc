@@ -404,7 +404,10 @@ end
 
 let locations map locs =
   let open Component.Locations in
-  let source_parent = Path.module_ map locs.source_parent in
+  let source_parent =
+    (Component.ModuleMap.find locs.source_parent map.module_
+      :> Paths.Identifier.Module.t)
+  in
   {
     Odoc_model.Lang.Locations.source_parent;
     intf = locs.intf;
@@ -617,6 +620,18 @@ and simple_expansion :
       Functor (Named arg, simple_expansion map identifier sg)
   | Functor (Unit, sg) ->
       Functor (Unit, simple_expansion map (Identifier.Mk.result id) sg)
+
+and named_expansion :
+    maps ->
+    Identifier.Module.t ->
+    Component.ModuleType.named_expansion ->
+    Lang.ModuleType.simple_expansion =
+ fun map id e ->
+  let open Component.FunctorParameter in
+  let map =
+    { map with module_ = Component.ModuleMap.add e.id id map.module_ }
+  in
+  expansion_content map id e.content
 
 and combine_shadowed s1 s2 =
   let open Odoc_model.Lang.Include in
