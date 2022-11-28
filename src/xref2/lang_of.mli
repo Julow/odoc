@@ -176,6 +176,12 @@ val simple_expansion :
   Component.ModuleType.simple_expansion ->
   Odoc_model.Lang.ModuleType.simple_expansion
 
+val named_expansion :
+  maps ->
+  Identifier.Module.t ->
+  Component.ModuleType.named_expansion ->
+  Odoc_model.Lang.ModuleType.simple_expansion
+
 val type_decl_constructor_argument :
   maps ->
   Identifier.Parent.t ->

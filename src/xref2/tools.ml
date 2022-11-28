@@ -4,11 +4,11 @@ open Odoc_model.Names
 open Utils
 open ResultMonad
 
-type simple_expansion =
+type expansion =
   | Signature of Component.Signature.t
   | Functor of Component.FunctorParameter.t * Component.ModuleType.expr
 
-type expansion = { id : Ident.module_; content : simple_expansion }
+type named_expansion = { id : Ident.module_; content : expansion }
 
 type ('a, 'b) either = Left of 'a | Right of 'b
 
@@ -1479,28 +1479,33 @@ and expansion_of_module_path :
     strengthen:bool ->
     Cpath.module_ ->
     (expansion, expansion_of_module_error) Result.result =
- fun env ~strengthen path ->
-  match resolve_module ~mark_substituted:true ~add_canonical:true env path with
-  | Ok (p', m) -> (
-      let m = Component.Delayed.get m in
-      (* p' is the path to the aliased module *)
-      let strengthen =
-        strengthen
-        && not (Cpath.is_resolved_module_hidden ~weak_canonical_test:true p')
-      in
-      expansion_of_module_cached env p' m >>= function
-      | Signature sg ->
-          let sg' =
-            match m.doc with
-            | [] -> sg
-            | docs -> { sg with items = Comment (`Docs docs) :: sg.items }
-          in
-          if strengthen then
-            Ok (Signature (Strengthen.signature (`Resolved p') sg'))
-          else Ok (Signature sg')
-      | Functor _ as f -> Ok f)
-  | Error _ when Cpath.is_module_forward path -> Error `UnresolvedForwardPath
-  | Error e -> Error (`UnresolvedPath (`Module (path, e)))
+  let expand_signature ~strengthen doc path = function
+    | Signature sg ->
+        let sg =
+          match doc with
+          | [] -> sg
+          | docs -> { sg with items = Comment (`Docs docs) :: sg.items }
+        in
+        let sg = if strengthen then Strengthen.signature path sg else sg in
+        Signature sg
+    | Functor _ as f -> f
+  in
+  fun env ~strengthen path ->
+    match
+      resolve_module ~mark_substituted:true ~add_canonical:true env path
+    with
+    | Ok (p', m) ->
+        let m = Component.Delayed.get m in
+        (* p' is the path to the aliased module *)
+        let strengthen =
+          strengthen
+          && not (Cpath.is_resolved_module_hidden ~weak_canonical_test:true p')
+        in
+        expansion_of_module_cached env p' m >>= fun exp ->
+        let content = expand_signature ~strengthen m.doc (`Resolved p') exp.content in
+        Ok { exp with content }
+    | Error _ when Cpath.is_module_forward path -> Error `UnresolvedForwardPath
+    | Error e -> Error (`UnresolvedPath (`Module (path, e)))
 
 and handle_signature_with_subs :
     mark_substituted:bool ->
@@ -1517,7 +1522,7 @@ and handle_signature_with_subs :
 
 and assert_not_functor :
     type err. expansion -> (Component.Signature.t, err) Result.result = function
-  | Signature sg -> Ok sg
+  | { content = Signature sg; _ } -> Ok sg
   | _ -> assert false
 
 and unresolve_subs subs =

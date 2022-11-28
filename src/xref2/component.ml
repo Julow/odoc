@@ -80,7 +80,7 @@ end
 
 module rec Module : sig
   type decl =
-    | Alias of Cpath.module_ * ModuleType.named_expansion option
+    | Alias of Cpath.module_ * ModuleType.simple_expansion option
     | ModuleType of ModuleType.expr
 
   type t = {
@@ -2015,7 +2015,7 @@ module Of_Lang = struct
     match m with
     | Odoc_model.Lang.Module.Alias (p, e) ->
         Module.Alias
-          (module_path ident_map p, option (named_expansion m.id) ident_map e)
+          (module_path ident_map p, option simple_expansion ident_map e)
     | Odoc_model.Lang.Module.ModuleType s ->
         Module.ModuleType (module_type_expr ident_map s)
 
@@ -2051,7 +2051,7 @@ module Of_Lang = struct
 
   and named_expansion identifier ident_map (e : Odoc_model.Lang.ModuleType.simple_expansion) =
     let id = Ident.Of_Identifier.module_ identifier in
-    { id; content = simple_expansion ident_map e }
+    { ModuleType.id; content = simple_expansion ident_map e }
 
   and module_ ident_map m =
     let type_ = module_decl ident_map m.Odoc_model.Lang.Module.type_ in

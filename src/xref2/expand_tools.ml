@@ -2,6 +2,7 @@ open Utils.ResultMonad
 open Odoc_model
 
 let handle_expansion env id expansion =
+  let open Component.ModuleType in
   let handle_argument parent arg_opt expr env =
     (* If there's an argument, extend the environment with the argument, then do
        the substitution on the signature to replace the local identifier with
@@ -30,25 +31,21 @@ let handle_expansion env id expansion =
         (env', Subst.module_type_expr subst expr)
   in
   let rec simple_expansion id env expansion :
-      (Env.t * Component.ModuleType.simple_expansion, _) Result.result =
+      (Env.t * simple_expansion, _) Result.result =
     match expansion with
-    | Tools.Signature sg ->
-        Ok
-          ( env,
-            (Component.ModuleType.Signature sg
-              : Component.ModuleType.simple_expansion) )
+    | Tools.Signature sg -> Ok (env, (Signature sg : simple_expansion))
     | Functor (arg, expr) ->
         let env', expr' = handle_argument id arg expr env in
         Tools.expansion_of_module_type_expr ~mark_substituted:false env' expr'
         >>= fun res ->
-        simple_expansion (Paths.Identifier.Mk.result id) env res
-        >>= fun (env, res) ->
-        Ok
-          ( env,
-            (Component.ModuleType.Functor (arg, res)
-              : Component.ModuleType.simple_expansion) )
+        simple_expansion (Paths.Identifier.Mk.result id) env res.content
+        >>= fun (env, res) -> Ok (env, (Functor (arg, res) : simple_expansion))
   in
-  { id = expansion.id; content = simple_expansion id env expansion.content }
+  simple_expansion id env expansion.content >>= fun (_, content) ->
+  {
+    id = expansion.Tools.id;
+    content;
+  }
 
 exception Clash
 

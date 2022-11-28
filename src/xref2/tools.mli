@@ -7,11 +7,11 @@
 
 open Errors.Tools_error
 
-type simple_expansion =
+type expansion =
   | Signature of Component.Signature.t
   | Functor of Component.FunctorParameter.t * Component.ModuleType.expr
 
-type expansion = { id : Ident.module_; content : simple_expansion }
+type named_expansion = { id : Ident.module_; content : expansion }
 
 (** {2 Lookup and resolve functions} *)
 
@@ -214,7 +214,7 @@ val expansion_of_module_path :
   Env.t ->
   strengthen:bool ->
   Cpath.module_ ->
-  (expansion, expansion_of_module_error) Result.result
+  (named_expansion, expansion_of_module_error) Result.result
 
 val expansion_of_module :
   Env.t ->

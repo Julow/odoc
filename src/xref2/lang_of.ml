@@ -627,11 +627,10 @@ and named_expansion :
     Component.ModuleType.named_expansion ->
     Lang.ModuleType.simple_expansion =
  fun map id e ->
-  let open Component.FunctorParameter in
   let map =
     { map with module_ = Component.ModuleMap.add e.id id map.module_ }
   in
-  expansion_content map id e.content
+  simple_expansion map (id :> Identifier.Signature.t) e.content
 
 and combine_shadowed s1 s2 =
   let open Odoc_model.Lang.Include in
