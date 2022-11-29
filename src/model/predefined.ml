@@ -285,7 +285,7 @@ let floatarray_decl =
     ]
     |> List.map (Location_.at predefined_location)
   in
-  mk_type ~doc ~eq:covariant_equation int32_identifier
+  mk_type ~doc ~eq:covariant_equation floatarray_identifier
 
 let match_failure_decl =
   mk_exn
