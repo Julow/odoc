@@ -47,13 +47,15 @@ let path_to_id path =
   | Error _ -> None
   | Ok url -> Some url
 
-let path_to_source_id path locs =
+let source_anchor locs =
   match locs.Odoc_model.Lang.Locations.impl with
   | None -> None
   | Some impl ->
-      Url.Anchor.source_file_from_identifier ~ext:".ml"
-        (path :> Paths.Identifier.t)
-        impl
+      Url.Anchor.source_file_from_identifier ~ext:".ml" locs.source_parent impl
+
+let opt_source_anchor = function
+  | Some locs -> source_anchor locs
+  | None -> None
 
 let attach_expansion ?(status = `Default) (eq, o, e) page text =
   match page with
@@ -792,7 +794,7 @@ module Make (Syntax : SYNTAX) = struct
       let attr = "type" :: (if is_substitution then [ "subst" ] else []) in
       let anchor = path_to_id t.id in
       let doc = Comment.to_ir t.doc in
-      let source_anchor = path_to_source_id t.id t.locs in
+      let source_anchor = source_anchor t.locs in
       Item.Declaration { attr; anchor; doc; content; source_anchor }
   end
 
@@ -821,7 +823,7 @@ module Make (Syntax : SYNTAX) = struct
       let attr = [ "value" ] @ extra_attr in
       let anchor = path_to_id t.id in
       let doc = Comment.to_ir t.doc in
-      let source_anchor = path_to_source_id t.id t.locs in
+      let source_anchor = source_anchor t.locs in
       Item.Declaration { attr; anchor; doc; content; source_anchor }
   end
 
@@ -1041,7 +1043,7 @@ module Make (Syntax : SYNTAX) = struct
       let attr = [ "class" ] in
       let anchor = path_to_id t.id in
       let doc = Comment.synopsis ~decl_doc:t.doc ~expansion_doc in
-      let source_anchor = path_to_source_id t.id t.locs in
+      let source_anchor = source_anchor t.locs in
       Item.Declaration { attr; anchor; doc; content; source_anchor }
 
     let class_type (t : Odoc_model.Lang.ClassType.t) =
@@ -1072,7 +1074,7 @@ module Make (Syntax : SYNTAX) = struct
       let attr = [ "class-type" ] in
       let anchor = path_to_id t.id in
       let doc = Comment.synopsis ~decl_doc:t.doc ~expansion_doc in
-      let source_anchor = path_to_source_id t.id t.locs in
+      let source_anchor = source_anchor t.locs in
       Item.Declaration { attr; anchor; doc; content; source_anchor }
   end
 
@@ -1351,11 +1353,7 @@ module Make (Syntax : SYNTAX) = struct
       let attr = [ "module" ] in
       let anchor = path_to_id t.id in
       let doc = Comment.synopsis ~decl_doc:t.doc ~expansion_doc in
-      let source_anchor =
-        match t.locs with
-        | Some locs -> path_to_source_id t.id locs
-        | None -> None
-      in
+      let source_anchor = opt_source_anchor t.locs in
       Item.Declaration { attr; anchor; doc; content; source_anchor }
 
     and simple_expansion_in_decl (base : Paths.Identifier.Module.t) se =
@@ -1426,11 +1424,7 @@ module Make (Syntax : SYNTAX) = struct
       let attr = [ "module-type" ] in
       let anchor = path_to_id t.id in
       let doc = Comment.synopsis ~decl_doc:t.doc ~expansion_doc in
-      let source_anchor =
-        match t.locs with
-        | Some locs -> path_to_source_id t.id locs
-        | None -> None
-      in
+      let source_anchor = opt_source_anchor t.locs in
       Item.Declaration { attr; anchor; doc; content; source_anchor }
 
     and umty_hidden : Odoc_model.Lang.ModuleType.U.expr -> bool = function
