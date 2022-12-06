@@ -1476,7 +1476,9 @@ and expansion_of_module_path :
     Env.t ->
     strengthen:bool ->
     Cpath.module_ ->
-    (expansion, expansion_of_module_error) Result.result =
+    ( Cpath.Resolved.module_ * expansion,
+      expansion_of_module_error )
+    Result.result =
  fun env ~strengthen path ->
   match resolve_module ~mark_substituted:true ~add_canonical:true env path with
   | Ok (p', m) -> (
@@ -1484,7 +1486,7 @@ and expansion_of_module_path :
       (* p' is the path to the aliased module *)
       let strengthen =
         strengthen
-        && not (Cpath.is_resolved_module_hidden ~weak_canonical_test:true p')
+        && not (Cpath.is_resolved_module_hidden ~weak_canonical_test:false p')
       in
       expansion_of_module_cached env p' m >>= function
       | Signature sg ->
@@ -1494,9 +1496,9 @@ and expansion_of_module_path :
             | docs -> { sg with items = Comment (`Docs docs) :: sg.items }
           in
           if strengthen then
-            Ok (Signature (Strengthen.signature (`Resolved p') sg'))
-          else Ok (Signature sg')
-      | Functor _ as f -> Ok f)
+            Ok (p', Signature (Strengthen.signature (`Resolved p') sg'))
+          else Ok (p', Signature sg')
+      | Functor _ as f -> Ok (p', f))
   | Error _ when Cpath.is_module_forward path -> Error `UnresolvedForwardPath
   | Error e -> Error (`UnresolvedPath (`Module (path, e)))
 
@@ -1610,7 +1612,7 @@ and expansion_of_module_decl :
   match decl with
   (* | Component.Module.Alias (_, Some e) -> Ok (expansion_of_simple_expansion e) *)
   | Component.Module.Alias (p, _) ->
-      expansion_of_module_path env ~strengthen:true p
+      expansion_of_module_path env ~strengthen:true p >>= fun (_, exp) -> Ok exp
   | Component.Module.ModuleType expr ->
       expansion_of_module_type_expr ~mark_substituted:false env expr
 
@@ -1652,9 +1654,8 @@ and fragmap :
     let open Component.Module in
     match decl with
     | Alias (path, _) ->
-        expansion_of_module_path env ~strengthen:true path
-        >>= assert_not_functor
-        >>= fun sg ->
+        expansion_of_module_path env ~strengthen:true path >>= fun (_, exp) ->
+        assert_not_functor exp >>= fun sg ->
         Ok
           (ModuleType
              (With
@@ -1682,8 +1683,8 @@ and fragmap :
     let open Component.Include in
     match decl with
     | Alias p ->
-        expansion_of_module_path env ~strengthen:true p >>= assert_not_functor
-        >>= fun sg ->
+        expansion_of_module_path env ~strengthen:true p >>= fun (_, exp) ->
+        assert_not_functor exp >>= fun sg ->
         fragmap ~mark_substituted env subst sg >>= fun sg ->
         Ok (ModuleType (Signature sg))
     | ModuleType mty' -> Ok (ModuleType (With ([ subst ], mty')))
