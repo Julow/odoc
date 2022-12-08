@@ -428,10 +428,14 @@ module Page = struct
 
   and page ~config p : Odoc_document.Renderer.page list =
     let { Page.preamble; items = i; url } = Doctree.Labels.disambiguate_page p
-    and subpages =
+    and subpages, sourcepage_list =
       (* Don't use the output of [disambiguate_page] to avoid unecessarily
          mangled labels. *)
-      subpages ~config @@ Doctree.Subpages.compute p
+      let subpage_list = Doctree.Subpages.compute p in
+      let sourcepage_list =
+        Utils.list_concat_map ~f:(fun sp -> sp.Subpage.sources) subpage_list
+      in
+      (subpages ~config @@ subpage_list, sourcepage_list)
     in
     let resolve = Link.Current url in
     let i = Doctree.Shift.compute ~on_sub i in
@@ -451,8 +455,9 @@ module Page = struct
         Html_page.make ~config ~header ~toc ~breadcrumbs ~url ~uses_katex
           content subpages;
       ]
+      @ List.map (source_page ~config) sourcepage_list
 
-  let source_page ~config sp =
+  and source_page ~config sp =
     let { Source_page.url; contents } = sp in
     let name = url.Url.Path.name
     and doc = Html_source.doc_of_locs contents [] in
