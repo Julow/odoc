@@ -939,7 +939,7 @@
 (subdir
  html
  (rule
-  (targets Bugs_pre_410.html.gen)
+  (targets Bugs_pre_410.html.gen Bugs_pre_410-Bugs_pre_410.ml.html.gen)
   (action
    (run
     odoc
@@ -957,6 +957,14 @@
   (alias runtest)
   (action
    (diff Bugs_pre_410.html Bugs_pre_410.html.gen))
+  (enabled_if
+   (<= %{ocaml_version} 4.09)))
+ (rule
+  (alias runtest)
+  (action
+   (diff
+    Bugs_pre_410-Bugs_pre_410.ml.html
+    Bugs_pre_410-Bugs_pre_410.ml.html.gen))
   (enabled_if
    (<= %{ocaml_version} 4.09))))
 
