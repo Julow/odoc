@@ -28,7 +28,9 @@ end
 
 module Source_code = struct
   module Info = struct
-    type jmp_to_def = Occurence of { anchor : string } | Def of string
+    type anchor = { anchor : string }
+
+    type jmp_to_def = Occurence of anchor | Def of string
 
     type info = Syntax of string | Line of int | Local_jmp of jmp_to_def
 
