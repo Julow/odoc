@@ -10,6 +10,13 @@ Similar to Astring library.
   $ odoc link -I . a_x.odoc
   $ odoc link -I . a.odoc
 
+TODO: It seems that --hidden do not work:
+  $ odoc_print a_x.odoc | grep hidden
+    "hidden": "false",
+                "hidden": "false"
+  $ odoc_print a_x.odocl | grep hidden
+    "hidden": "false",
+
   $ odoc html-generate --indent -o html a_x.odocl
   $ odoc html-generate --indent -o html a.odocl
 
@@ -28,8 +35,8 @@ Look if all the source files are generated:
   html/A_x/A_x.ml.html
   html/A_x/index.html
 
-Documentation for `A_x` is unwanted but generated at the moment:
-TODO: `odoc html-generate` shouldn't output documentation for hidden modules
+Documentation for `A_x` is not generated for hidden modules, but --hidden do not
+work right now:
 
   $ ! [ -f html/A_x/index.html ]
   [1]
