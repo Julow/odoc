@@ -47,10 +47,7 @@ unresolved in the paths though:
     "locs": {
       "Some": {
         "source_parent": { "`Root": [ "None", "Main__Container" ] },
-        "impl": "None",
-        "intf": {
-          "Some": "File \"main__Container.mli\", line 10, characters 2-14"
-        }
+        "anchor": "None"
       }
     },
     "doc": [],
@@ -99,8 +96,7 @@ unresolved in the paths though:
     "locs": {
       "Some": {
         "source_parent": { "`Root": [ "None", "Main" ] },
-        "impl": { "Some": "File \"main.ml\", line 3, characters 0-28" },
-        "intf": "None"
+        "anchor": "None"
       }
     },
     "doc": [],
@@ -147,13 +143,8 @@ unresolved in the paths though:
     },
     "locs": {
       "Some": {
-        "source_parent": {
-          "`Module": [ { "`Root": [ "None", "Main" ] }, "Container" ]
-        },
-        "impl": "None",
-        "intf": {
-          "Some": "File \"main__Container.mli\", line 10, characters 2-14"
-        }
+        "source_parent": { "`Root": [ "None", "Main__Container" ] },
+        "anchor": "None"
       }
     },
     "doc": [],
@@ -205,52 +196,15 @@ unresolved in the paths though:
         },
         {
           "Some": {
-            "e_id": {
-              "`Module": [
+            "Signature": {
+              "items": [
                 {
-                  "`Module": [
+                  "Type": [
+                    "Ordinary",
                     {
-                      "`Module": [
-                        { "`Root": [ "None", "Main" ] },
-                        "Container"
-                      ]
-                    },
-                    "Test"
-                  ]
-                },
-                "A"
-              ]
-            },
-            "e_expansion": {
-              "Signature": {
-                "items": [
-                  {
-                    "Type": [
-                      "Ordinary",
-                      {
-                        "id": {
-                          "`Type": [
-                            {
-                              "`Module": [
-                                {
-                                  "`Module": [
-                                    {
-                                      "`Module": [
-                                        { "`Root": [ "None", "Main" ] },
-                                        "Container"
-                                      ]
-                                    },
-                                    "Test"
-                                  ]
-                                },
-                                "B"
-                              ]
-                            },
-                            "t"
-                          ]
-                        },
-                        "locs": {
-                          "source_parent": {
+                      "id": {
+                        "`Type": [
+                          {
                             "`Module": [
                               {
                                 "`Module": [
@@ -266,27 +220,29 @@ unresolved in the paths though:
                               "B"
                             ]
                           },
-                          "impl": "None",
-                          "intf": {
-                            "Some":
-                              "File \"main__Container.mli\", line 7, characters 4-10"
-                          }
+                          "t"
+                        ]
+                      },
+                      "locs": {
+                        "source_parent": {
+                          "`Root": [ "None", "Main__Container" ]
                         },
-                        "doc": [],
-                        "equation": {
-                          "params": [],
-                          "private_": "false",
-                          "manifest": "None",
-                          "constraints": []
-                        },
-                        "representation": "None"
-                      }
-                    ]
-                  }
-                ],
-                "compiled": "true",
-                "doc": []
-              }
+                        "anchor": "None"
+                      },
+                      "doc": [],
+                      "equation": {
+                        "params": [],
+                        "private_": "false",
+                        "manifest": "None",
+                        "constraints": []
+                      },
+                      "representation": "None"
+                    }
+                  ]
+                }
+              ],
+              "compiled": "true",
+              "doc": []
             }
           }
         }
