@@ -37,6 +37,18 @@ let convert_fs_file =
   and print = Fpath.pp in
   Arg.conv (parse, print)
 
+let convert_relative_path =
+  let parse s =
+    match Fpath.of_string s with
+    | Ok path ->
+        let path = Fpath.normalize path in
+        if not (Fpath.is_rooted ~root:(Fpath.v ".") path) then
+          Error (`Msg "Path is not relative or escapes the source tree")
+        else Ok (Fpath.to_string path)
+    | Error _ as e -> e
+  and print = Format.pp_print_string in
+  Arg.conv (parse, print)
+
 let handle_error = function
   | Result.Ok () -> ()
   | Error (`Cli_error msg) ->
@@ -157,7 +169,8 @@ end = struct
         Fs.File.(set_ext ".odoc" output)
 
   let compile hidden directories resolve_fwd_refs dst package_opt
-      parent_name_opt open_modules children input warnings_options impl_source =
+      parent_name_opt open_modules children input warnings_options impl_source
+      source_parent source_relpath =
     let open Or_error in
     let resolver =
       Resolver.create ~important_digests:(not resolve_fwd_refs) ~directories
@@ -178,7 +191,7 @@ end = struct
     parent_cli_spec >>= fun parent_cli_spec ->
     Fs.Directory.mkdir_p (Fs.File.dirname output);
     Compile.compile ~resolver ~parent_cli_spec ~hidden ~children ~output
-      ~warnings_options ~impl_source input
+      ~warnings_options ~impl_source ~source_parent ~source_relpath input
 
   let input =
     let doc = "Input $(i,.cmti), $(i,.cmt), $(i,.cmi) or $(i,.mld) file." in
@@ -213,6 +226,22 @@ end = struct
       & opt (some convert_fs_file) None
       & info [ "impl" ] ~doc ~docv:"file.ml")
 
+  let source_parent =
+    let doc = "Parent page at the base of the source tree." in
+    Arg.(
+      value
+      & opt (some string) None
+      & info [ "source-parent" ] ~doc ~docv:"PARENT")
+
+  let source_relpath =
+    let doc =
+      "Relative path to the file passed to $(b,--impl) inside the source tree."
+    in
+    Arg.(
+      value
+      & opt (some convert_relative_path) None
+      & info [ "source-relpath" ] ~doc ~docv:"PATH")
+
   let cmd =
     let package_opt =
       let doc =
@@ -238,7 +267,7 @@ end = struct
       const handle_error
       $ (const compile $ hidden $ odoc_file_directories $ resolve_fwd_refs $ dst
        $ package_opt $ parent_opt $ open_modules $ children $ input
-       $ warnings_options $ impl))
+       $ warnings_options $ impl $ source_parent $ source_relpath))
 
   let info ~docs =
     let man =

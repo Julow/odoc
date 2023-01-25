@@ -102,7 +102,7 @@ module Path = struct
     | `Class
     | `ClassType
     | `File
-    | `Source_file ]
+    | `Source_file  (** [name] can contain [/] for source files. *) ]
 
   let string_of_kind : kind -> string = function
     | `Page -> "page"
@@ -183,10 +183,10 @@ module Path = struct
     from_identifier
       (p : [< source_pv ] Odoc_model.Paths.Identifier.id :> source)
 
-  let source_file_from_identifier ~ext id =
-    let parent = from_identifier (id :> source) in
-    let file_name = Identifier.name id ^ ext in
-    mk ~parent `Source_file file_name
+  let source_file_from_identifier id =
+    let (`SourcePage (parent, relpath)) = id.Odoc_model.Paths.Identifier.iv in
+    let parent = from_identifier (parent :> source) in
+    mk ~parent `Source_file relpath
 
   let to_list url =
     let rec loop acc { parent; name; kind } =
@@ -370,9 +370,9 @@ module Anchor = struct
             Error (Unexpected_anchor "core_type label parent")
         | { iv = `Type (gp, _); _ } -> mk ~kind:`Section gp str_name)
 
-  let source_file_from_identifier ~ext root ~anchor =
+  let source_file_from_identifier id ~anchor =
     let kind = `SourceLine in
-    let page = Path.source_file_from_identifier ~ext root in
+    let page = Path.source_file_from_identifier id in
     { page; anchor; kind }
 
   let polymorphic_variant ~type_ident elt =

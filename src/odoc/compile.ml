@@ -62,7 +62,7 @@ let read_source_file_opt = function
   | Some file -> read_source_file file
   | None -> None
 
-let parent resolver parent_cli_spec =
+let parse_parent_explicit resolver f =
   let find_parent :
       Paths.Reference.t -> (Lang.Page.t, [> `Msg of string ]) Result.result =
    fun r ->
@@ -77,12 +77,15 @@ let parent resolver parent_cli_spec =
     | { Paths.Identifier.iv = `Page _; _ } as container -> Ok container
     | _ -> Error (`Msg "Specified parent is not a parent of this file")
   in
+  parse_reference f >>= fun r ->
+  find_parent r >>= fun page ->
+  extract_parent page.name >>= fun parent -> Ok (parent, page.children)
+
+let parent resolver parent_cli_spec =
   match parent_cli_spec with
   | CliParent f ->
-      parse_reference f >>= fun r ->
-      find_parent r >>= fun page ->
-      extract_parent page.name >>= fun parent ->
-      Ok (Explicit (parent, page.children))
+      parse_parent_explicit resolver f >>= fun (parent, children) ->
+      Ok (Explicit (parent, children))
   | CliPackage package ->
       Ok (Package (Paths.Identifier.Mk.page (None, PageName.make_std package)))
   | CliNoparent -> Ok Noparent
@@ -98,8 +101,9 @@ let resolve_imports resolver imports =
     imports
 
 (** Raises warnings and errors. *)
-let resolve_and_substitute ~resolver ~make_root ~impl_source
-    (parent : Paths.Identifier.ContainerPage.t option) input_file input_type =
+let resolve_and_substitute ~resolver ~make_root ~impl_source ~source_parent
+    ~source_relpath (parent : Paths.Identifier.ContainerPage.t option)
+    input_file input_type =
   let filename = Fs.File.to_string input_file in
   (* [impl_shape] is used to lookup locations in the implementation. It is
      useless if no source code is given on command line. *)
@@ -132,15 +136,31 @@ let resolve_and_substitute ~resolver ~make_root ~impl_source
   let sources =
     match read_source_file_opt impl_source with
     | None -> None
-    | impl_source ->
+    | Some impl_source ->
+        let relpath =
+          match source_relpath with
+          | Some relpath -> relpath
+          | None ->
+              Error.raise_exception
+                (Error.filename_only
+                   "--source-relpath must be passed when --source is." filename)
+        in
+        let root =
+          match source_parent with
+          | Some parent -> parent
+          | None ->
+              Error.raise_exception
+                (Error.filename_only
+                   "--source-parent must be passed when --source is." filename)
+        in
         let impl_info =
-          match (cmt_infos, impl_source) with
-          | Some (_, local_jmp), Some impl_source ->
+          match cmt_infos with
+          | Some (_, local_jmp) ->
               Odoc_loader.Source_info.of_source ~local_jmp impl_source
           | _ -> []
         in
-        let parent = (unit.id :> Paths.Identifier.Module.t) in
-        Some { Lang.Source_code.parent; impl_source; impl_info }
+        let id = Paths.Identifier.Mk.source_page (root, relpath) in
+        Some { Lang.Source_code.id; impl_source; impl_info }
   in
   if not unit.Lang.Compilation_unit.interface then
     Printf.eprintf "WARNING: not processing the \"interface\" file.%s\n%!"
@@ -268,8 +288,14 @@ let handle_file_ext = function
       Error (`Msg "Unknown extension, expected one of: cmti, cmt, cmi or mld.")
 
 let compile ~resolver ~parent_cli_spec ~hidden ~children ~output
-    ~warnings_options ~impl_source input =
+    ~warnings_options ~impl_source ~source_parent ~source_relpath input =
   parent resolver parent_cli_spec >>= fun parent_spec ->
+  (match source_parent with
+  | Some parent ->
+      parse_parent_explicit resolver parent >>= fun (parent, _) ->
+      Ok (Some parent)
+  | None -> Ok None)
+  >>= fun source_parent ->
   let ext = Fs.File.get_ext input in
   if ext = ".mld" then
     mld ~parent_spec ~output ~warnings_options ~children input
@@ -285,8 +311,8 @@ let compile ~resolver ~parent_cli_spec ~hidden ~children ~output
     let make_root = root_of_compilation_unit ~parent_spec ~hidden ~output in
     let result =
       Error.catch_errors_and_warnings (fun () ->
-          resolve_and_substitute ~resolver ~make_root ~impl_source parent input
-            input_type)
+          resolve_and_substitute ~resolver ~make_root ~impl_source
+            ~source_parent ~source_relpath parent input input_type)
     in
     (* Extract warnings to write them into the output file *)
     let _, warnings = Error.unpack_warnings result in
