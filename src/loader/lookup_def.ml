@@ -42,7 +42,7 @@ let rec shape_of_id lookup_shape :
     | `Class (parent, name) -> proj parent Kind.Class (ClassName.to_string name)
     | `ClassType (parent, name) ->
         proj parent Kind.Class_type (ClassTypeName.to_string name)
-    | `Page _ | `LeafPage _ | `Label _ | `CoreType _ | `CoreException _
+    | `Page _ | `LeafPage _ | `Label _ | `CoreType _ | `CoreException _ | `SourceDir _ | `SourcePage _
     | `Constructor _ | `Field _ | `Method _ | `InstanceVariable _ | `Parameter _
       ->
         (* Not represented in shapes. *)

@@ -159,7 +159,15 @@ let resolve_and_substitute ~resolver ~make_root ~impl_source ~source_parent
               Odoc_loader.Source_info.of_source ~local_jmp impl_source
           | _ -> []
         in
-        let id = Paths.Identifier.Mk.source_page (root, relpath) in
+        let id =
+          let rec loop acc = function
+            | [] -> assert false
+            | [ filename ] -> Paths.Identifier.Mk.source_page (acc, filename)
+            | dirname :: q ->
+                loop (Paths.Identifier.Mk.source_dir (acc, dirname)) q
+          in
+          loop root (Fpath.segs relpath)
+        in
         Some { Lang.Source_code.id; impl_source; impl_info }
   in
   if not unit.Lang.Compilation_unit.interface then
