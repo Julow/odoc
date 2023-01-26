@@ -147,7 +147,11 @@ let compile file ?parent ?(ignore_output = false) ?impl children =
   in
   let open Cmd in
   let impl =
-    match impl with None -> Cmd.empty | Some impl -> Cmd.(v "--impl" % p impl)
+    match impl with
+      | None -> Cmd.empty
+      | Some (impl, source_relpath) ->
+          Cmd.(v "--impl" % p impl % "--source-parent" % "page-odoc" %
+            "--source-relpath" % p source_relpath)
   in
   let cmd =
     odoc % "compile" % Fpath.to_string file %% impl % "-I" % "." % "-o"
@@ -234,7 +238,9 @@ let odoc_libraries = [
 
 let source_dir_of_odoc_lib lib =
   match String.split_on_char '_' lib with
-  | "odoc" :: s -> Some Fpath.(v ".." / "src" / String.concat "_" s)
+  | "odoc" :: s ->
+      let relpath = Fpath.(v "src" / (String.concat "_" s)) in
+      Some (Fpath.(v ".." // relpath), relpath)
   | _ -> None
 
 let all_libraries = dep_libraries @ odoc_libraries;;
@@ -359,13 +365,16 @@ let source_files_of_odoc_module lib module_ =
   in
   match source_dir_of_odoc_lib lib with
   | None -> None
-  | Some path ->
-      let path = Fpath.( / ) path filename in
-      let find_by_extension path exts =
-        List.map (fun ext -> Fpath.add_ext ext path) exts
-        |> List.find_opt (fun f -> Bos.OS.File.exists f |> get_ok)
+  | Some (path, relpath) ->
+      let add_filename path ext =
+        Fpath.( / ) path filename |> Fpath.add_ext ext
       in
-      find_by_extension path ["pp.ml" ;"ml-gen"; "ml"]
+      let find_by_extension path exts =
+        exts
+        |> List.map (fun ext -> add_filename path ext, add_filename relpath ext)
+        |> List.find_opt (fun (f, _) -> Bos.OS.File.exists f |> get_ok)
+      in
+      find_by_extension path ["pp.ml"; "ml-gen"; "ml"]
 
 let odoc_units =
   List.map
