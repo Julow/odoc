@@ -49,18 +49,23 @@ let parse_reference f =
   |> Error.handle_errors_and_warnings ~warnings_options
 
 (** Raises errors. *)
-let read_source_file file =
-  match Fs.File.read file with
-  | Ok content -> Some content
+let read_source_file ~root cmt_infos source_path =
+  let source_name = Fpath.filename source_path in
+  match Fs.File.read source_path with
   | Error (`Msg msg) ->
       Error.raise_warning
-        (Error.filename_only "Couldn't load source file %a: %s" Fpath.pp file
-           msg (Fs.File.to_string file));
+        (Error.filename_only "Couldn't load source file: %s" msg
+           (Fs.File.to_string source_path));
       None
-
-let read_source_file_opt = function
-  | Some file -> read_source_file file
-  | None -> None
+  | Ok impl_source ->
+      let impl_info =
+        match cmt_infos with
+        | Some (_, local_jmp) ->
+            Odoc_loader.Source_info.of_source ~local_jmp impl_source
+        | _ -> []
+      in
+      let id = Paths.Identifier.Mk.source_page (root, source_name) in
+      Some { Lang.Source_code.id; impl_source; impl_info }
 
 let parse_parent_explicit resolver f =
   let find_parent :
@@ -102,8 +107,7 @@ let resolve_imports resolver imports =
 
 (** Raises warnings and errors. *)
 let resolve_and_substitute ~resolver ~make_root ~impl_source ~source_parent
-    ~source_relpath (parent : Paths.Identifier.ContainerPage.t option)
-    input_file input_type =
+    (parent : Paths.Identifier.ContainerPage.t option) input_file input_type =
   let filename = Fs.File.to_string input_file in
   (* [impl_shape] is used to lookup locations in the implementation. It is
      useless if no source code is given on command line. *)
@@ -134,33 +138,18 @@ let resolve_and_substitute ~resolver ~make_root ~impl_source ~source_parent
     match cmt_infos with Some (shape, _) -> Some shape | None -> None
   in
   let sources =
-    match read_source_file_opt impl_source with
+    match impl_source with
     | None -> None
-    | Some impl_source ->
-        let relpath =
-          match source_relpath with
-          | Some relpath -> relpath
-          | None ->
-              Error.raise_exception
-                (Error.filename_only
-                   "--source-relpath must be passed when --source is." filename)
-        in
+    | Some source_path ->
         let root =
           match source_parent with
           | Some parent -> parent
           | None ->
               Error.raise_exception
                 (Error.filename_only
-                   "--source-parent must be passed when --source is." filename)
+                   "--source-parent must be passed when --impl is." filename)
         in
-        let impl_info =
-          match cmt_infos with
-          | Some (_, local_jmp) ->
-              Odoc_loader.Source_info.of_source ~local_jmp impl_source
-          | _ -> []
-        in
-        let id = Paths.Identifier.Mk.source_page (root, relpath) in
-        Some { Lang.Source_code.id; impl_source; impl_info }
+        read_source_file ~root cmt_infos source_path
   in
   if not unit.Lang.Compilation_unit.interface then
     Printf.eprintf "WARNING: not processing the \"interface\" file.%s\n%!"
@@ -288,7 +277,7 @@ let handle_file_ext = function
       Error (`Msg "Unknown extension, expected one of: cmti, cmt, cmi or mld.")
 
 let compile ~resolver ~parent_cli_spec ~hidden ~children ~output
-    ~warnings_options ~impl_source ~source_parent ~source_relpath input =
+    ~warnings_options ~impl_source ~source_parent input =
   parent resolver parent_cli_spec >>= fun parent_spec ->
   (match source_parent with
   | Some parent ->
@@ -312,7 +301,7 @@ let compile ~resolver ~parent_cli_spec ~hidden ~children ~output
     let result =
       Error.catch_errors_and_warnings (fun () ->
           resolve_and_substitute ~resolver ~make_root ~impl_source
-            ~source_parent ~source_relpath parent input input_type)
+            ~source_parent parent input input_type)
     in
     (* Extract warnings to write them into the output file *)
     let _, warnings = Error.unpack_warnings result in

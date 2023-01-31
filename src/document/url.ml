@@ -102,7 +102,7 @@ module Path = struct
     | `Class
     | `ClassType
     | `File
-    | `Source_file  (** [name] can contain [/] for source files. *) ]
+    | `SourcePage ]
 
   let string_of_kind : kind -> string = function
     | `Page -> "page"
@@ -113,7 +113,7 @@ module Path = struct
     | `Class -> "class"
     | `ClassType -> "class-type"
     | `File -> "file"
-    | `Source_file -> "source"
+    | `SourcePage -> "source"
 
   let pp_kind fmt kind = Format.fprintf fmt "%s" (string_of_kind kind)
 
@@ -184,9 +184,9 @@ module Path = struct
       (p : [< source_pv ] Odoc_model.Paths.Identifier.id :> source)
 
   let source_file_from_identifier id =
-    let (`SourcePage (parent, relpath)) = id.Odoc_model.Paths.Identifier.iv in
+    let (`SourcePage (parent, name)) = id.Odoc_model.Paths.Identifier.iv in
     let parent = from_identifier (parent :> source) in
-    mk ~parent `Source_file relpath
+    mk ~parent `SourcePage name
 
   let to_list url =
     let rec loop acc { parent; name; kind } =

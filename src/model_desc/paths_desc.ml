@@ -437,8 +437,8 @@ let identifier : [< Paths.Identifier.t_pv ] Paths.Identifier.id Type_desc.t =
 let sourcepage_identifier : Paths.Identifier.SourcePage.t Type_desc.t =
   Indirect
     ( (fun id ->
-        let (`SourcePage (parent, relpath)) = id.iv in
-        ((parent :> Paths.Identifier.t), relpath)),
+        let (`SourcePage (parent, name)) = id.iv in
+        ((parent :> Paths.Identifier.t), name)),
       Pair (General_paths.identifier, string) )
 
 let resolved_path : [< Paths.Path.Resolved.t ] Type_desc.t =
