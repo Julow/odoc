@@ -21,8 +21,7 @@ module Path : sig
     | `Class
     | `ClassType
     | `File
-    | `SourcePage
-    | `SourceDir ]
+    | `Source_file ]
 
   val pp_kind : Format.formatter -> kind -> unit
 

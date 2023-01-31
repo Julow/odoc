@@ -149,14 +149,7 @@ module General_paths = struct
             C
               ( "`Label",
                 ((parent :> id_t), name),
-                Pair (identifier, Names.labelname) )
-        | `SourceDir (parent, name) ->
-            C ("`SourceDir", ((parent :> id_t), name), Pair (identifier, string))
-        | `SourcePage (parent, name) ->
-            C
-              ( "`SourcePage",
-                ((parent :> id_t), name),
-                Pair (identifier, string) ))
+                Pair (identifier, Names.labelname) ))
 
   let reference_tag : tag t =
     Variant

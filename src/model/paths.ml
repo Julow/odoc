@@ -50,8 +50,6 @@ module Identifier = struct
     | `Method (_, name) -> MethodName.to_string name
     | `InstanceVariable (_, name) -> InstanceVariableName.to_string name
     | `Label (_, name) -> LabelName.to_string name
-    | `SourceDir (_, name) -> name
-    | `SourcePage (_, name) -> name
 
   let name : [< t_pv ] id -> string = fun n -> name_aux (n :> t)
 
@@ -73,9 +71,7 @@ module Identifier = struct
     | `Method (parent, _) -> root (parent :> t)
     | `InstanceVariable (parent, _) -> root (parent :> t)
     | `Label (parent, _) -> root (parent :> t)
-    | `SourceDir _ | `SourcePage _ | `Page _ | `LeafPage _ | `CoreType _
-    | `CoreException _ ->
-        None
+    | `Page _ | `LeafPage _ | `CoreType _ | `CoreException _ -> None
 
   let root id = root (id :> t)
 
@@ -83,8 +79,6 @@ module Identifier = struct
     let open Paths_types.Identifier in
     fun (n : any) ->
       match n with
-      | { iv = `SourcePage (p, _); _ } | { iv = `SourceDir (p, _); _ } ->
-          label_parent_aux (p :> any)
       | { iv = `Result i; _ } -> label_parent_aux (i :> any)
       | { iv = `CoreType _; _ } | { iv = `CoreException _; _ } -> assert false
       | { iv = `Root _; _ } as p -> (p :> label_parent)
@@ -420,14 +414,6 @@ module Identifier = struct
     let compare = compare
   end
 
-  module SourcePageParent = struct
-    type t = Paths_types.Identifier.source_page_parent
-    type t_pv = Paths_types.Identifier.source_page_parent_pv
-    let equal = equal
-    let hash = hash
-    let compare = compare
-  end
-
   module SourcePage = struct
     type t = Paths_types.Identifier.source_page
     type t_pv = Paths_types.Identifier.source_page_pv
@@ -551,9 +537,6 @@ module Identifier = struct
 
     let source_page =
       mk_parent (fun rp -> rp) "sp" (fun (p, rp) -> `SourcePage (p, rp))
-
-    let source_dir =
-      mk_parent (fun rp -> rp) "sd" (fun (p, rp) -> `SourceDir (p, rp))
 
     let root :
         ContainerPage.t option * ModuleName.t ->

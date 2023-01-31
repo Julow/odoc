@@ -102,8 +102,7 @@ module Path = struct
     | `Class
     | `ClassType
     | `File
-    | `SourcePage
-    | `SourceDir ]
+    | `Source_file  (** [name] can contain [/] for source files. *) ]
 
   let string_of_kind : kind -> string = function
     | `Page -> "page"
@@ -114,8 +113,7 @@ module Path = struct
     | `Class -> "class"
     | `ClassType -> "class-type"
     | `File -> "file"
-    | `SourcePage -> "source"
-    | `SourceDir -> "source-dir"
+    | `Source_file -> "source"
 
   let pp_kind fmt kind = Format.fprintf fmt "%s" (string_of_kind kind)
 
@@ -185,18 +183,10 @@ module Path = struct
     from_identifier
       (p : [< source_pv ] Odoc_model.Paths.Identifier.id :> source)
 
-  let rec source_dir_from_identifier : Identifier.SourcePageParent.t -> _ =
-    function
-    | { iv = `Page _; _ } as p -> from_identifier p
-    | { iv = `SourceDir (p, name); _ } ->
-        let parent = source_dir_from_identifier p in
-        let kind = `SourceDir in
-        mk ~parent kind name
-
   let source_file_from_identifier id =
-    let (`SourcePage (parent, name)) = id.Odoc_model.Paths.Identifier.iv in
-    let parent = source_dir_from_identifier parent in
-    mk ~parent `SourcePage name
+    let (`SourcePage (parent, relpath)) = id.Odoc_model.Paths.Identifier.iv in
+    let parent = from_identifier (parent :> source) in
+    mk ~parent `Source_file relpath
 
   let to_list url =
     let rec loop acc { parent; name; kind } =
@@ -299,12 +289,6 @@ module Anchor = struct
         _;
       } as p ->
         Ok (anchorify_path @@ Path.from_identifier p)
-    | { iv = `SourcePage _; _ } as p ->
-        let page = Path.source_file_from_identifier p in
-        Ok { page; kind = `SourcePage; anchor = "" }
-    | { iv = `SourceDir _; _ } as p ->
-        let page = Path.source_dir_from_identifier p in
-        Ok { page; kind = `SourceDir; anchor = "" }
     | { iv = `Type (parent, type_name); _ } ->
         let page = Path.from_identifier (parent :> Path.source) in
         let kind = `Type in

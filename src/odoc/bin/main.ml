@@ -44,9 +44,9 @@ let convert_relative_path =
         let path = Fpath.normalize path in
         if not (Fpath.is_rooted ~root:(Fpath.v ".") path) then
           Error (`Msg "Path is not relative or escapes the source tree")
-        else Ok path
+        else Ok (Fpath.to_string path)
     | Error _ as e -> e
-  and print = Fpath.pp in
+  and print = Format.pp_print_string in
   Arg.conv (parse, print)
 
 let handle_error = function

@@ -1245,14 +1245,6 @@ module Fmt = struct
         Format.fprintf ppf "%a.%s" model_identifier
           (p :> Odoc_model.Paths.Identifier.t)
           (ExtensionName.to_string name)
-    | `SourceDir (p, name) ->
-        Format.fprintf ppf "%a.%s" model_identifier
-          (p :> Odoc_model.Paths.Identifier.t)
-          name
-    | `SourcePage (p, name) ->
-        Format.fprintf ppf "%a.%s" model_identifier
-          (p :> Odoc_model.Paths.Identifier.t)
-          name
     | `Page (_, name) | `LeafPage (_, name) ->
         Format.fprintf ppf "%s" (PageName.to_string name)
 
