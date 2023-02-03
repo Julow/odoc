@@ -14,6 +14,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let render config page = Odoc_html.Generator.render ~config page
+(** Raises errors. *)
+let read_source_file ~root cmt_infos source_path =
+  let source_name = Fpath.filename source_path in
+  match Fs.File.read source_path with
+  | Error (`Msg msg) ->
+      Error.raise_warning
+        (Error.filename_only "Couldn't load source file: %s" msg
+           (Fs.File.to_string source_path));
+      None
+  | Ok impl_source ->
+      let impl_info =
+        match cmt_infos with
+        | Some (_, local_jmp) ->
+            Odoc_loader.Source_info.of_source ~local_jmp impl_source
+        | _ -> []
+      in
+      let id = Paths.Identifier.Mk.source_page (root, source_name) in
+      Some { Lang.Source_code.id; impl_source; impl_info }
+
+  let sources =
+    match source_code with
+    | None -> None
+    | Some (source_path, source_parent) ->
+        read_source_file ~root:source_parent cmt_infos source_path
+  in
+
+type args = { html_config : Odoc_html.Config.t; source_file : string option }
+
+let render { html_config; source_file } page =
+  (* Load file
+     Load source info of_source *)
+  Odoc_html.Generator.render ~config page
 
 let renderer = { Odoc_document.Renderer.name = "html"; render }

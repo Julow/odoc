@@ -1713,7 +1713,7 @@ module Make (Syntax : SYNTAX) = struct
   open Module
 
   module Page : sig
-    val compilation_unit : Lang.Compilation_unit.t -> Document.t list
+    val compilation_unit : Lang.Compilation_unit.t -> Document.t
 
     val page : Lang.Page.t -> Document.t
   end = struct
@@ -1750,19 +1750,8 @@ module Make (Syntax : SYNTAX) = struct
         | Some src -> Some (Source_page.url src.id)
         | None -> None
       in
-      let page =
-        if t.hidden then []
-        else
-          let page =
-            make_expansion_page ~source_anchor url [ unit_doc ] items
-          in
-          [ Document.Page page ]
-      and source_pages =
-        match t.sources with
-        | None -> []
-        | Some sources -> [ Document.Source_page (Source_page.source sources) ]
-      in
-      page @ source_pages
+      let page = make_expansion_page ~source_anchor url [ unit_doc ] items in
+      Document.Page page
 
     let page (t : Odoc_model.Lang.Page.t) =
       (*let name =

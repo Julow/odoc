@@ -157,8 +157,8 @@ end = struct
         Fs.File.(set_ext ".odoc" output)
 
   let compile hidden directories resolve_fwd_refs dst package_opt
-      parent_name_opt open_modules children input warnings_options impl_source
-      source_parent =
+      parent_name_opt open_modules children input warnings_options source_parent
+      =
     let open Or_error in
     let resolver =
       Resolver.create ~important_digests:(not resolve_fwd_refs) ~directories
@@ -176,20 +176,10 @@ end = struct
             (`Cli_error
               "Either --package or --parent should be specified, not both")
     in
-    let source_code =
-      match (impl_source, source_parent) with
-      | Some src, Some parent -> Ok (Some (src, parent))
-      | None, Some _ -> Ok None (* [--source-parent] is passed but not used. *)
-      | Some _, None ->
-          Error
-            (`Cli_error "--source-parent is required when --source is passed.")
-      | None, None -> Ok None
-    in
     parent_cli_spec >>= fun parent_cli_spec ->
-    source_code >>= fun source_code ->
     Fs.Directory.mkdir_p (Fs.File.dirname output);
     Compile.compile ~resolver ~parent_cli_spec ~hidden ~children ~output
-      ~warnings_options ~source_code input
+      ~warnings_options ~source_parent input
 
   let input =
     let doc = "Input $(i,.cmti), $(i,.cmt), $(i,.cmi) or $(i,.mld) file." in
@@ -214,18 +204,10 @@ end = struct
     Arg.(
       value & opt_all string default & info ~docv:"CHILD" ~doc [ "c"; "child" ])
 
-  let source =
-    let doc =
-      "Implementation source file. Read from disk and stored inside .odoc \
-       files, to be rendered in documentation."
-    in
-    Arg.(
-      value
-      & opt (some convert_fs_file) None
-      & info [ "source" ] ~doc ~docv:"file.ml")
-
   let source_parent =
-    let doc = "Parent page at the base of the source tree." in
+    let doc =
+      "Parent of the page containing the source code for this compilation unit."
+    in
     Arg.(
       value
       & opt (some string) None
@@ -256,7 +238,7 @@ end = struct
       const handle_error
       $ (const compile $ hidden $ odoc_file_directories $ resolve_fwd_refs $ dst
        $ package_opt $ parent_opt $ open_modules $ children $ input
-       $ warnings_options $ source $ source_parent))
+       $ warnings_options $ source_parent))
 
   let info ~docs =
     let man =
@@ -368,6 +350,10 @@ module type S = sig
 
   val renderer : args Odoc_document.Renderer.t
 
+  val extra_documents :
+    args ->
+    (Odoc_document.Types.Document.t list, [> `Msg of string ]) Result.result
+
   val extra_args : args Cmdliner.Term.t
 end
 
@@ -424,8 +410,8 @@ end = struct
 
   module Generate = struct
     let generate extra _hidden output_dir syntax extra_suffix input_file =
+      let extra_documents = R.extra_documents extra in
       let file = Fs.File.of_string input_file in
-
       Rendering.generate_odoc ~renderer:R.renderer ~syntax ~output:output_dir
         ~extra_suffix extra file
 
@@ -514,9 +500,7 @@ end = struct
 end
 
 module Odoc_html_args = struct
-  type args = Odoc_html.Config.t
-
-  let renderer = Html_page.renderer
+  include Html_page
 
   let semantic_uris =
     let doc = "Generate pretty (semantic) links." in
@@ -605,16 +589,29 @@ module Odoc_html_args = struct
     in
     Arg.(value & flag & info ~doc [ "as-json" ])
 
+  let source_file =
+    let doc =
+      "Source code for the compilation unit. It must have been compiled with \
+       --source-parent passed."
+    in
+    Arg.(
+      value
+      & opt (some convert_fs_file) None
+      & info [ "source" ] ~doc ~docv:"file.ml")
+
   let extra_args =
     let config semantic_uris closed_details indent theme_uri support_uri flat
-        as_json =
+        as_json source_file =
       let open_details = not closed_details in
-      Odoc_html.Config.v ~theme_uri ~support_uri ~semantic_uris ~indent ~flat
-        ~open_details ~as_json ()
+      let html_config =
+        Odoc_html.Config.v ~theme_uri ~support_uri ~semantic_uris ~indent ~flat
+          ~open_details ~as_json ()
+      in
+      { Html_page.html_config; source_file }
     in
     Term.(
       const config $ semantic_uris $ closed_details $ indent $ theme_uri
-      $ support_uri $ flat $ as_json)
+      $ support_uri $ flat $ as_json $ source_file)
 end
 
 module Odoc_html = Make_renderer (Odoc_html_args)

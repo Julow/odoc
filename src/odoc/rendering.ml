@@ -5,7 +5,7 @@ let document_of_odocl ~syntax input =
   Odoc_file.load input >>= fun unit ->
   match unit.content with
   | Odoc_file.Page_content odoctree ->
-      Ok [ Renderer.document_of_page ~syntax odoctree ]
+      Ok (Renderer.document_of_page ~syntax odoctree)
   | Unit_content (odoctree, _) ->
       Ok (Renderer.document_of_compilation_unit ~syntax odoctree)
 

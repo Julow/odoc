@@ -16,4 +16,10 @@
 
 open Odoc_document
 
-val renderer : Odoc_html.Config.t Renderer.t
+type args
+
+val renderer : args Renderer.t
+
+val extra_document :
+  args ->
+  (Odoc_document.Types.Document.t list, [> `Msg of string ]) Result.result
