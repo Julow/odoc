@@ -236,7 +236,11 @@ module Make (Syntax : SYNTAX) = struct
 
   module Source_page : sig
     val url : Paths.Identifier.SourcePage.t -> Url.t
-    val source : Lang.Source_code.t -> Source_page.t
+    val source :
+      Identifier.SourcePage.t ->
+      Lang.Source_info.infos ->
+      string ->
+      Source_page.t
   end = struct
     let path id = Url.Path.source_file_from_identifier id
     let url id = Url.from_path (path id)
@@ -247,11 +251,11 @@ module Make (Syntax : SYNTAX) = struct
           Link (Url.Anchor.source_anchor url anchor)
       | Local_jmp (Def string) -> Anchor string
 
-    let source { Lang.Source_code.id; impl_source; impl_info } =
+    let source id infos source_code =
       let url = path id in
       let mapper (info, loc) = (info_of_info url info, loc) in
-      let impl_info = List.map mapper impl_info in
-      let contents = Impl.impl ~infos:impl_info impl_source in
+      let infos = List.map mapper infos in
+      let contents = Impl.impl ~infos source_code in
       { Source_page.url; contents }
   end
 
@@ -1765,4 +1769,7 @@ module Make (Syntax : SYNTAX) = struct
   end
 
   include Page
+
+  let source_page id infos source_code =
+    Document.Source_page (Source_code.source id infos source_code)
 end

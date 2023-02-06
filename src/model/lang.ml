@@ -38,8 +38,7 @@ module Source_info = struct
   type infos = info with_pos list
 
   type t = {
-    parent : Identifier.ContainerPage.t;
-        (** The parent of the page containing the source code. *)
+    id : Identifier.SourcePage.t;
     infos : infos;
   }
 end

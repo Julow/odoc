@@ -105,4 +105,7 @@ module type GENERATOR = sig
   val compilation_unit : Lang.Compilation_unit.t -> Document.t
 
   val page : Lang.Page.t -> Document.t
+
+  val source_page :
+    Identifier.SourcePage.t -> Lang.Source_info.infos -> string -> Document.t
 end

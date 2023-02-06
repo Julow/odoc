@@ -19,7 +19,3 @@ open Odoc_document
 type args
 
 val renderer : args Renderer.t
-
-val extra_document :
-  args ->
-  (Odoc_document.Types.Document.t list, [> `Msg of string ]) Result.result

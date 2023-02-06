@@ -1,22 +1,26 @@
 open Odoc_document
 open Or_error
 
-let document_of_odocl ~syntax input =
+let documents_of_odocl ~renderer ~extra ~syntax input =
   Odoc_file.load input >>= fun unit ->
   match unit.content with
   | Odoc_file.Page_content odoctree ->
-      Ok (Renderer.document_of_page ~syntax odoctree)
+      Ok [ Renderer.document_of_page ~syntax odoctree ]
   | Unit_content (odoctree, _) ->
-      Ok (Renderer.document_of_compilation_unit ~syntax odoctree)
+      renderer.extra_documents extra odoctree >>= fun extra_docs ->
+      Ok (Renderer.document_of_compilation_unit ~syntax odoctree :: extra_docs)
 
-let document_of_input ~resolver ~warnings_options ~syntax input =
+let documents_of_input ~renderer ~extra ~resolver ~warnings_options ~syntax
+    input =
   let output = Fs.File.(set_ext ".odocl" input) in
   Odoc_link.from_odoc ~resolver ~warnings_options input output >>= function
   | `Page page -> Ok [ Renderer.document_of_page ~syntax page ]
-  | `Module m -> Ok (Renderer.document_of_compilation_unit ~syntax m)
+  | `Module m ->
+      renderer.extra_documents extra m >>= fun extra_docs ->
+      Ok (Renderer.document_of_compilation_unit ~syntax m :: extra_docs)
 
-let render_document renderer ~output:root_dir ~extra_suffix ~extra () odoctree =
-  let pages = renderer.Renderer.render extra odoctree in
+let render_document renderer ~output:root_dir ~extra_suffix ~extra doc =
+  let pages = renderer.Renderer.render extra doc in
   Renderer.traverse pages ~f:(fun filename content ->
       let filename =
         match extra_suffix with
@@ -29,33 +33,34 @@ let render_document renderer ~output:root_dir ~extra_suffix ~extra () odoctree =
       let oc = open_out (Fs.File.to_string filename) in
       let fmt = Format.formatter_of_out_channel oc in
       Format.fprintf fmt "%t@?" content;
-      close_out oc);
-  Ok ()
+      close_out oc)
 
 let render_odoc ~resolver ~warnings_options ~syntax ~renderer ~output extra file
     =
-  document_of_input ~resolver ~warnings_options ~syntax file
-  >>= fold_list (render_document renderer ~output ~extra_suffix:None ~extra) ()
+  let extra_suffix = None in
+  documents_of_input ~renderer ~extra ~resolver ~warnings_options ~syntax file
+  >>= List.iter (render_document renderer ~output ~extra_suffix ~extra);
+  Ok ()
 
 let generate_odoc ~syntax ~renderer ~output ~extra_suffix extra file =
-  document_of_odocl ~syntax file
-  >>= fold_list (render_document renderer ~output ~extra_suffix ~extra) ()
+  documents_of_odocl ~renderer ~extra ~syntax file
+  >>= List.iter (render_document renderer ~output ~extra_suffix:None ~extra);
+  Ok ()
 
 let targets_odoc ~resolver ~warnings_options ~syntax ~renderer ~output:root_dir
     ~extra odoctree =
-  let doc =
+  let docs =
     if Fpath.get_ext odoctree = ".odoc" then
-      document_of_input ~resolver ~warnings_options ~syntax odoctree
-    else document_of_odocl ~syntax odoctree
+      documents_of_input ~renderer ~extra ~resolver ~warnings_options ~syntax
+        odoctree
+    else documents_of_odocl ~renderer ~extra ~syntax odoctree
   in
-  doc
-  >>= fold_list
-        (fun () odoctree ->
+  docs
+  >>= List.iter (fun doc ->
           let pages = renderer.Renderer.render extra odoctree in
           Renderer.traverse pages ~f:(fun filename _content ->
               let filename =
                 Fpath.normalize @@ Fs.File.append root_dir filename
               in
-              Format.printf "%a\n" Fpath.pp filename);
-          Ok ())
-        ()
+              Format.printf "%a\n" Fpath.pp filename));
+  Ok ()

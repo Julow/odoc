@@ -15,8 +15,7 @@
  *)
 
 (** Raises errors. *)
-let read_source_file ~root cmt_infos source_path =
-  let source_name = Fpath.filename source_path in
+let read_source_file cmt_infos source_path =
   match Fs.File.read source_path with
   | Error (`Msg msg) ->
       Error.raise_warning
@@ -30,21 +29,28 @@ let read_source_file ~root cmt_infos source_path =
             Odoc_loader.Source_info.of_source ~local_jmp impl_source
         | _ -> []
       in
-      let id = Paths.Identifier.Mk.source_page (root, source_name) in
       Some { Lang.Source_code.id; impl_source; impl_info }
-
-  let sources =
-    match source_code with
-    | None -> None
-    | Some (source_path, source_parent) ->
-        read_source_file ~root:source_parent cmt_infos source_path
-  in
 
 type args = { html_config : Odoc_html.Config.t; source_file : string option }
 
 let render { html_config; source_file } page =
-  (* Load file
-     Load source info of_source *)
-  Odoc_html.Generator.render ~config page
+  Odoc_html.Generator.render ~config:html_config page
 
-let renderer = { Odoc_document.Renderer.name = "html"; render }
+let extra_documents args unit =
+  match unit.source, args.source_file with
+  | Some { Odoc_model.Lang.Source_info.id; infos }, Some src -> (
+  match Fs.File.read source_path with
+  | Error (`Msg msg) ->
+      Error.raise_warning
+        (Error.filename_only "Couldn't load source file: %s" msg
+           (Fs.File.to_string source_path));
+      []
+  | Ok source_code ->
+      let infos = infos @ Source_info.of_source source_code in
+      [ Odoc_document.Renderer.document_of_source id infos source_code ]
+    )
+  | Some _, None -> [] (* TODO: source code not passed *)
+  | None, Some _ -> [] (* TODO: compilation unit was not compiled with --source-parent and --source-name *)
+  | None, None -> []
+
+let renderer = { Odoc_document.Renderer.name = "html"; render; extra_documents }

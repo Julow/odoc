@@ -158,7 +158,7 @@ end = struct
 
   let compile hidden directories resolve_fwd_refs dst package_opt
       parent_name_opt open_modules children input warnings_options source_parent
-      =
+      source_name =
     let open Or_error in
     let resolver =
       Resolver.create ~important_digests:(not resolve_fwd_refs) ~directories
@@ -176,10 +176,21 @@ end = struct
             (`Cli_error
               "Either --package or --parent should be specified, not both")
     in
+    let source =
+      match (source_parent, source_name) with
+      | Some parent, Some name -> Ok (Some (parent, name))
+      | Some _, None | None, Some _ ->
+          Error
+            (`Cli_error
+              "--source-parent and --source-name must be passed at the same \
+               time.")
+      | None, None -> Ok None
+    in
     parent_cli_spec >>= fun parent_cli_spec ->
+    source >>= fun source ->
     Fs.Directory.mkdir_p (Fs.File.dirname output);
     Compile.compile ~resolver ~parent_cli_spec ~hidden ~children ~output
-      ~warnings_options ~source_parent input
+      ~warnings_options ~source input
 
   let input =
     let doc = "Input $(i,.cmti), $(i,.cmt), $(i,.cmi) or $(i,.mld) file." in
@@ -213,6 +224,14 @@ end = struct
       & opt (some string) None
       & info [ "source-parent" ] ~doc ~docv:"PARENT")
 
+  let source_name =
+    let doc =
+      "The basename of the source file. This is used to place the source file \
+       within the source_parent."
+    in
+    Arg.(
+      value & opt (some string) None & info [ "source-name" ] ~doc ~docv:"NAME")
+
   let cmd =
     let package_opt =
       let doc =
@@ -238,7 +257,7 @@ end = struct
       const handle_error
       $ (const compile $ hidden $ odoc_file_directories $ resolve_fwd_refs $ dst
        $ package_opt $ parent_opt $ open_modules $ children $ input
-       $ warnings_options $ source_parent))
+       $ warnings_options $ source_parent $ source_name))
 
   let info ~docs =
     let man =
@@ -350,10 +369,6 @@ module type S = sig
 
   val renderer : args Odoc_document.Renderer.t
 
-  val extra_documents :
-    args ->
-    (Odoc_document.Types.Document.t list, [> `Msg of string ]) Result.result
-
   val extra_args : args Cmdliner.Term.t
 end
 
@@ -410,7 +425,6 @@ end = struct
 
   module Generate = struct
     let generate extra _hidden output_dir syntax extra_suffix input_file =
-      let extra_documents = R.extra_documents extra in
       let file = Fs.File.of_string input_file in
       Rendering.generate_odoc ~renderer:R.renderer ~syntax ~output:output_dir
         ~extra_suffix extra file
