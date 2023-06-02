@@ -99,6 +99,32 @@ module Identifier = struct
       | { iv = `Constructor (p, _); _ } -> (p : datatype :> label_parent)
       | { iv = `Field (p, _); _ } -> (p : parent :> label_parent)
 
+  let rec is_hidden : [< t_pv ] id -> bool =
+    fun x -> 
+    match x.iv with
+    | `Root (_, name) -> ModuleName.is_hidden name
+    | `Page (_, name) -> PageName.is_hidden name
+    | `LeafPage (_, name) -> PageName.is_hidden name
+    | `Module (_, name) -> ModuleName.is_hidden name
+    | `Parameter (_, name) -> ModuleName.is_hidden name
+    | `Result x -> is_hidden (x :> t)
+    | `ModuleType (_, name) -> ModuleTypeName.is_hidden name
+    | `Type (_, name) -> TypeName.is_hidden name
+    | `CoreType name -> TypeName.is_hidden name
+    | `Constructor (_, name) -> ConstructorName.is_hidden name
+    | `Field (_, name) -> FieldName.is_hidden name
+    | `Extension (_, name) -> ExtensionName.is_hidden name
+    | `Exception (_, name) -> ExceptionName.is_hidden name
+    | `CoreException name -> ExceptionName.is_hidden name
+    | `Value (_, name) -> ValueName.is_hidden name
+    | `Class (_, name) -> ClassName.is_hidden name
+    | `ClassType (_, name) -> ClassTypeName.is_hidden name
+    | `Method (_, name) -> MethodName.is_hidden name
+    | `InstanceVariable (_, name) -> InstanceVariableName.is_hidden name
+    | `Label (_, name) -> LabelName.is_hidden name
+
+  let is_hidden x = is_hidden (x :> t)
+
   let label_parent n = label_parent_aux (n :> t)
 
   let equal x y = x.ihash = y.ihash && x.ikey = y.ikey

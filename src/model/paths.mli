@@ -414,6 +414,8 @@ module Identifier : sig
 
   val label_parent : [< t_pv ] id -> LabelParent.t
 
+  val is_hidden : [< t_pv ] id -> bool
+
   module Maps : sig
     module Any : Map.S with type key = Any.t
 

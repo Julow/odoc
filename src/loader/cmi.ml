@@ -578,7 +578,6 @@ and read_object env fi nm =
   end
 
 let read_value_description env parent id vd =
-  let open Signature in
   let id = Env.find_value_identifier env id in
   let locs = None in
   let container =
@@ -599,7 +598,7 @@ let read_value_description env parent id vd =
         External primitives
     | _ -> assert false
   in
-  Value { Value.id; locs; doc; type_; value }
+  { Value.id; locs; doc; type_; value }
 
 let read_label_declaration env parent ld =
   let open TypeDecl.Field in
@@ -997,18 +996,18 @@ and read_signature_noenv env parent (items : Odoc_model.Compat.signature) =
     | Sig_value(id, v, _) :: rest ->
         let vd = read_value_description env parent id v in
         let shadowed =
-          if Env.is_shadowed env id
+          if Identifier.is_hidden vd.id
           then { shadowed with s_values = Odoc_model.Names.parenthesise (Ident.name id) :: shadowed.s_values }
           else shadowed
         in
-          loop (vd :: acc, shadowed) rest
+          loop (Value vd :: acc, shadowed) rest
     | Sig_type(id, _, _, _) :: rest
         when Btype.is_row_name (Ident.name id) ->
         loop (acc, shadowed) rest
     | Sig_type(id, decl, rec_status, _)::rest ->
         let decl = read_type_declaration env parent id decl in
         let shadowed =
-          if Env.is_shadowed env id
+          if Identifier.is_hidden decl.id
           then { shadowed with s_types = Ident.name id :: shadowed.s_types }
           else shadowed
         in
@@ -1033,7 +1032,7 @@ and read_signature_noenv env parent (items : Odoc_model.Compat.signature) =
     | Sig_module (id, _, md, rec_status, _)::rest ->
           let md = read_module_declaration env parent id md in
           let shadowed =
-            if Env.is_shadowed env id
+            if Identifier.is_hidden md.id
             then { shadowed with s_modules = Ident.name id :: shadowed.s_modules }
             else shadowed
           in
@@ -1041,7 +1040,7 @@ and read_signature_noenv env parent (items : Odoc_model.Compat.signature) =
     | Sig_modtype(id, mtd, _) :: rest ->
           let mtd = read_module_type_declaration env parent id mtd in
           let shadowed =
-            if Env.is_shadowed env id
+            if Identifier.is_hidden mtd.id
             then { shadowed with s_module_types = Ident.name id :: shadowed.s_module_types }
             else shadowed
           in
@@ -1050,7 +1049,7 @@ and read_signature_noenv env parent (items : Odoc_model.Compat.signature) =
       :: Sig_type _ :: Sig_type _ :: rest ->
           let cl = read_class_declaration env parent id cl in
           let shadowed =
-            if Env.is_shadowed env id
+            if Identifier.is_hidden cl.id
             then { shadowed with s_classes = Ident.name id :: shadowed.s_classes }
             else shadowed
           in
@@ -1058,7 +1057,7 @@ and read_signature_noenv env parent (items : Odoc_model.Compat.signature) =
     | Sig_class_type(id, cltyp, rec_status, _)::Sig_type _::Sig_type _::rest ->
         let cltyp = read_class_type_declaration env parent id cltyp in
         let shadowed =
-          if Env.is_shadowed env id
+          if Identifier.is_hidden cltyp.id
           then { shadowed with s_class_types = Ident.name id :: shadowed.s_class_types }
           else shadowed
         in

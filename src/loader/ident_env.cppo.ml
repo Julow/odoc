@@ -31,7 +31,6 @@ type t =
     values: Id.Value.t Ident.tbl;
     classes : Id.Class.t Ident.tbl;
     class_types : Id.ClassType.t Ident.tbl;
-    hidden : Ident.t list; (* we use term hidden to mean shadowed and idents_in_doc_off_mode items*)
   }
 
 let empty =
@@ -42,7 +41,6 @@ let empty =
     values = Ident.empty;
     classes = Ident.empty;
     class_types = Ident.empty;
-    hidden = [];
   }
 
 (* The boolean is an override for whether it should be hidden - true only for
@@ -388,75 +386,75 @@ let env_of_items parent items env =
     | `Type (t, is_hidden_item) :: rest ->
       let name = Ident.name t in
       let is_hidden = is_hidden_item || type_name_exists name rest in
-        let identifier, hidden =
+      let identifier =
         if is_hidden
-        then Mk.type_(parent, TypeName.internal_of_string name), t :: env.hidden
-        else Mk.type_(parent, TypeName.make_std name), env.hidden
+        then Mk.type_(parent, TypeName.internal_of_string name)
+        else Mk.type_(parent, TypeName.make_std name)
       in
       let types = Ident.add t identifier env.types in      
-      inner rest { env with types; hidden }
+      inner rest { env with types }
 
     | `Value (t, is_hidden_item) :: rest ->
       let name = Ident.name t in
       let is_hidden = is_hidden_item || value_name_exists name rest in
-      let identifier, hidden =
+      let identifier =
         if is_hidden
-        then Mk.value(parent, ValueName.internal_of_string name), t :: env.hidden
-        else Mk.value(parent, ValueName.make_std name), env.hidden
+        then Mk.value(parent, ValueName.internal_of_string name)
+        else Mk.value(parent, ValueName.make_std name)
       in
       let values = Ident.add t identifier env.values in      
-      inner rest { env with values; hidden }
+      inner rest { env with values }
 
     | `ModuleType (t, is_hidden_item) :: rest ->
       let name = Ident.name t in
       let is_hidden = is_hidden_item || module_type_name_exists name rest in
-      let identifier, hidden =
+      let identifier =
         if is_hidden
-        then Mk.module_type(parent, ModuleTypeName.internal_of_string name), t :: env.hidden
-        else Mk.module_type(parent, ModuleTypeName.make_std name), env.hidden
+        then Mk.module_type(parent, ModuleTypeName.internal_of_string name)
+        else Mk.module_type(parent, ModuleTypeName.make_std name)
       in
       let module_types = Ident.add t identifier env.module_types in
-      inner rest { env with module_types; hidden }
+      inner rest { env with module_types }
 
     | `Module (t, is_hidden_item) :: rest ->
       let name = Ident.name t in
       let double_underscore = Odoc_model.Root.contains_double_underscore name in
       let is_hidden = is_hidden_item || module_name_exists name rest || double_underscore in
-      let identifier, hidden =
+      let identifier =
         if is_hidden 
-        then Mk.module_(parent, ModuleName.internal_of_string name), t :: env.hidden
-        else Mk.module_(parent, ModuleName.make_std name), env.hidden
+        then Mk.module_(parent, ModuleName.internal_of_string name)
+        else Mk.module_(parent, ModuleName.make_std name)
       in
       let path = `Identifier(identifier, is_hidden) in
       let modules = Ident.add t identifier env.modules in
       let module_paths = Ident.add t path env.module_paths in
-      inner rest { env with modules; module_paths; hidden }
+      inner rest { env with modules; module_paths }
 
     | `Class (t,t2,t3,t4, is_hidden_item) :: rest ->
       let name = Ident.name t in
       let is_hidden = is_hidden_item || class_name_exists name rest in
-      let identifier, hidden =
+      let identifier =
         if is_hidden 
-        then Mk.class_(parent, ClassName.internal_of_string name), t :: t2 :: t3 :: t4 :: env.hidden
-        else Mk.class_(parent, ClassName.make_std name), env.hidden
+        then Mk.class_(parent, ClassName.internal_of_string name)
+        else Mk.class_(parent, ClassName.make_std name)
       in
       let classes =
         List.fold_right (fun id classes -> Ident.add id identifier classes)
           [t; t2; t3; t4] env.classes in
-      inner rest { env with classes; hidden }
+      inner rest { env with classes }
 
     | `ClassType (t,t2,t3, is_hidden_item) :: rest ->
       let name = Ident.name t in
       let is_hidden = is_hidden_item || class_type_name_exists name rest in
-      let identifier, hidden =
+      let identifier =
         if is_hidden 
-        then Mk.class_type(parent, ClassTypeName.internal_of_string name), t :: t2 :: t3 :: env.hidden
-        else Mk.class_type(parent, ClassTypeName.make_std name), env.hidden
+        then Mk.class_type(parent, ClassTypeName.internal_of_string name)
+        else Mk.class_type(parent, ClassTypeName.make_std name)
       in
       let class_types =
         List.fold_right (fun id class_types -> Ident.add id identifier class_types)
           [t; t2; t3] env.class_types in
-      inner rest { env with class_types; hidden }
+      inner rest { env with class_types }
 
     | [] -> env
     in inner items env
@@ -526,9 +524,6 @@ let find_class_identifier env id =
 let find_class_type_identifier env id =
   Ident.find_same id env.class_types
 
-let is_shadowed
- env id =
-    List.mem id env.hidden
 module Path = struct
 
   let read_module_ident env id =
