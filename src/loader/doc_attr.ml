@@ -111,38 +111,50 @@ let is_stop_comment attr =
 let pad_loc loc =
   { loc.Location.loc_start with pos_cnum = loc.loc_start.pos_cnum + 3 }
 
-let ast_to_comment ~internal_tags parent ast_docs alerts =
-  Odoc_model.Semantics.ast_to_comment ~internal_tags ~sections_allowed:`All
-    ~parent_of_sections:parent ast_docs alerts
-  |> Error.raise_warnings
-
 let mk_alert_payload ~loc name p =
   let p = match p with Some (p, _) -> Some p | None -> None in
   let elt = `Tag (`Alert (name, p)) in
   let span = read_location loc in
   Location_.at span elt
 
-let attached internal_tags parent attrs =
-  let rec loop acc_docs acc_alerts = function
-    | attr :: rest -> (
-        match parse_attribute attr with
-        | Some (`Doc (str, loc)) ->
-            let ast_docs =
-              Odoc_parser.parse_comment ~location:(pad_loc loc) ~text:str
-              |> Error.raise_parser_warnings
-            in
-            loop (List.rev_append ast_docs acc_docs) acc_alerts rest
-        | Some (`Alert (name, p, loc)) ->
-            let elt = mk_alert_payload ~loc name p in
-            loop acc_docs (elt :: acc_alerts) rest
-        | Some (`Text _ | `Stop _) | None -> loop acc_docs acc_alerts rest)
-    | [] -> (List.rev acc_docs, List.rev acc_alerts)
-  in
-  let ast_docs, alerts = loop [] [] attrs in
+module Attached_comments = struct
+  type t = Odoc_parser.Ast.t * Semantics.alerts
+
+  let has_hidden_tag (ast, _) =
+    List.exists
+      (fun elm ->
+        match Location_.value elm with `Tag `Hidden -> true | _ -> false)
+      ast
+
+  let parse attrs =
+    let rec loop acc_docs acc_alerts = function
+      | attr :: rest -> (
+          match parse_attribute attr with
+          | Some (`Doc (str, loc)) ->
+              let ast_docs =
+                Odoc_parser.parse_comment ~location:(pad_loc loc) ~text:str
+                |> Error.raise_parser_warnings
+              in
+              loop (List.rev_append ast_docs acc_docs) acc_alerts rest
+          | Some (`Alert (name, p, loc)) ->
+              let elt = mk_alert_payload ~loc name p in
+              loop acc_docs (elt :: acc_alerts) rest
+          | Some (`Text _ | `Stop _) | None -> loop acc_docs acc_alerts rest)
+      | [] -> (List.rev acc_docs, List.rev acc_alerts)
+    in
+    loop [] [] attrs
+end
+
+let ast_to_comment ~internal_tags parent ast_docs alerts =
+  Odoc_model.Semantics.ast_to_comment ~internal_tags ~sections_allowed:`All
+    ~parent_of_sections:parent ast_docs alerts
+  |> Error.raise_warnings
+
+let attached internal_tags parent (ast_docs, alerts) =
   ast_to_comment ~internal_tags parent ast_docs alerts
 
-let attached_no_tag parent attrs =
-  let x, () = attached Semantics.Expect_none parent attrs in
+let attached_no_tag parent attached_comments =
+  let x, () = attached Semantics.Expect_none parent attached_comments in
   x
 
 let read_string internal_tags parent location str =

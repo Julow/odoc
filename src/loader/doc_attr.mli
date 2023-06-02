@@ -17,6 +17,17 @@
 open Odoc_model
 module Paths = Odoc_model.Paths
 
+(** The [@hidden] tag must be interpreted in a first pass by [Ident_env]. This
+    module represents parsed comments that where not checked by
+    {!Odoc_model.Semantics.ast_to_comment} yet. *)
+module Attached_comments : sig
+  type t
+
+  val has_hidden_tag : t -> bool
+
+  val parse : Parsetree.attribute list -> t
+end
+
 val empty : Odoc_model.Comment.docs
 
 val is_stop_comment : Parsetree.attribute -> bool
@@ -24,12 +35,12 @@ val is_stop_comment : Parsetree.attribute -> bool
 val attached :
   'tags Semantics.handle_internal_tags ->
   Paths.Identifier.LabelParent.t ->
-  Parsetree.attributes ->
+  Attached_comments.t ->
   Odoc_model.Comment.docs * 'tags
 
 val attached_no_tag :
   Paths.Identifier.LabelParent.t ->
-  Parsetree.attributes ->
+  Attached_comments.t ->
   Odoc_model.Comment.docs
 (** Shortcut for [attached Semantics.Expect_none]. *)
 
