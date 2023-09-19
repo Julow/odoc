@@ -769,6 +769,8 @@ td.def-doc *:first-child {
   height: fit-content;
   border: solid 1px var(--border);
   border-radius: 5px;
+  position:sticky;
+  top: 50px
 }
 
 .odoc-toc ul li a {
