@@ -246,10 +246,9 @@ body {
 }
 
 body {
-  margin-left: calc(10vw + 20ex);
-  margin-right: 4ex;
-  margin-top: 20px;
-  margin-bottom: 50px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 4ex;
 }
 
 body.odoc {
@@ -835,6 +834,7 @@ td.def-doc *:first-child {
 @media only screen and (max-width: 110ex) {
   body {
     margin: 2em;
+    padding: 0;
   }
 
   body.odoc {
