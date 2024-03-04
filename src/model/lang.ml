@@ -467,6 +467,7 @@ module rec Compilation_unit : sig
     root : Root.t;
     digest : Digest.t;
     imports : Import.t list;
+    context : Page.Context.t option;
     source : Source.t option;
     interface : bool;
     hidden : bool;
@@ -478,6 +479,34 @@ module rec Compilation_unit : sig
   }
 end =
   Compilation_unit
+
+and Page : sig
+  type child =
+    | Page_child of string
+    | Module_child of string
+    | Source_tree_child of string
+    | Asset_child of string
+
+  module Context : sig
+    type t = {
+      id : Identifier.OdocId.t;  (** Identifier of the parent page. *)
+      title : Comment.link_content option;  (** Title of the parent page. *)
+      parent_context : t option;
+      children : child list;
+    }
+  end
+
+  type t = {
+    name : Identifier.Page.t;
+    root : Root.t;
+    context : Context.t option;
+    content : Comment.docs;
+    children : child list;
+    digest : Digest.t;
+    linked : bool;
+  }
+end =
+  Page
 
 module rec Source_info : sig
   type 'a jump_to_impl =
@@ -516,24 +545,6 @@ module rec Implementation : sig
   }
 end =
   Implementation
-
-module rec Page : sig
-  type child =
-    | Page_child of string
-    | Module_child of string
-    | Source_tree_child of string
-    | Asset_child of string
-
-  type t = {
-    name : Identifier.Page.t;
-    root : Root.t;
-    content : Comment.docs;
-    children : child list;
-    digest : Digest.t;
-    linked : bool;
-  }
-end =
-  Page
 
 module rec SourceTree : sig
   type t = {

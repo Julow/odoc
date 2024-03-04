@@ -88,6 +88,7 @@ let make_compilation_unit ~make_root ~imports ~interface ?sourcefile ~name ~id
     source;
     interface;
     hidden = Odoc_model.Names.contains_double_underscore name;
+    context = None;
     content;
     expansion = None;
     linked = false;

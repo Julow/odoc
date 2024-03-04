@@ -34,6 +34,17 @@ let check_is_empty msg = function [] -> Ok () | _ :: _ -> Error (`Msg msg)
 (** Used to disambiguate child references. *)
 let is_module_name n = String.length n > 0 && Char.Ascii.is_upper n.[0]
 
+(** The title of the page is a `{0 ..}` heading, if it's the first element of
+    the page. *)
+let title_of_page =
+  let open Comment in
+  let open Location_ in
+  fun (content : Comment.docs) ->
+    match content with
+    | { value = `Heading ({ heading_level = `Title; _ }, _, elts); _ } :: _ ->
+        Some (link_content_of_inline_elements elts)
+    | _ -> None
+
 (** Accepted child references:
 
     - [asset-foo] child is an arbitrary asset
@@ -73,18 +84,29 @@ let resolve_parent_page resolver f =
     | { Paths.Identifier.iv = `Page _; _ } as container -> Ok container
     | _ -> Error (`Msg "Specified parent is not a parent of this file")
   in
+  let make_context (parent : Lang.Page.t) =
+    {
+      Lang.Page.Context.id = (parent.name :> Paths.Identifier.OdocId.t);
+      title = title_of_page parent.content;
+      parent_context = parent.context;
+      children = parent.children;
+    }
+  in
   parse_parent_child_reference f >>= fun r ->
   find_parent r >>= fun page ->
-  extract_parent page.name >>= fun parent -> Ok (parent, page.children)
+  extract_parent page.name >>= fun parent ->
+  Ok (parent, page.children, make_context page)
 
 let parent resolver parent_cli_spec =
   match parent_cli_spec with
   | CliParent f ->
-      resolve_parent_page resolver f >>= fun (parent, children) ->
-      Ok (Explicit (parent, children))
+      resolve_parent_page resolver f >>= fun (parent, children, context) ->
+      Ok (Explicit (parent, children), Some context)
   | CliPackage package ->
-      Ok (Package (Paths.Identifier.Mk.page (None, PageName.make_std package)))
-  | CliNoparent -> Ok Noparent
+      Ok
+        ( Package (Paths.Identifier.Mk.page (None, PageName.make_std package)),
+          None )
+  | CliNoparent -> Ok (Noparent, None)
 
 let resolve_imports resolver imports =
   List.map
@@ -97,7 +119,7 @@ let resolve_imports resolver imports =
     imports
 
 (** Raises warnings and errors. *)
-let resolve_and_substitute ~resolver ~make_root ~hidden
+let resolve_and_substitute ~resolver ~make_root ~hidden ~context
     (parent : Paths.Identifier.ContainerPage.t option) input_file input_type =
   let filename = Fs.File.to_string input_file in
   let unit =
@@ -112,7 +134,7 @@ let resolve_and_substitute ~resolver ~make_root ~hidden
         Odoc_loader.read_cmi ~make_root ~parent ~filename
         |> Error.raise_errors_and_warnings
   in
-  let unit = { unit with hidden = hidden || unit.hidden } in
+  let unit = { unit with hidden = hidden || unit.hidden; context } in
   if not unit.Lang.Compilation_unit.interface then
     Printf.eprintf "WARNING: not processing the \"interface\" file.%s\n%!"
       (if not (Filename.check_suffix filename "cmt") then "" (* ? *)
@@ -175,7 +197,7 @@ let page_name_of_output ~is_parent_explicit output =
      | _ -> ());
   root_name
 
-let mld ~parent_spec ~output ~children ~warnings_options input =
+let mld ~parent_spec ~output ~children ~warnings_options ~context input =
   List.fold_left
     (fun acc child_str ->
       match (acc, parse_parent_child_reference child_str) with
@@ -227,7 +249,8 @@ let mld ~parent_spec ~output ~children ~warnings_options input =
   in
   let resolve content =
     let page =
-      Lang.Page.{ name; root; children; content; digest; linked = false }
+      Lang.Page.
+        { name; root; context; children; content; digest; linked = false }
     in
     Odoc_file.save_page output ~warnings:[] page;
     Ok ()
@@ -249,10 +272,10 @@ let handle_file_ext ext =
 
 let compile ~resolver ~parent_cli_spec ~hidden ~children ~output
     ~warnings_options input =
-  parent resolver parent_cli_spec >>= fun parent_spec ->
+  parent resolver parent_cli_spec >>= fun (parent_spec, context) ->
   let ext = Fs.File.get_ext input in
   if ext = ".mld" then
-    mld ~parent_spec ~output ~warnings_options ~children input
+    mld ~parent_spec ~output ~warnings_options ~children ~context input
   else
     check_is_empty "Not expecting children (--child) when compiling modules."
       children
@@ -267,8 +290,8 @@ let compile ~resolver ~parent_cli_spec ~hidden ~children ~output
     let make_root = root_of_compilation_unit ~parent_spec ~hidden ~output in
     let result =
       Error.catch_errors_and_warnings (fun () ->
-          resolve_and_substitute ~resolver ~make_root ~hidden parent input
-            input_type)
+          resolve_and_substitute ~resolver ~make_root ~hidden ~context parent
+            input input_type)
     in
     (* Extract warnings to write them into the output file *)
     let _, warnings = Error.unpack_warnings result in

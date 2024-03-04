@@ -612,6 +612,7 @@ let my_compilation_unit id (s : Odoc_model.Lang.Signature.t) =
     ; source = None
     ; interface = true
     ; hidden = false
+    ; context = None
     ; content = Module s
     ; expansion = None
     ; linked = false
