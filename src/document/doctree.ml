@@ -50,7 +50,11 @@ module Toc : sig
   and one = { url : Url.t; text : Inline.t; children : t }
 
   val compute :
-    Url.Path.t -> on_sub:(Include.status -> bool) -> Item.t list -> t
+    Url.Path.t ->
+    on_sub:(Include.status -> bool) ->
+    context:Page.context option ->
+    Item.t list ->
+    t
 end = struct
   type t = one list
 
@@ -90,9 +94,30 @@ end = struct
   let node mkurl (anchor, text) children =
     { url = mkurl anchor; text; children }
 
-  let compute page ~on_sub t =
+  let wrap_context (_context : Page.context option) ~path:_ children = children
+  (* let t = { url = context.url; text = context.title; children; } in *)
+  (* match context.parent with *)
+  (* | Some p -> *)
+  (*     let siblings = *)
+  (*       let siblings = *)
+  (*         List.map (fun sibling_path -> *)
+  (*             if sibling_path = context.url.page then *)
+  (*               t *)
+  (*             else *)
+  (*               node_of_path sibling_path *)
+  (*           ) context.siblings *)
+  (*       in *)
+  (*       if List.memq t siblings then siblings *)
+  (*       else t :: siblings *)
+  (*     in *)
+  (*     wrap_context p ~path *)
+
+  (* | None -> [ t ] *)
+
+  let compute page ~on_sub ~context t =
     let mkurl anchor = { Url.Anchor.page; anchor; kind = `LeafPage } in
     Rewire.walk ~classify:(classify ~on_sub) ~node:(node mkurl) t
+    |> wrap_context context ~path:page
 end
 
 module Subpages : sig

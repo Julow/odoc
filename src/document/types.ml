@@ -171,8 +171,11 @@ end =
   Item
 
 and Page : sig
+  type context = TODO
+
   type t = {
     preamble : Item.t list;
+    context : context option;
     items : Item.t list;
     url : Url.Path.t;
     source_anchor : Url.t option;

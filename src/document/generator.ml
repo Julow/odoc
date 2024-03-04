@@ -95,7 +95,8 @@ let prepare_preamble comment items =
 let make_expansion_page ~source_anchor url comments items =
   let comment = List.concat comments in
   let preamble, items = prepare_preamble comment items in
-  { Page.preamble; items; url; source_anchor }
+  (* TODO: Construct context while constructing expansion pages. *)
+  { Page.preamble; context = Some Page.TODO; items; url; source_anchor }
 
 include Generator_signatures
 
@@ -1815,10 +1816,13 @@ module Make (Syntax : SYNTAX) = struct
           match t.name.iv with `Page (_, name) | `LeafPage (_, name) -> name
         in*)
       (*let title = Odoc_model.Names.PageName.to_string name in*)
+      let context =
+        match t.context with Some _ -> Some Page.TODO | None -> None
+      in
       let url = Url.Path.from_identifier t.name in
       let preamble, items = Sectioning.docs t.content in
       let source_anchor = None in
-      Document.Page { Page.preamble; items; url; source_anchor }
+      Document.Page { Page.preamble; context; items; url; source_anchor }
 
     let source_tree t =
       let dir_pages = t.Odoc_model.Lang.SourceTree.source_children in
@@ -1903,7 +1907,13 @@ module Make (Syntax : SYNTAX) = struct
           :: [ text ~attr:[ "odoc-folder-list" ] @@ list list_of_children ]
         in
         Document.Page
-          { Types.Page.preamble = []; items; url; source_anchor = None }
+          {
+            Types.Page.preamble = [];
+            context = None;
+            items;
+            url;
+            source_anchor = None;
+          }
       in
       M.fold (fun dir children acc -> page_of_dir dir children :: acc) mmap []
 

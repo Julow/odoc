@@ -432,8 +432,8 @@ module Toc = struct
     | `Closed | `Open | `Default -> false
     | `Inline -> true
 
-  let gen_toc ~config ~resolve ~path i =
-    let toc = Toc.compute path ~on_sub i in
+  let gen_toc ~config ~resolve ~path ~context i =
+    let toc = Toc.compute path ~on_sub ~context i in
     let rec section { Toc.url; text; children } =
       let text = inline_nolink text in
       let title =
@@ -483,14 +483,14 @@ module Page = struct
   and subpages ~config subpages = List.map (include_ ~config) subpages
 
   and page ~config p : Odoc_document.Renderer.page =
-    let { Page.preamble; items = i; url; source_anchor } =
+    let { Page.preamble; context; items = i; url; source_anchor } =
       Doctree.Labels.disambiguate_page ~enter_subpages:false p
     in
     let subpages = subpages ~config @@ Doctree.Subpages.compute p in
     let resolve = Link.Current url in
     let i = Doctree.Shift.compute ~on_sub i in
     let uses_katex = Doctree.Math.has_math_elements p in
-    let toc = Toc.gen_toc ~config ~resolve ~path:url i in
+    let toc = Toc.gen_toc ~config ~resolve ~path:url ~context i in
     let breadcrumbs = Breadcrumbs.gen_breadcrumbs ~config ~url in
     let content = (items ~config ~resolve i :> any Html.elt list) in
     if Config.as_json config then
