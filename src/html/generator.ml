@@ -441,12 +441,8 @@ module Toc = struct
           : non_link_phrasing Html.elt list
           :> Html_types.flow5_without_interactive Html.elt list)
       in
-      let title_str =
-        List.map (Format.asprintf "%a" (Tyxml.Html.pp_elt ())) text
-        |> String.concat ""
-      in
       let href = Link.href ~config ~resolve url in
-      { title; title_str; href; children = List.map section children }
+      { title; href; children = List.map section children }
     in
     List.map section toc
 end

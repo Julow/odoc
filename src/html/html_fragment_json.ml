@@ -22,7 +22,6 @@ let json_of_toc (toc : Types.toc list) : Utils.Json.json =
   let rec section (s : Types.toc) =
     `Object
       [
-        ("title", `String s.title_str);
         ("href", `String s.href);
         ("children", `Array (List.map section s.children));
       ]
