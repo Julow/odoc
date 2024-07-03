@@ -2629,12 +2629,12 @@ val resolve_ref : string -> ref = <fun>
    m)
 # resolve_ref "type-c.method-m" ;;
 Exception:
-Failure "Expected 'class-', 'class-type-', or an unqualified reference.".
+Failure "Expected 'class-', 'class-type-', an unqualified reference.".
 # resolve_ref "type-t.m" ;;
 Exception: Failure "resolve_reference: Couldn't find \"m\"".
 # resolve_ref "type-t.method-m" ;;
 Exception:
-Failure "Expected 'class-', 'class-type-', or an unqualified reference.".
+Failure "Expected 'class-', 'class-type-', an unqualified reference.".
 ```
 
 ## Failures
