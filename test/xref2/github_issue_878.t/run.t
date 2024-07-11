@@ -1,7 +1,7 @@
   $ ocamlc -bin-annot -I . a.mli b.mli
 
-  $ odoc compile --pkg test -I . b.cmti
   $ odoc compile --pkg test a.cmti
+  $ odoc compile --pkg test -I . b.cmti
 
   $ odoc html --indent -I . -o html a.odoc
   $ odoc html --indent -I . -o html b.odoc
@@ -43,7 +43,7 @@ $ odoc html-generate --indent -o html b.odocl
         <div class="spec type anchored" id="type-t">
          <a href="#type-t" class="anchor"></a>
          <code><span><span class="keyword">type</span> t</span></code>
-        </div>
+        </div><div class="spec-doc"><p>Pliz keep me.</p></div>
        </div>
       </details>
      </div>
