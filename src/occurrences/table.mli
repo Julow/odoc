@@ -1,5 +1,6 @@
 type t
-type item = { direct : int; indirect : int; sub : t }
+type sub
+type item = { direct : int; indirect : int; sub : sub }
 type key = Odoc_model.Paths.Identifier.t
 
 val v : unit -> t

@@ -3,6 +3,7 @@ module H = Hashtbl.Make (Odoc_model.Paths.Identifier)
 type t = item H.t
 and item = { direct : int; indirect : int; sub : item H.t }
 type key = Odoc_model.Paths.Identifier.t
+type sub = t
 
 let v_item () = { direct = 0; indirect = 0; sub = H.create 0 }
 
