@@ -1,7 +1,6 @@
 name: "Driver"
 
 on:
-  - push
   - pull_request
 
 jobs:
@@ -28,10 +27,12 @@ jobs:
           opam-local-packages: odoc-parser.opam odoc.opam odoc-driver.opam
 
       - name: Install dependencies
-        run: opam install -y --deps-only -t ./odoc-parser.opam ./odoc.opam ./odoc-driver.opam
+        run: |
+          opam install -y --deps-only -t ./odoc-parser.opam ./odoc.opam ./odoc-driver.opam
+          opam install -y base # Input to the driver
 
       - name: Run the driver
         run: |
-          opam exec -- dune exec -- odoc_driver -p odoc
+          opam exec -- dune exec -- odoc_driver -p base
           ls _html
           echo "Generated $(find _html -name '*.html' | wc -l) pages"
