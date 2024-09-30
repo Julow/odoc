@@ -33,4 +33,5 @@ jobs:
       - name: Run the driver
         run: |
           opam exec -- dune exec -- odoc_driver -p odoc
+          ls _html
           echo "Generated $(find _html -name '*.html' | wc -l) pages"
