@@ -44,7 +44,7 @@ depends: [
   "eio_main"
   "progress"
   "cmdliner"
-  "sherlodoc"
+  "sherlodoc" {post}
 ]
 
 build: [
