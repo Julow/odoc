@@ -12,14 +12,6 @@ jobs:
         os:
           - ubuntu-latest
         ocaml-compiler:
-          - "4.02"
-          - "4.04"
-          - "4.06"
-          - "4.08"
-          - "4.10"
-          - "4.12"
-          - "4.14"
-          - "5.0"
           - "5.2"
         include:
           - os: ubuntu-latest
