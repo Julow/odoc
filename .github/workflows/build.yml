@@ -42,8 +42,8 @@ jobs:
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
-          # Do not pin odoc to not break Mdx installation
-          opam-pin: ${{ matrix.run-mdx != true }}
+          # Do not pin odoc to not break Mdx installation and sherlodoc dependencies
+          opam-pin: false
 
       - name: Install dependencies
         run: |
